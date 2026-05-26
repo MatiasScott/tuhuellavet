@@ -1,7 +1,9 @@
 <?php
+ob_start();
+?>
+<?php
 
 $pageTitle = 'Dashboard';
-require BASE_PATH . '/app/views/layaouts/header.php';
 ?>
 <?php
 $userSafe = isset($user) && is_array($user) ? $user : [];
@@ -13,8 +15,6 @@ $widgetsSafe = isset($widgets) && is_array($widgets) ? $widgets : [];
 $metricsSafe = isset($metrics) && is_array($metrics) ? $metrics : [];
 ?>
 
-<?php require BASE_PATH . '/app/views/layaouts/sidebar.php'; ?>
-<section class="col-12 col-lg-9 col-xl-10">
 <main class="container">
     <section class="row g-3 mb-3">
         <div class="col-12 col-lg-8">
@@ -128,5 +128,8 @@ $metricsSafe = isset($metrics) && is_array($metrics) ? $metrics : [];
 </main>
 <script src="<?php echo htmlspecialchars(asset('js/dashboard.js')); ?>"></script>
 
-</section>
-<?php require BASE_PATH . '/app/views/layaouts/footer.php'; ?>
+
+<?php
+$pageContent = ob_get_clean();
+require BASE_PATH . "/app/views/layaouts/app.php";
+?>

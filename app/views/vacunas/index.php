@@ -1,7 +1,9 @@
 <?php
+ob_start();
+?>
+<?php
 
 $pageTitle = 'Vacunas';
-require BASE_PATH . '/app/views/layaouts/header.php';
 ?>
 <?php
 $catalogoSafe = isset($catalogo) && is_array($catalogo) ? $catalogo : [];
@@ -13,8 +15,6 @@ $successSafe = isset($success) ? (string) $success : '';
 $errorSafe = isset($error) ? (string) $error : '';
 ?>
 
-<?php require BASE_PATH . '/app/views/layaouts/sidebar.php'; ?>
-<section class="col-12 col-lg-9 col-xl-10">
 <main class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4 m-0">Vacunas</h1>
@@ -116,5 +116,8 @@ $errorSafe = isset($error) ? (string) $error : '';
     </section>
 </main>
 
-</section>
-<?php require BASE_PATH . '/app/views/layaouts/footer.php'; ?>
+
+<?php
+$pageContent = ob_get_clean();
+require BASE_PATH . "/app/views/layaouts/app.php";
+?>

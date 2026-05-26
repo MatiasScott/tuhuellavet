@@ -1,7 +1,9 @@
 <?php
+ob_start();
+?>
+<?php
 
 $pageTitle = 'Timeline clinico';
-require BASE_PATH . '/app/views/layaouts/header.php';
 ?>
 <?php
 $animalesSafe = isset($animales) && is_array($animales) ? $animales : [];
@@ -14,8 +16,6 @@ $fechaInicioSafe = (string) ($filtersSafe['fecha_inicio'] ?? '');
 $fechaFinSafe = (string) ($filtersSafe['fecha_fin'] ?? '');
 ?>
 
-<?php require BASE_PATH . '/app/views/layaouts/sidebar.php'; ?>
-<section class="col-12 col-lg-9 col-xl-10">
 <main class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4 m-0">Timeline clinico</h1>
@@ -71,5 +71,8 @@ $fechaFinSafe = (string) ($filtersSafe['fecha_fin'] ?? '');
     </section>
 </main>
 
-</section>
-<?php require BASE_PATH . '/app/views/layaouts/footer.php'; ?>
+
+<?php
+$pageContent = ob_get_clean();
+require BASE_PATH . "/app/views/layaouts/app.php";
+?>
