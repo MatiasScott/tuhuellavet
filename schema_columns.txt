@@ -1,0 +1,370 @@
+animal_pesos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+animal_pesos|animal_id|bigint|bigint unsigned|NO|NULL|
+animal_pesos|consulta_id|bigint|bigint unsigned|YES|NULL|
+animal_pesos|peso|decimal|decimal(10,2)|NO|NULL|
+animal_pesos|fecha_registro|datetime|datetime|NO|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+animal_pesos|usuario_id|bigint|bigint unsigned|YES|NULL|
+animal_pesos|observacion|text|text|YES|NULL|
+animal_pesos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+animal_vacunas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+animal_vacunas|animal_id|bigint|bigint unsigned|NO|NULL|
+animal_vacunas|vacuna_id|bigint|bigint unsigned|NO|NULL|
+animal_vacunas|catalogo_vacuna_id|bigint|bigint unsigned|YES|NULL|
+animal_vacunas|dosis|varchar|varchar(100)|YES|NULL|
+animal_vacunas|laboratorio|varchar|varchar(150)|YES|NULL|
+animal_vacunas|lote|varchar|varchar(120)|YES|NULL|
+animal_vacunas|consulta_id|bigint|bigint unsigned|YES|NULL|
+animal_vacunas|fecha_aplicacion|date|date|NO|NULL|
+animal_vacunas|proxima_aplicacion|date|date|YES|NULL|
+animal_vacunas|observaciones|text|text|YES|NULL|
+animal_vacunas|usuario_id|bigint|bigint unsigned|YES|NULL|
+animales|id|bigint|bigint unsigned|NO|NULL|auto_increment
+animales|empresa_id|bigint|bigint unsigned|NO|NULL|
+animales|propietario_id|bigint|bigint unsigned|YES|NULL|
+animales|especie_id|bigint|bigint unsigned|NO|NULL|
+animales|raza_id|bigint|bigint unsigned|YES|NULL|
+animales|codigo|varchar|varchar(100)|YES|NULL|
+animales|nombre|varchar|varchar(150)|NO|NULL|
+animales|sexo|enum|enum('macho','hembra')|YES|NULL|
+animales|fecha_nacimiento|date|date|YES|NULL|
+animales|peso_actual|decimal|decimal(10,2)|YES|NULL|
+animales|color|varchar|varchar(100)|YES|NULL|
+animales|microchip|varchar|varchar(100)|YES|NULL|
+animales|foto|varchar|varchar(255)|YES|NULL|
+animales|observaciones|text|text|YES|NULL|
+animales|estado|tinyint|tinyint(1)|YES|1|
+animales|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+animales|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+archivos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+archivos|empresa_id|bigint|bigint unsigned|YES|NULL|
+archivos|entidad|varchar|varchar(50)|NO|NULL|
+archivos|entidad_id|bigint|bigint unsigned|NO|NULL|
+archivos|tipo_archivo|varchar|varchar(30)|NO|NULL|
+archivos|nombre_original|varchar|varchar(255)|NO|NULL|
+archivos|nombre_archivo|varchar|varchar(255)|NO|NULL|
+archivos|ruta|varchar|varchar(255)|NO|NULL|
+archivos|extension|varchar|varchar(20)|NO|NULL|
+archivos|mime|varchar|varchar(100)|NO|NULL|
+archivos|tamano_bytes|bigint|bigint unsigned|NO|NULL|
+archivos|ancho|int|int unsigned|YES|NULL|
+archivos|alto|int|int unsigned|YES|NULL|
+archivos|metadata|json|json|YES|NULL|
+archivos|subido_por|bigint|bigint unsigned|YES|NULL|
+archivos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+archivos|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+auditoria|id|bigint|bigint unsigned|NO|NULL|auto_increment
+auditoria|empresa_id|bigint|bigint unsigned|YES|NULL|
+auditoria|usuario_id|bigint|bigint unsigned|YES|NULL|
+auditoria|modulo|varchar|varchar(100)|NO|NULL|
+auditoria|accion|varchar|varchar(100)|NO|NULL|
+auditoria|tabla_afectada|varchar|varchar(100)|YES|NULL|
+auditoria|registro_id|bigint|bigint unsigned|YES|NULL|
+auditoria|datos_anteriores|json|json|YES|NULL|
+auditoria|datos_nuevos|json|json|YES|NULL|
+auditoria|ip_address|varchar|varchar(100)|YES|NULL|
+auditoria|user_agent|text|text|YES|NULL|
+auditoria|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+catalogo_diagnosticos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+catalogo_diagnosticos|codigo|varchar|varchar(60)|YES|NULL|
+catalogo_diagnosticos|nombre|varchar|varchar(200)|NO|NULL|
+catalogo_diagnosticos|tipo|enum|enum('diferencial','preventivo','definitivo')|NO|NULL|
+catalogo_diagnosticos|descripcion|text|text|YES|NULL|
+catalogo_diagnosticos|estado|tinyint|tinyint(1)|YES|1|
+catalogo_diagnosticos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+catalogo_diagnosticos|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+catalogo_vacunas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+catalogo_vacunas|empresa_id|bigint|bigint unsigned|YES|NULL|
+catalogo_vacunas|nombre|varchar|varchar(150)|NO|NULL|
+catalogo_vacunas|descripcion|text|text|YES|NULL|
+catalogo_vacunas|estado|tinyint|tinyint(1)|YES|1|
+catalogo_vacunas|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+catalogo_vacunas|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+categorias_animales|id|bigint|bigint unsigned|NO|NULL|auto_increment
+categorias_animales|nombre|varchar|varchar(100)|NO|NULL|
+categorias_animales|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+categorias_productos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+categorias_productos|nombre|varchar|varchar(100)|NO|NULL|
+cirugias|id|bigint|bigint unsigned|NO|NULL|auto_increment
+cirugias|empresa_id|bigint|bigint unsigned|NO|NULL|
+cirugias|animal_id|bigint|bigint unsigned|NO|NULL|
+cirugias|consulta_id|bigint|bigint unsigned|YES|NULL|
+cirugias|procedimiento_quirurgico|varchar|varchar(255)|NO|NULL|
+cirugias|medico_responsable|varchar|varchar(150)|YES|NULL|
+cirugias|anestesia|varchar|varchar(150)|YES|NULL|
+cirugias|formula_medica|text|text|YES|NULL|
+cirugias|formula_id|bigint|bigint unsigned|YES|NULL|
+cirugias|archivo_pdf|varchar|varchar(255)|YES|NULL|
+cirugias|observaciones|text|text|YES|NULL|
+cirugias|fecha|datetime|datetime|NO|NULL|
+cirugias|usuario_id|bigint|bigint unsigned|YES|NULL|
+cirugias|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+cirugias|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+citas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+citas|empresa_id|bigint|bigint unsigned|NO|NULL|
+citas|animal_id|bigint|bigint unsigned|NO|NULL|
+citas|veterinario_id|bigint|bigint unsigned|YES|NULL|
+citas|fecha_inicio|datetime|datetime|NO|NULL|
+citas|fecha_fin|datetime|datetime|YES|NULL|
+citas|motivo|text|text|YES|NULL|
+citas|estado|enum|enum('pendiente','confirmada','atendida','cancelada')|YES|pendiente|
+citas|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+consulta_diagnosticos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+consulta_diagnosticos|consulta_id|bigint|bigint unsigned|NO|NULL|
+consulta_diagnosticos|diagnostico_id|bigint|bigint unsigned|NO|NULL|
+consulta_diagnosticos|usuario_id|bigint|bigint unsigned|NO|NULL|
+consulta_diagnosticos|observacion|text|text|YES|NULL|
+consulta_diagnosticos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+consulta_examen_general|id|bigint|bigint unsigned|NO|NULL|auto_increment
+consulta_examen_general|consulta_id|bigint|bigint unsigned|NO|NULL|
+consulta_examen_general|alimentacion|text|text|YES|NULL|
+consulta_examen_general|historial_reproductivo|text|text|YES|NULL|
+consulta_examen_general|frecuencia_cardiaca|decimal|decimal(10,2)|YES|NULL|
+consulta_examen_general|frecuencia_respiratoria|decimal|decimal(10,2)|YES|NULL|
+consulta_examen_general|temperatura|decimal|decimal(5,2)|YES|NULL|
+consulta_examen_general|tiempo_llenado_capilar|varchar|varchar(50)|YES|NULL|
+consulta_examen_general|ganglios_linfaticos|varchar|varchar(255)|YES|NULL|
+consulta_examen_general|condicion_corporal|varchar|varchar(100)|YES|NULL|
+consulta_examen_general|vomitos|tinyint|tinyint(1)|YES|NULL|
+consulta_examen_general|diarrea|tinyint|tinyint(1)|YES|NULL|
+consulta_examen_general|tos|tinyint|tinyint(1)|YES|NULL|
+consulta_examen_general|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+consulta_examen_general|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+consulta_medicamentos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+consulta_medicamentos|consulta_id|bigint|bigint unsigned|NO|NULL|
+consulta_medicamentos|medicamento_id|bigint|bigint unsigned|NO|NULL|
+consulta_medicamentos|formula_id|bigint|bigint unsigned|YES|NULL|
+consulta_medicamentos|dosis_calculada|decimal|decimal(10,2)|YES|NULL|
+consulta_medicamentos|frecuencia|varchar|varchar(100)|YES|NULL|
+consulta_medicamentos|duracion|varchar|varchar(100)|YES|NULL|
+consulta_medicamentos|observaciones|text|text|YES|NULL|
+consulta_medicamentos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+consultas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+consultas|empresa_id|bigint|bigint unsigned|NO|NULL|
+consultas|animal_id|bigint|bigint unsigned|NO|NULL|
+consultas|veterinario_id|bigint|bigint unsigned|NO|NULL|
+consultas|fecha_consulta|datetime|datetime|NO|NULL|
+consultas|motivo_consulta|text|text|YES|NULL|
+consultas|anamnesis|text|text|YES|NULL|
+consultas|antecedentes|text|text|YES|NULL|
+consultas|diagnostico|text|text|YES|NULL|
+consultas|tratamiento|text|text|YES|NULL|
+consultas|recomendaciones|text|text|YES|NULL|
+consultas|tratamiento_clinico|text|text|YES|NULL|
+consultas|tratamiento_casa|text|text|YES|NULL|
+consultas|observaciones|text|text|YES|NULL|
+consultas|peso|decimal|decimal(10,2)|YES|NULL|
+consultas|temperatura|decimal|decimal(5,2)|YES|NULL|
+consultas|frecuencia_cardiaca|decimal|decimal(10,2)|YES|NULL|
+consultas|frecuencia_respiratoria|decimal|decimal(10,2)|YES|NULL|
+consultas|estado|enum|enum('abierta','cerrada','anulada')|YES|abierta|
+consultas|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+consultas|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+dashboard_widget_roles|id|bigint|bigint unsigned|NO|NULL|auto_increment
+dashboard_widget_roles|widget_id|bigint|bigint unsigned|NO|NULL|
+dashboard_widget_roles|rol_id|bigint|bigint unsigned|NO|NULL|
+dashboard_widget_roles|orden|smallint|smallint unsigned|YES|1|
+dashboard_widget_roles|visible|tinyint|tinyint(1)|YES|1|
+dashboard_widget_roles|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+dashboard_widgets|id|bigint|bigint unsigned|NO|NULL|auto_increment
+dashboard_widgets|codigo|varchar|varchar(100)|NO|NULL|
+dashboard_widgets|nombre|varchar|varchar(150)|NO|NULL|
+dashboard_widgets|contexto|enum|enum('veterinaria','hacienda','global')|YES|global|
+dashboard_widgets|modulo_origen|varchar|varchar(100)|NO|NULL|
+dashboard_widgets|activo|tinyint|tinyint(1)|YES|1|
+dashboard_widgets|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+dashboard_widgets|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+desparasitaciones|id|bigint|bigint unsigned|NO|NULL|auto_increment
+desparasitaciones|empresa_id|bigint|bigint unsigned|NO|NULL|
+desparasitaciones|animal_id|bigint|bigint unsigned|NO|NULL|
+desparasitaciones|farmaco|varchar|varchar(150)|NO|NULL|
+desparasitaciones|dosis|varchar|varchar(100)|YES|NULL|
+desparasitaciones|fecha|date|date|NO|NULL|
+desparasitaciones|proxima_fecha|date|date|YES|NULL|
+desparasitaciones|observacion|text|text|YES|NULL|
+desparasitaciones|peso_actual|decimal|decimal(10,2)|YES|NULL|
+desparasitaciones|usuario_id|bigint|bigint unsigned|YES|NULL|
+desparasitaciones|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+desparasitaciones|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+empresas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+empresas|nombre|varchar|varchar(150)|NO|NULL|
+empresas|tipo|enum|enum('veterinaria','hacienda')|NO|NULL|
+empresas|direccion|varchar|varchar(255)|YES|NULL|
+empresas|telefono|varchar|varchar(50)|YES|NULL|
+empresas|email|varchar|varchar(150)|YES|NULL|
+empresas|logo|varchar|varchar(255)|YES|NULL|
+empresas|estado|tinyint|tinyint(1)|YES|1|
+empresas|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+empresas|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+especies|id|bigint|bigint unsigned|NO|NULL|auto_increment
+especies|categoria_id|bigint|bigint unsigned|NO|NULL|
+especies|nombre|varchar|varchar(100)|NO|NULL|
+examenes_laboratorio|id|bigint|bigint unsigned|NO|NULL|auto_increment
+examenes_laboratorio|empresa_id|bigint|bigint unsigned|NO|NULL|
+examenes_laboratorio|animal_id|bigint|bigint unsigned|NO|NULL|
+examenes_laboratorio|consulta_id|bigint|bigint unsigned|YES|NULL|
+examenes_laboratorio|tipo_examen|varchar|varchar(150)|NO|NULL|
+examenes_laboratorio|observaciones|text|text|YES|NULL|
+examenes_laboratorio|resultado|text|text|YES|NULL|
+examenes_laboratorio|archivo_pdf|varchar|varchar(255)|YES|NULL|
+examenes_laboratorio|usuario_id|bigint|bigint unsigned|YES|NULL|
+examenes_laboratorio|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+examenes_laboratorio|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+fluidoterapia|id|bigint|bigint unsigned|NO|NULL|auto_increment
+fluidoterapia|hospitalizacion_id|bigint|bigint unsigned|NO|NULL|
+fluidoterapia|tamano_animal_id|bigint|bigint unsigned|YES|NULL|
+fluidoterapia|mantenimiento|decimal|decimal(10,2)|YES|NULL|
+fluidoterapia|rehidratacion|decimal|decimal(10,2)|YES|NULL|
+fluidoterapia|formula|varchar|varchar(255)|YES|NULL|
+fluidoterapia|formulas_medicas|text|text|YES|NULL|
+fluidoterapia|signos_clinicos|text|text|YES|NULL|
+fluidoterapia|observaciones|text|text|YES|NULL|
+fluidoterapia|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+fluidoterapia|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+formula_historial|id|bigint|bigint unsigned|NO|NULL|auto_increment
+formula_historial|formula_id|bigint|bigint unsigned|NO|NULL|
+formula_historial|consulta_medicamento_id|bigint|bigint unsigned|YES|NULL|
+formula_historial|usuario_id|bigint|bigint unsigned|NO|NULL|
+formula_historial|resultado|decimal|decimal(10,2)|YES|NULL|
+formula_historial|datos|json|json|YES|NULL|
+formula_historial|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+formula_variables|id|bigint|bigint unsigned|NO|NULL|auto_increment
+formula_variables|formula_id|bigint|bigint unsigned|NO|NULL|
+formula_variables|variable|varchar|varchar(100)|NO|NULL|
+formula_variables|etiqueta|varchar|varchar(150)|NO|NULL|
+formula_variables|tipo|enum|enum('numero','decimal','texto')|YES|decimal|
+formula_variables|unidad|varchar|varchar(50)|YES|NULL|
+formula_variables|automatico|tinyint|tinyint(1)|YES|0|
+formula_variables|origen|varchar|varchar(100)|YES|NULL|
+formula_variables|valor_default|decimal|decimal(10,2)|YES|NULL|
+formulas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+formulas|empresa_id|bigint|bigint unsigned|NO|NULL|
+formulas|medicamento_id|bigint|bigint unsigned|YES|NULL|
+formulas|nombre|varchar|varchar(150)|NO|NULL|
+formulas|formula|text|text|NO|NULL|
+formulas|unidad_resultado|varchar|varchar(50)|YES|NULL|
+formulas|descripcion|text|text|YES|NULL|
+formulas|estado|tinyint|tinyint(1)|YES|1|
+formulas|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+formulas|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+historial_clinico_cambios|id|bigint|bigint unsigned|NO|NULL|auto_increment
+historial_clinico_cambios|consulta_id|bigint|bigint unsigned|NO|NULL|
+historial_clinico_cambios|usuario_id|bigint|bigint unsigned|NO|NULL|
+historial_clinico_cambios|campo_modificado|varchar|varchar(100)|NO|NULL|
+historial_clinico_cambios|valor_anterior|text|text|YES|NULL|
+historial_clinico_cambios|valor_nuevo|text|text|YES|NULL|
+historial_clinico_cambios|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+hospitalizaciones|id|bigint|bigint unsigned|NO|NULL|auto_increment
+hospitalizaciones|empresa_id|bigint|bigint unsigned|NO|NULL|
+hospitalizaciones|animal_id|bigint|bigint unsigned|NO|NULL|
+hospitalizaciones|consulta_id|bigint|bigint unsigned|YES|NULL|
+hospitalizaciones|fecha_ingreso|datetime|datetime|NO|NULL|
+hospitalizaciones|fecha_salida|datetime|datetime|YES|NULL|
+hospitalizaciones|motivo|text|text|YES|NULL|
+hospitalizaciones|estado|enum|enum('activa','alta','traslado','cancelada')|YES|activa|
+hospitalizaciones|observaciones|text|text|YES|NULL|
+hospitalizaciones|usuario_id|bigint|bigint unsigned|YES|NULL|
+hospitalizaciones|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+hospitalizaciones|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+medicamentos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+medicamentos|empresa_id|bigint|bigint unsigned|NO|NULL|
+medicamentos|nombre|varchar|varchar(150)|NO|NULL|
+medicamentos|descripcion|text|text|YES|NULL|
+medicamentos|foto|varchar|varchar(255)|YES|NULL|
+medicamentos|concentracion|varchar|varchar(100)|YES|NULL|
+medicamentos|unidad|varchar|varchar(50)|YES|NULL|
+medicamentos|stock_actual|decimal|decimal(10,2)|YES|0.00|
+medicamentos|estado|tinyint|tinyint(1)|YES|1|
+medicamentos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+medicamentos|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+modulos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+modulos|nombre|varchar|varchar(100)|NO|NULL|
+modulos|slug|varchar|varchar(100)|NO|NULL|
+modulos|descripcion|text|text|YES|NULL|
+modulos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+movimientos_inventario|id|bigint|bigint unsigned|NO|NULL|auto_increment
+movimientos_inventario|empresa_id|bigint|bigint unsigned|NO|NULL|
+movimientos_inventario|producto_id|bigint|bigint unsigned|NO|NULL|
+movimientos_inventario|tipo|enum|enum('entrada','salida','ajuste')|NO|NULL|
+movimientos_inventario|cantidad|decimal|decimal(10,2)|NO|NULL|
+movimientos_inventario|observacion|text|text|YES|NULL|
+movimientos_inventario|usuario_id|bigint|bigint unsigned|NO|NULL|
+movimientos_inventario|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+notificaciones|id|bigint|bigint unsigned|NO|NULL|auto_increment
+notificaciones|empresa_id|bigint|bigint unsigned|NO|NULL|
+notificaciones|propietario_id|bigint|bigint unsigned|NO|NULL|
+notificaciones|tipo|enum|enum('email','sms','whatsapp','interna')|NO|NULL|
+notificaciones|titulo|varchar|varchar(255)|NO|NULL|
+notificaciones|mensaje|text|text|NO|NULL|
+notificaciones|fecha_programada|datetime|datetime|YES|NULL|
+notificaciones|fecha_envio|datetime|datetime|YES|NULL|
+notificaciones|estado|enum|enum('pendiente','enviado','error')|YES|pendiente|
+notificaciones|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+permisos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+permisos|modulo_id|bigint|bigint unsigned|NO|NULL|
+permisos|nombre|varchar|varchar(100)|NO|NULL|
+permisos|slug|varchar|varchar(100)|NO|NULL|
+productos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+productos|empresa_id|bigint|bigint unsigned|NO|NULL|
+productos|categoria_id|bigint|bigint unsigned|YES|NULL|
+productos|codigo|varchar|varchar(100)|YES|NULL|
+productos|nombre|varchar|varchar(150)|NO|NULL|
+productos|descripcion|text|text|YES|NULL|
+productos|foto|varchar|varchar(255)|YES|NULL|
+productos|unidad|varchar|varchar(50)|YES|NULL|
+productos|stock_minimo|decimal|decimal(10,2)|YES|0.00|
+productos|precio_compra|decimal|decimal(10,2)|YES|0.00|
+productos|precio_venta|decimal|decimal(10,2)|YES|0.00|
+productos|estado|tinyint|tinyint(1)|YES|1|
+productos|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+productos|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+propietarios|id|bigint|bigint unsigned|NO|NULL|auto_increment
+propietarios|empresa_id|bigint|bigint unsigned|NO|NULL|
+propietarios|nombres|varchar|varchar(150)|NO|NULL|
+propietarios|apellidos|varchar|varchar(150)|YES|NULL|
+propietarios|identificacion|varchar|varchar(50)|YES|NULL|
+propietarios|telefono|varchar|varchar(50)|YES|NULL|
+propietarios|celular|varchar|varchar(50)|YES|NULL|
+propietarios|email|varchar|varchar(150)|YES|NULL|
+propietarios|direccion|varchar|varchar(255)|YES|NULL|
+propietarios|usuario_id|bigint|bigint unsigned|YES|NULL|
+propietarios|portal_cliente_activo|tinyint|tinyint(1)|YES|0|
+propietarios|foto|varchar|varchar(255)|YES|NULL|
+propietarios|estado|tinyint|tinyint(1)|YES|1|
+propietarios|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+propietarios|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+razas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+razas|especie_id|bigint|bigint unsigned|NO|NULL|
+razas|nombre|varchar|varchar(100)|NO|NULL|
+rol_permisos|id|bigint|bigint unsigned|NO|NULL|auto_increment
+rol_permisos|rol_id|bigint|bigint unsigned|NO|NULL|
+rol_permisos|permiso_id|bigint|bigint unsigned|NO|NULL|
+roles|id|bigint|bigint unsigned|NO|NULL|auto_increment
+roles|nombre|varchar|varchar(100)|NO|NULL|
+roles|descripcion|text|text|YES|NULL|
+roles|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+tamanos_animales|id|bigint|bigint unsigned|NO|NULL|auto_increment
+tamanos_animales|nombre|varchar|varchar(100)|NO|NULL|
+tamanos_animales|peso_min|decimal|decimal(10,2)|YES|NULL|
+tamanos_animales|peso_max|decimal|decimal(10,2)|YES|NULL|
+tamanos_animales|estado|tinyint|tinyint(1)|YES|1|
+tamanos_animales|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+usuarios|id|bigint|bigint unsigned|NO|NULL|auto_increment
+usuarios|nombres|varchar|varchar(150)|NO|NULL|
+usuarios|apellidos|varchar|varchar(150)|YES|NULL|
+usuarios|email|varchar|varchar(150)|NO|NULL|
+usuarios|password|varchar|varchar(255)|NO|NULL|
+usuarios|telefono|varchar|varchar(50)|YES|NULL|
+usuarios|foto|varchar|varchar(255)|YES|NULL|
+usuarios|ultimo_login|datetime|datetime|YES|NULL|
+usuarios|estado|tinyint|tinyint(1)|YES|1|
+usuarios|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
+usuarios|updated_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+usuarios_empresas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+usuarios_empresas|usuario_id|bigint|bigint unsigned|NO|NULL|
+usuarios_empresas|empresa_id|bigint|bigint unsigned|NO|NULL|
+usuarios_empresas|rol_id|bigint|bigint unsigned|NO|NULL|
+vacunas|id|bigint|bigint unsigned|NO|NULL|auto_increment
+vacunas|empresa_id|bigint|bigint unsigned|NO|NULL|
+vacunas|nombre|varchar|varchar(150)|NO|NULL|
+vacunas|descripcion|text|text|YES|NULL|
+vacunas|created_at|timestamp|timestamp|YES|CURRENT_TIMESTAMP|DEFAULT_GENERATED
