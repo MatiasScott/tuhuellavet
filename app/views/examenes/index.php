@@ -58,12 +58,20 @@ $errorSafe = isset($error) ? (string) $error : '';
                 <thead><tr><th>ID</th><th>Paciente</th><th>Tipo</th><th>Resultado</th><th>PDF</th><th>Usuario</th><th>Fecha</th></tr></thead>
                 <tbody>
                 <?php foreach ($rowsSafe as $r): ?>
+                    <?php $pdfPath = trim((string) ($r['archivo_pdf'] ?? '')); ?>
                     <tr>
                         <td><?php echo (int) ($r['id'] ?? 0); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['animal'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['tipo_examen'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['resultado'] ?? '')); ?></td>
-                        <td><small class="text-muted"><?php echo htmlspecialchars((string) ($r['archivo_pdf'] ?? '')); ?></small></td>
+                        <td>
+                            <?php if ($pdfPath !== ''): ?>
+                                <button class="btn btn-sm btn-outline-primary" type="button" data-pdf-preview="<?php echo htmlspecialchars(url('/pdf/ver?path=' . urlencode($pdfPath))); ?>"><i class="bi bi-file-earmark-pdf"></i> Visualizar</button>
+                                <a class="btn btn-sm btn-outline-secondary" href="<?php echo htmlspecialchars(url('/pdf/descargar?path=' . urlencode($pdfPath))); ?>"><i class="bi bi-download"></i> Descargar</a>
+                            <?php else: ?>
+                                <span class="text-muted">Sin archivo</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?php echo htmlspecialchars((string) ($r['usuario'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars((string) ($r['created_at'] ?? '')); ?></td>
                     </tr>
@@ -73,6 +81,22 @@ $errorSafe = isset($error) ? (string) $error : '';
         </div>
     </section>
 </main>
+
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Vista previa PDF</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe src="about:blank" style="width:100%;height:75vh;border:0;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="<?php echo htmlspecialchars(asset('js/pdf-preview.js')); ?>"></script>
 
 
 <?php

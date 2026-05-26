@@ -39,6 +39,13 @@ final class DashboardController extends Controller
                 'cirugias_mes' => 0,
                 'eventos_timeline_7_dias' => 0,
             ],
+            'datasets' => [
+                'pacientes_recientes' => [],
+                'vacunas_proximas' => [],
+                'hospitalizaciones_activas' => [],
+                'cirugias_recientes' => [],
+                'timeline_reciente' => [],
+            ],
         ];
 
         if (is_array($user) && isset($user['id']) && $empresaId > 0) {
@@ -53,6 +60,7 @@ final class DashboardController extends Controller
             'empresaTipo' => $dashboardData['empresaTipo'],
             'widgets' => $dashboardData['widgets'],
             'metrics' => $dashboardData['metrics'],
+            'datasets' => $dashboardData['datasets'],
         ]);
     }
 }

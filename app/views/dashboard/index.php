@@ -13,6 +13,13 @@ $rolNombreSafe = isset($rolNombre) ? (string) $rolNombre : 'Sin rol';
 $empresaTipoSafe = isset($empresaTipo) ? (string) $empresaTipo : 'global';
 $widgetsSafe = isset($widgets) && is_array($widgets) ? $widgets : [];
 $metricsSafe = isset($metrics) && is_array($metrics) ? $metrics : [];
+$datasetsSafe = isset($datasets) && is_array($datasets) ? $datasets : [];
+
+$pacientesRecientes = isset($datasetsSafe['pacientes_recientes']) && is_array($datasetsSafe['pacientes_recientes']) ? $datasetsSafe['pacientes_recientes'] : [];
+$vacunasProximas = isset($datasetsSafe['vacunas_proximas']) && is_array($datasetsSafe['vacunas_proximas']) ? $datasetsSafe['vacunas_proximas'] : [];
+$hospitalizacionesActivasDetalle = isset($datasetsSafe['hospitalizaciones_activas']) && is_array($datasetsSafe['hospitalizaciones_activas']) ? $datasetsSafe['hospitalizaciones_activas'] : [];
+$cirugiasRecientes = isset($datasetsSafe['cirugias_recientes']) && is_array($datasetsSafe['cirugias_recientes']) ? $datasetsSafe['cirugias_recientes'] : [];
+$timelineReciente = isset($datasetsSafe['timeline_reciente']) && is_array($datasetsSafe['timeline_reciente']) ? $datasetsSafe['timeline_reciente'] : [];
 $pageStyles = [asset('css/dashboard.css')];
 
 $trendPoints = [
@@ -162,6 +169,75 @@ $trendSerialized = implode(',', $trendPoints);
                     <p class="tvg-activity-title">Cirugias del periodo</p>
                     <p class="tvg-activity-meta"><?php echo (int) ($metricsSafe['cirugias_mes'] ?? 0); ?> procedimientos en curso mensual.</p>
                 </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-3">
+        <div class="col-12 col-lg-4">
+            <article class="card tvg-card p-3">
+                <h2 class="h6 mb-2">Pacientes recientes</h2>
+                <?php foreach ($pacientesRecientes as $paciente): ?>
+                    <div class="tvg-activity-item">
+                        <p class="tvg-activity-title"><?php echo htmlspecialchars((string) ($paciente['nombre'] ?? '')); ?></p>
+                        <p class="tvg-activity-meta">Registro #<?php echo (int) ($paciente['id'] ?? 0); ?> - <?php echo htmlspecialchars((string) ($paciente['created_at'] ?? '')); ?></p>
+                    </div>
+                <?php endforeach; ?>
+            </article>
+        </div>
+        <div class="col-12 col-lg-4">
+            <article class="card tvg-card p-3">
+                <h2 class="h6 mb-2">Proximas vacunas</h2>
+                <?php foreach ($vacunasProximas as $vac): ?>
+                    <div class="tvg-activity-item">
+                        <p class="tvg-activity-title"><?php echo htmlspecialchars((string) ($vac['animal'] ?? '')); ?></p>
+                        <p class="tvg-activity-meta"><?php echo htmlspecialchars((string) ($vac['vacuna'] ?? '')); ?> - <?php echo htmlspecialchars((string) ($vac['proxima_aplicacion'] ?? '')); ?></p>
+                    </div>
+                <?php endforeach; ?>
+            </article>
+        </div>
+        <div class="col-12 col-lg-4">
+            <article class="card tvg-card p-3">
+                <h2 class="h6 mb-2">Hospitalizacion activa</h2>
+                <?php foreach ($hospitalizacionesActivasDetalle as $h): ?>
+                    <div class="tvg-activity-item">
+                        <p class="tvg-activity-title"><?php echo htmlspecialchars((string) ($h['animal'] ?? '')); ?></p>
+                        <p class="tvg-activity-meta">Ingreso <?php echo htmlspecialchars((string) ($h['fecha_ingreso'] ?? '')); ?></p>
+                    </div>
+                <?php endforeach; ?>
+            </article>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-4">
+        <div class="col-12 col-lg-6">
+            <article class="card tvg-card p-3">
+                <h2 class="h6 mb-2">Cirugias recientes</h2>
+                <div class="table-responsive">
+                    <table class="table tvg-table table-hover mb-0">
+                        <thead><tr><th>Paciente</th><th>Procedimiento</th><th>Fecha</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($cirugiasRecientes as $cir): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars((string) ($cir['animal'] ?? '')); ?></td>
+                                <td><?php echo htmlspecialchars((string) ($cir['procedimiento_quirurgico'] ?? '')); ?></td>
+                                <td><?php echo htmlspecialchars((string) ($cir['fecha'] ?? '')); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </div>
+        <div class="col-12 col-lg-6">
+            <article class="card tvg-card p-3">
+                <h2 class="h6 mb-2">Timeline clinico reciente</h2>
+                <?php foreach ($timelineReciente as $item): ?>
+                    <div class="tvg-activity-item">
+                        <p class="tvg-activity-title"><?php echo htmlspecialchars((string) ($item['titulo'] ?? 'Evento')); ?></p>
+                        <p class="tvg-activity-meta"><?php echo htmlspecialchars((string) ($item['modulo'] ?? '')); ?> - <?php echo htmlspecialchars((string) ($item['fecha_evento'] ?? '')); ?></p>
+                    </div>
+                <?php endforeach; ?>
             </article>
         </div>
     </section>

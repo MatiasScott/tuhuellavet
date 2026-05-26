@@ -209,6 +209,7 @@ final class AuthController extends Controller
         }
 
         $companyId = (int) $request->input('empresa_id', 0);
+        $redirectTo = (string) $request->input('redirect_to', '/dashboard');
         $user = Session::get((string) config('auth.session_key'));
 
         if (!is_array($user)) {
@@ -219,7 +220,25 @@ final class AuthController extends Controller
             $response->redirect('/empresa/seleccionar');
         }
 
+        $prevCompanyId = (int) Session::get((string) config('auth.company_session_key'), 0);
         Session::put((string) config('auth.company_session_key'), $companyId);
-        $response->redirect('/dashboard');
+
+        (new AuditService())->log([
+            'usuario_id' => $user['id'] ?? null,
+            'empresa_id' => $companyId,
+            'ip' => $request->server('REMOTE_ADDR'),
+            'user_agent' => (string) $request->server('HTTP_USER_AGENT', ''),
+            'modulo' => 'auth',
+            'accion' => 'cambio_empresa',
+            'tabla_afectada' => 'usuarios_empresas',
+            'datos_anteriores' => ['empresa_id' => $prevCompanyId],
+            'datos_nuevos' => ['empresa_id' => $companyId],
+        ]);
+
+        if ($redirectTo === '' || $redirectTo[0] !== '/') {
+            $redirectTo = '/dashboard';
+        }
+
+        $response->redirect($redirectTo);
     }
 }

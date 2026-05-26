@@ -38,6 +38,13 @@ final class DashboardService
                 'cirugias_mes' => $this->model->cirugiasMes($empresaId),
                 'eventos_timeline_7_dias' => $this->model->eventosTimeline7Dias($empresaId),
             ],
+            'datasets' => [
+                'pacientes_recientes' => $this->model->pacientesRecientes($empresaId),
+                'vacunas_proximas' => $this->model->vacunasProximasDetalle($empresaId),
+                'hospitalizaciones_activas' => $this->model->hospitalizacionesActivasDetalle($empresaId),
+                'cirugias_recientes' => $this->model->cirugiasRecientes($empresaId),
+                'timeline_reciente' => $this->model->timelineReciente($empresaId),
+            ],
         ];
     }
 }

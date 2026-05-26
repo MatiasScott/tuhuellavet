@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AnimalController;
+use App\Controllers\AuditoriaController;
 use App\Controllers\AuthController;
 use App\Controllers\ConsultaController;
 use App\Controllers\CirugiaController;
@@ -10,6 +11,8 @@ use App\Controllers\DashboardController;
 use App\Controllers\DesparasitacionController;
 use App\Controllers\DiagnosticoController;
 use App\Controllers\ExamenLaboratorioController;
+use App\Controllers\FileController;
+use App\Controllers\FormulaController;
 use App\Controllers\HospitalizacionController;
 use App\Controllers\PropietarioController;
 use App\Controllers\TimelineController;
@@ -26,6 +29,9 @@ $router->get('/login', [AuthController::class, 'showLogin']);
 $router->post('/login', [AuthController::class, 'login']);
 $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]);
 
+$router->get('/pdf/ver', [FileController::class, 'viewPdf'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
+$router->get('/pdf/descargar', [FileController::class, 'downloadPdf'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
+
 $router->get('/password/change', [AuthController::class, 'showForcePasswordChange'], [AuthMiddleware::class]);
 $router->post('/password/change', [AuthController::class, 'forcePasswordChange'], [AuthMiddleware::class]);
 
@@ -36,6 +42,7 @@ $router->post('/password/reset', [AuthController::class, 'resetPassword']);
 
 $router->get('/empresa/seleccionar', [AuthController::class, 'showCompanySelector'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
 $router->post('/empresa/seleccionar', [AuthController::class, 'selectCompany'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
+$router->post('/empresa/cambiar', [AuthController::class, 'selectCompany'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
 
 $router->get('/dashboard', [DashboardController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 
@@ -57,10 +64,14 @@ $router->post('/consultas', [ConsultaController::class, 'create'], [AuthMiddlewa
 
 $router->get('/diagnosticos', [DiagnosticoController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/diagnosticos/catalogo', [DiagnosticoController::class, 'createCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/diagnosticos/catalogo/actualizar', [DiagnosticoController::class, 'updateCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/diagnosticos/catalogo/eliminar', [DiagnosticoController::class, 'deleteCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/diagnosticos/asignar', [DiagnosticoController::class, 'asignar'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 
 $router->get('/vacunas', [VacunaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/vacunas/catalogo', [VacunaController::class, 'createCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/vacunas/catalogo/actualizar', [VacunaController::class, 'updateCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/vacunas/catalogo/eliminar', [VacunaController::class, 'deleteCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/vacunas/aplicar', [VacunaController::class, 'aplicar'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 
 $router->get('/desparasitaciones', [DesparasitacionController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
@@ -77,5 +88,17 @@ $router->post('/examenes', [ExamenLaboratorioController::class, 'create'], [Auth
 
 $router->get('/cirugias', [CirugiaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/cirugias', [CirugiaController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/formulas', [FormulaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/formulas/crear', [FormulaController::class, 'createForm'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/formulas', [FormulaController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/formulas/editar', [FormulaController::class, 'edit'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/formulas/actualizar', [FormulaController::class, 'update'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/formulas/eliminar', [FormulaController::class, 'delete'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/formulas/toggle', [FormulaController::class, 'toggle'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/formulas/test', [FormulaController::class, 'test'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/formulas/variables/detectar', [FormulaController::class, 'detectVariables'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/auditoria', [AuditoriaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 
 $router->get('/timeline', [TimelineController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);

@@ -25,6 +25,41 @@ final class Vacuna extends Model
         return (int) $this->pdo->lastInsertId();
     }
 
+    public function findCatalogoById(int $id, int $empresaId): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, empresa_id, nombre, descripcion, estado FROM catalogo_vacunas WHERE id = :id AND (empresa_id = :empresa_id OR empresa_id IS NULL) LIMIT 1');
+        $stmt->execute([
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+        ]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function updateCatalogo(int $id, int $empresaId, array $payload): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE catalogo_vacunas SET nombre = :nombre, descripcion = :descripcion, estado = :estado, updated_at = NOW() WHERE id = :id AND (empresa_id = :empresa_id OR empresa_id IS NULL)');
+
+        return $stmt->execute([
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+            ':nombre' => $payload['nombre'],
+            ':descripcion' => $payload['descripcion'],
+            ':estado' => $payload['estado'],
+        ]);
+    }
+
+    public function deleteCatalogo(int $id, int $empresaId): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM catalogo_vacunas WHERE id = :id AND (empresa_id = :empresa_id OR empresa_id IS NULL)');
+
+        return $stmt->execute([
+            ':id' => $id,
+            ':empresa_id' => $empresaId,
+        ]);
+    }
+
     public function createLegacyVacuna(array $payload): int
     {
         $stmt = $this->pdo->prepare('INSERT INTO vacunas (empresa_id, nombre, descripcion) VALUES (:empresa_id, :nombre, :descripcion)');

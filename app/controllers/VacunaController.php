@@ -78,4 +78,58 @@ final class VacunaController extends Controller
 
         $response->redirect('/vacunas');
     }
+
+    public function updateCatalogo(Request $request, Response $response): never
+    {
+        $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
+        $user = Session::get((string) config('auth.session_key'));
+        if (!is_array($user)) {
+            $response->redirect('/login');
+        }
+
+        if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
+            flash_set('error', 'Token CSRF invalido.');
+            $response->redirect('/vacunas');
+        }
+
+        try {
+            $this->service->updateCatalogo((int) $request->input('id', 0), $empresaId, (int) $user['id'], $request->all(), $this->auditMeta($request));
+            flash_set('success', 'Vacuna de catalogo actualizada.');
+        } catch (Throwable $e) {
+            flash_set('error', $e->getMessage());
+        }
+
+        $response->redirect('/vacunas');
+    }
+
+    public function deleteCatalogo(Request $request, Response $response): never
+    {
+        $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
+        $user = Session::get((string) config('auth.session_key'));
+        if (!is_array($user)) {
+            $response->redirect('/login');
+        }
+
+        if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
+            flash_set('error', 'Token CSRF invalido.');
+            $response->redirect('/vacunas');
+        }
+
+        try {
+            $this->service->deleteCatalogo((int) $request->input('id', 0), $empresaId, (int) $user['id'], $this->auditMeta($request));
+            flash_set('success', 'Vacuna de catalogo eliminada.');
+        } catch (Throwable $e) {
+            flash_set('error', $e->getMessage());
+        }
+
+        $response->redirect('/vacunas');
+    }
+
+    private function auditMeta(Request $request): array
+    {
+        return [
+            'ip' => $request->server('REMOTE_ADDR'),
+            'user_agent' => (string) $request->server('HTTP_USER_AGENT', ''),
+        ];
+    }
 }

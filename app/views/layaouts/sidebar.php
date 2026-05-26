@@ -28,6 +28,7 @@ $isActive = static function (string $path) use ($requestUri): string {
             <a class="tvg-nav-link <?php echo $isActive('/hospitalizaciones'); ?>" href="<?php echo htmlspecialchars(url('/hospitalizaciones')); ?>"><i class="bi bi-hospital"></i><span>Hospitalizacion</span></a>
             <a class="tvg-nav-link <?php echo $isActive('/cirugias'); ?>" href="<?php echo htmlspecialchars(url('/cirugias')); ?>"><i class="bi bi-scissors"></i><span>Cirugias</span></a>
             <a class="tvg-nav-link <?php echo $isActive('/examenes'); ?>" href="<?php echo htmlspecialchars(url('/examenes')); ?>"><i class="bi bi-flask"></i><span>Examenes</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/formulas'); ?>" href="<?php echo htmlspecialchars(url('/formulas')); ?>"><i class="bi bi-calculator"></i><span>Formulas</span></a>
             <a class="tvg-nav-link <?php echo $isActive('/timeline'); ?>" href="<?php echo htmlspecialchars(url('/timeline')); ?>"><i class="bi bi-clock-history"></i><span>Timeline</span></a>
         </details>
 
@@ -42,5 +43,10 @@ $isActive = static function (string $path) use ($requestUri): string {
             <a class="tvg-nav-link <?php echo $isActive('/vacunas'); ?>" href="<?php echo htmlspecialchars(url('/vacunas')); ?>"><i class="bi bi-droplet-half"></i><span>Vacunas</span></a>
             <a class="tvg-nav-link <?php echo $isActive('/desparasitaciones'); ?>" href="<?php echo htmlspecialchars(url('/desparasitaciones')); ?>"><i class="bi bi-bug"></i><span>Desparasitaciones</span></a>
         </details>
+
+        <a class="tvg-nav-link <?php echo $isActive('/auditoria'); ?>" href="<?php echo htmlspecialchars(url('/auditoria')); ?>">
+            <i class="bi bi-journal-text"></i>
+            <span>Auditoria</span>
+        </a>
     </nav>
 </aside>

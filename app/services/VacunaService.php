@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Vacuna;
+use App\Services\AuditService;
 use RuntimeException;
 
 final class VacunaService
 {
-    public function __construct(private readonly Vacuna $model = new Vacuna())
+    public function __construct(
+        private readonly Vacuna $model = new Vacuna(),
+        private readonly AuditService $audit = new AuditService()
+    )
     {
     }
 
@@ -86,6 +90,58 @@ final class VacunaService
             'observaciones' => trim((string) ($input['observaciones'] ?? '')),
             'usuario_id' => $usuarioId,
         ]);
+    }
+
+    public function updateCatalogo(int $id, int $empresaId, int $usuarioId, array $input, array $auditMeta = []): void
+    {
+        $current = $this->model->findCatalogoById($id, $empresaId);
+        if (!is_array($current)) {
+            throw new RuntimeException('Vacuna no encontrada en catalogo.');
+        }
+
+        $nombre = trim((string) ($input['nombre'] ?? ''));
+        if ($nombre === '') {
+            throw new RuntimeException('El nombre de la vacuna es obligatorio.');
+        }
+
+        $payload = [
+            'nombre' => $nombre,
+            'descripcion' => trim((string) ($input['descripcion'] ?? '')),
+            'estado' => isset($input['estado']) ? 1 : 0,
+        ];
+
+        $this->model->updateCatalogo($id, $empresaId, $payload);
+
+        $this->audit->log(array_merge($auditMeta, [
+            'usuario_id' => $usuarioId,
+            'empresa_id' => $empresaId,
+            'modulo' => 'vacunas',
+            'accion' => 'editar',
+            'tabla_afectada' => 'catalogo_vacunas',
+            'registro_id' => $id,
+            'datos_anteriores' => $current,
+            'datos_nuevos' => $payload,
+        ]));
+    }
+
+    public function deleteCatalogo(int $id, int $empresaId, int $usuarioId, array $auditMeta = []): void
+    {
+        $current = $this->model->findCatalogoById($id, $empresaId);
+        if (!is_array($current)) {
+            throw new RuntimeException('Vacuna no encontrada en catalogo.');
+        }
+
+        $this->model->deleteCatalogo($id, $empresaId);
+
+        $this->audit->log(array_merge($auditMeta, [
+            'usuario_id' => $usuarioId,
+            'empresa_id' => $empresaId,
+            'modulo' => 'vacunas',
+            'accion' => 'eliminar',
+            'tabla_afectada' => 'catalogo_vacunas',
+            'registro_id' => $id,
+            'datos_anteriores' => $current,
+        ]));
     }
 
     private function toNullableInt(mixed $value): ?int

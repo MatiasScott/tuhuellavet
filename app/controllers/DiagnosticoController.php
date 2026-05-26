@@ -74,4 +74,58 @@ final class DiagnosticoController extends Controller
 
         $response->redirect('/diagnosticos');
     }
+
+    public function updateCatalogo(Request $request, Response $response): never
+    {
+        $user = Session::get((string) config('auth.session_key'));
+        $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
+        if (!is_array($user)) {
+            $response->redirect('/login');
+        }
+
+        if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
+            flash_set('error', 'Token CSRF invalido.');
+            $response->redirect('/diagnosticos');
+        }
+
+        try {
+            $this->service->updateCatalogo((int) $request->input('id', 0), (int) $user['id'], $empresaId, $request->all(), $this->auditMeta($request));
+            flash_set('success', 'Diagnostico actualizado.');
+        } catch (Throwable $e) {
+            flash_set('error', $e->getMessage());
+        }
+
+        $response->redirect('/diagnosticos');
+    }
+
+    public function deleteCatalogo(Request $request, Response $response): never
+    {
+        $user = Session::get((string) config('auth.session_key'));
+        $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
+        if (!is_array($user)) {
+            $response->redirect('/login');
+        }
+
+        if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
+            flash_set('error', 'Token CSRF invalido.');
+            $response->redirect('/diagnosticos');
+        }
+
+        try {
+            $this->service->deleteCatalogo((int) $request->input('id', 0), (int) $user['id'], $empresaId, $this->auditMeta($request));
+            flash_set('success', 'Diagnostico eliminado.');
+        } catch (Throwable $e) {
+            flash_set('error', $e->getMessage());
+        }
+
+        $response->redirect('/diagnosticos');
+    }
+
+    private function auditMeta(Request $request): array
+    {
+        return [
+            'ip' => $request->server('REMOTE_ADDR'),
+            'user_agent' => (string) $request->server('HTTP_USER_AGENT', ''),
+        ];
+    }
 }

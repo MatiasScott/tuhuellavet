@@ -24,6 +24,36 @@ final class Diagnostico extends Model
         return (int) $this->pdo->lastInsertId();
     }
 
+    public function findCatalogoById(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, codigo, nombre, tipo, descripcion, estado FROM catalogo_diagnosticos WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function updateCatalogo(int $id, array $payload): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE catalogo_diagnosticos SET codigo = :codigo, nombre = :nombre, tipo = :tipo, descripcion = :descripcion, estado = :estado, updated_at = NOW() WHERE id = :id');
+
+        return $stmt->execute([
+            ':id' => $id,
+            ':codigo' => $payload['codigo'],
+            ':nombre' => $payload['nombre'],
+            ':tipo' => $payload['tipo'],
+            ':descripcion' => $payload['descripcion'],
+            ':estado' => $payload['estado'],
+        ]);
+    }
+
+    public function deleteCatalogo(int $id): bool
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM catalogo_diagnosticos WHERE id = :id');
+
+        return $stmt->execute([':id' => $id]);
+    }
+
     public function consultasByEmpresa(int $empresaId): array
     {
         $stmt = $this->pdo->prepare('SELECT c.id, c.fecha_consulta, a.nombre AS animal FROM consultas c INNER JOIN animales a ON a.id = c.animal_id WHERE c.empresa_id = :empresa_id ORDER BY c.fecha_consulta DESC LIMIT 200');
