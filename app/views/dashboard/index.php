@@ -35,7 +35,9 @@ $csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
         <div class="col-12 col-lg-4">
             <article class="card tvg-card p-4">
                 <h3 class="h6">Accesos rapidos</h3>
-                <a class="btn btn-brand w-100 mt-2" href="<?php echo htmlspecialchars(url('/animales')); ?>">Gestion de animales</a>
+                <a class="btn btn-brand w-100 mt-2" href="<?php echo htmlspecialchars(url('/propietarios')); ?>">Propietarios / Clientes</a>
+                <a class="btn btn-brand w-100 mt-2" href="<?php echo htmlspecialchars(url('/animales')); ?>">Pacientes / Animales</a>
+                <a class="btn btn-brand w-100 mt-2" href="<?php echo htmlspecialchars(url('/consultas')); ?>">Consulta externa</a>
             </article>
         </div>
     </section>

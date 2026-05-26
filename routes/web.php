@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Controllers\AnimalController;
 use App\Controllers\AuthController;
+use App\Controllers\ConsultaController;
 use App\Controllers\DashboardController;
+use App\Controllers\PropietarioController;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\CompanyContextMiddleware;
 use App\Middlewares\RequirePasswordChangeMiddleware;
@@ -29,4 +31,16 @@ $router->get('/empresa/seleccionar', [AuthController::class, 'showCompanySelecto
 $router->post('/empresa/seleccionar', [AuthController::class, 'selectCompany'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
 
 $router->get('/dashboard', [DashboardController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/propietarios', [PropietarioController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/propietarios', [PropietarioController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/propietarios/editar', [PropietarioController::class, 'edit'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/propietarios/actualizar', [PropietarioController::class, 'update'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
 $router->get('/animales', [AnimalController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/animales', [AnimalController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/animales/editar', [AnimalController::class, 'edit'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/animales/actualizar', [AnimalController::class, 'update'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/consultas', [ConsultaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/consultas', [ConsultaController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);

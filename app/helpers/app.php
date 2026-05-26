@@ -76,3 +76,28 @@ if (!function_exists('asset')) {
         return url('/assets/' . ltrim($path, '/'));
     }
 }
+
+if (!function_exists('flash_set')) {
+    function flash_set(string $key, string $message): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        $_SESSION['_flash'][$key] = $message;
+    }
+}
+
+if (!function_exists('flash_get')) {
+    function flash_get(string $key): ?string
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return null;
+        }
+
+        $message = $_SESSION['_flash'][$key] ?? null;
+        unset($_SESSION['_flash'][$key]);
+
+        return is_string($message) ? $message : null;
+    }
+}

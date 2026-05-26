@@ -9,25 +9,24 @@ use App\Core\Csrf;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
-use App\Services\AnimalService;
+use App\Services\PropietarioService;
 use Throwable;
 
-final class AnimalController extends Controller
+final class PropietarioController extends Controller
 {
-    private AnimalService $service;
+    private PropietarioService $service;
 
     public function __construct()
     {
-        $this->service = new AnimalService();
+        $this->service = new PropietarioService();
     }
 
     public function index(Request $request, Response $response): never
     {
         $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
 
-        $response->view('animales/index', [
+        $response->view('propietarios/index', [
             'rows' => $this->service->listByEmpresa($empresaId),
-            'catalogos' => $this->service->catalogos($empresaId),
             'csrfToken' => Csrf::token((int) config('auth.csrf_token_ttl', 3600)),
             'success' => flash_get('success'),
             'error' => flash_get('error'),
@@ -37,25 +36,20 @@ final class AnimalController extends Controller
     public function create(Request $request, Response $response): never
     {
         $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
-        $user = Session::get((string) config('auth.session_key'));
-
-        if (!is_array($user)) {
-            $response->redirect('/login');
-        }
 
         if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
             flash_set('error', 'Token CSRF invalido.');
-            $response->redirect('/animales');
+            $response->redirect('/propietarios');
         }
 
         try {
-            $this->service->create($empresaId, (int) $user['id'], $request->all(), $request->file('foto'));
-            flash_set('success', 'Paciente creado correctamente.');
+            $this->service->create($empresaId, $request->all(), $request->file('foto'));
+            flash_set('success', 'Propietario creado correctamente.');
         } catch (Throwable $e) {
             flash_set('error', $e->getMessage());
         }
 
-        $response->redirect('/animales');
+        $response->redirect('/propietarios');
     }
 
     public function edit(Request $request, Response $response): never
@@ -65,13 +59,12 @@ final class AnimalController extends Controller
         $row = $this->service->find($id, $empresaId);
 
         if (!is_array($row)) {
-            flash_set('error', 'Paciente no encontrado.');
-            $response->redirect('/animales');
+            flash_set('error', 'Propietario no encontrado.');
+            $response->redirect('/propietarios');
         }
 
-        $response->view('animales/edit', [
+        $response->view('propietarios/edit', [
             'row' => $row,
-            'catalogos' => $this->service->catalogos($empresaId),
             'csrfToken' => Csrf::token((int) config('auth.csrf_token_ttl', 3600)),
             'error' => flash_get('error'),
         ]);
@@ -80,25 +73,20 @@ final class AnimalController extends Controller
     public function update(Request $request, Response $response): never
     {
         $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
-        $user = Session::get((string) config('auth.session_key'));
         $id = (int) $request->input('id', 0);
-
-        if (!is_array($user)) {
-            $response->redirect('/login');
-        }
 
         if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
             flash_set('error', 'Token CSRF invalido.');
-            $response->redirect('/animales/editar?id=' . $id);
+            $response->redirect('/propietarios/editar?id=' . $id);
         }
 
         try {
-            $this->service->update($id, $empresaId, (int) $user['id'], $request->all(), $request->file('foto'));
-            flash_set('success', 'Paciente actualizado correctamente.');
-            $response->redirect('/animales');
+            $this->service->update($id, $empresaId, $request->all(), $request->file('foto'));
+            flash_set('success', 'Propietario actualizado correctamente.');
+            $response->redirect('/propietarios');
         } catch (Throwable $e) {
             flash_set('error', $e->getMessage());
-            $response->redirect('/animales/editar?id=' . $id);
+            $response->redirect('/propietarios/editar?id=' . $id);
         }
     }
 }

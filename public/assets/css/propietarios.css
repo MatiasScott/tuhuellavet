@@ -1,0 +1,7 @@
+.propietario-avatar-path {
+    max-width: 280px;
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

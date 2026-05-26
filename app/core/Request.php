@@ -33,6 +33,20 @@ final class Request
         return array_merge($_GET, $_POST);
     }
 
+    public function file(string $key): ?array
+    {
+        if (!isset($_FILES[$key]) || !is_array($_FILES[$key])) {
+            return null;
+        }
+
+        return $_FILES[$key];
+    }
+
+    public function files(): array
+    {
+        return $_FILES;
+    }
+
     public function server(string $key, mixed $default = null): mixed
     {
         return $_SERVER[$key] ?? $default;
