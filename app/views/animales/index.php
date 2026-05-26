@@ -7,97 +7,67 @@ $pageTitle = 'Animales';
 ?>
 <?php
 $rowsSafe = isset($rows) && is_array($rows) ? $rows : [];
-$catalogosSafe = isset($catalogos) && is_array($catalogos) ? $catalogos : [];
-$propietariosSafe = isset($catalogosSafe['propietarios']) && is_array($catalogosSafe['propietarios']) ? $catalogosSafe['propietarios'] : [];
-$especiesSafe = isset($catalogosSafe['especies']) && is_array($catalogosSafe['especies']) ? $catalogosSafe['especies'] : [];
-$razasSafe = isset($catalogosSafe['razas']) && is_array($catalogosSafe['razas']) ? $catalogosSafe['razas'] : [];
-$csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
 $successSafe = isset($success) ? (string) $success : '';
 $errorSafe = isset($error) ? (string) $error : '';
 ?>
 
 <main class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 m-0">Pacientes / Animales</h1>
-        <a class="btn btn-outline-secondary" href="<?php echo htmlspecialchars(url('/dashboard')); ?>">Volver</a>
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 m-0">Pacientes</h1>
+            <p class="text-muted m-0">Historial y control de animales registrados por empresa.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary" href="<?php echo htmlspecialchars(url('/dashboard')); ?>">Volver</a>
+            <a class="btn btn-brand" href="<?php echo htmlspecialchars(url('/animales/crear')); ?>">Nuevo paciente</a>
+        </div>
     </div>
 
     <?php if ($successSafe !== ''): ?><div class="alert alert-success"><?php echo htmlspecialchars($successSafe); ?></div><?php endif; ?>
     <?php if ($errorSafe !== ''): ?><div class="alert alert-danger"><?php echo htmlspecialchars($errorSafe); ?></div><?php endif; ?>
 
-    <section class="card tvg-card p-3 mb-4">
-        <h2 class="h6">Nuevo paciente</h2>
-        <form method="post" action="<?php echo htmlspecialchars(url('/animales')); ?>" enctype="multipart/form-data" class="row g-2">
-            <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfTokenSafe); ?>">
-            <div class="col-md-2"><input class="form-control" name="codigo" placeholder="Codigo"></div>
-            <div class="col-md-3"><input class="form-control" name="nombre" placeholder="Nombre" required></div>
-            <div class="col-md-3">
-                <select class="form-select" name="propietario_id">
-                    <option value="">Propietario...</option>
-                    <?php foreach ($propietariosSafe as $p): ?>
-                        <option value="<?php echo (int) ($p['id'] ?? 0); ?>"><?php echo htmlspecialchars((string) ($p['nombre'] ?? '')); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select" name="especie_id" required>
-                    <option value="">Especie...</option>
-                    <?php foreach ($especiesSafe as $e): ?>
-                        <option value="<?php echo (int) ($e['id'] ?? 0); ?>"><?php echo htmlspecialchars((string) ($e['nombre'] ?? '')); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select" name="raza_id">
-                    <option value="">Raza...</option>
-                    <?php foreach ($razasSafe as $r): ?>
-                        <option value="<?php echo (int) ($r['id'] ?? 0); ?>"><?php echo htmlspecialchars((string) ($r['nombre'] ?? '')); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select" name="sexo">
-                    <option value="">Sexo...</option>
-                    <option value="macho">Macho</option>
-                    <option value="hembra">Hembra</option>
-                </select>
-            </div>
-            <div class="col-md-2"><input class="form-control" type="date" name="fecha_nacimiento"></div>
-            <div class="col-md-2"><input class="form-control" type="number" step="0.01" name="peso_actual" placeholder="Peso actual"></div>
-            <div class="col-md-2"><input class="form-control" name="color" placeholder="Color"></div>
-            <div class="col-md-2"><input class="form-control" name="microchip" placeholder="Microchip"></div>
-            <div class="col-md-2"><input class="form-control" type="file" name="foto" accept=".jpg,.jpeg,.png,.webp"></div>
-            <div class="col-md-6"><input class="form-control" name="observaciones" placeholder="Observaciones"></div>
-            <div class="col-md-2"><button class="btn btn-brand w-100" type="submit">Guardar</button></div>
-        </form>
-    </section>
-
-    <section class="card tvg-card p-3">
+    <section class="card tvg-card p-3 tvg-surface-strong">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+            <h2 class="h6 m-0">Listado de pacientes</h2>
+            <input class="form-control tvg-search" type="search" placeholder="Buscar por nombre, propietario o especie" data-table-search="#tabla-animales">
+        </div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table id="tabla-animales" class="table tvg-table table-hover mb-0">
                 <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>Paciente</th>
                     <th>Nombre</th>
                     <th>Propietario</th>
                     <th>Especie/Raza</th>
                     <th>Peso</th>
                     <th>Edad</th>
-                    <th>Foto</th>
-                    <th></th>
+                    <th class="text-end">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
                 <?php foreach ($rowsSafe as $row): ?>
+                    <?php
+                    $fotoRaw = trim((string) ($row['foto'] ?? ''));
+                    $fotoUrl = $fotoRaw !== '' ? url('/' . ltrim($fotoRaw, '/')) : '';
+                    $nombrePaciente = (string) ($row['nombre'] ?? '');
+                    ?>
                     <tr>
-                        <td><?php echo (int) ($row['id'] ?? 0); ?></td>
-                        <td><?php echo htmlspecialchars((string) ($row['nombre'] ?? '')); ?></td>
+                        <td>
+                            <?php if ($fotoUrl !== ''): ?>
+                                <img class="tvg-avatar" src="<?php echo htmlspecialchars($fotoUrl); ?>" alt="Foto paciente">
+                            <?php else: ?>
+                                <span class="tvg-avatar tvg-avatar-fallback"><?php echo htmlspecialchars(strtoupper(substr($nombrePaciente, 0, 1))); ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div class="fw-semibold"><?php echo htmlspecialchars($nombrePaciente); ?></div>
+                            <small class="text-muted">ID #<?php echo (int) ($row['id'] ?? 0); ?></small>
+                        </td>
                         <td><?php echo htmlspecialchars((string) ($row['propietario_nombre'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars((string) (($row['especie'] ?? '') . ' / ' . ($row['raza'] ?? ''))); ?></td>
                         <td><?php echo htmlspecialchars((string) ($row['peso_actual'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars((string) ($row['edad_anios'] ?? '')); ?> anos</td>
-                        <td><small class="text-muted"><?php echo htmlspecialchars((string) ($row['foto'] ?? '')); ?></small></td>
-                        <td><a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars(url('/animales/editar?id=' . (int) ($row['id'] ?? 0))); ?>">Editar</a></td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars(url('/animales/editar?id=' . (int) ($row['id'] ?? 0))); ?>">Editar</a></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

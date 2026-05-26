@@ -36,6 +36,18 @@ final class ConsultaController extends Controller
         ]);
     }
 
+    public function createForm(Request $request, Response $response): never
+    {
+        $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
+        $animalService = new AnimalService();
+
+        $response->view('consultas/create', [
+            'animales' => $animalService->listByEmpresa($empresaId),
+            'csrfToken' => Csrf::token((int) config('auth.csrf_token_ttl', 3600)),
+            'error' => flash_get('error'),
+        ]);
+    }
+
     public function create(Request $request, Response $response): never
     {
         $empresaId = (int) Session::get((string) config('auth.company_session_key'), 0);
