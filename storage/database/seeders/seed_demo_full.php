@@ -90,6 +90,10 @@ $insert = static function (PDO $pdo, string $table, array $rows): void {
     }
 };
 
+$companyIdFor = static function (int $i): int {
+    return (($i - 1) % 2) + 1;
+};
+
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
@@ -99,22 +103,30 @@ for ($i = 1; $i <= 20; $i++) {
 }
 $insert($pdo, 'roles', $rows);
 
-$rows = [];
-for ($i = 1; $i <= 20; $i++) {
-    $rows[] = [
-        'nombre' => 'Empresa ' . $i,
-        'tipo' => $i % 2 === 0 ? 'hacienda' : 'veterinaria',
-        'direccion' => 'Direccion ' . $i,
-        'telefono' => '3000000' . str_pad((string) $i, 3, '0', STR_PAD_LEFT),
-        'email' => 'empresa' . $i . '@demo.local',
-        'logo' => 'storage/uploads/empresas/logo_' . $i . '.webp',
+$rows = [
+    [
+        'nombre' => 'Tu Huella Vet',
+        'tipo' => 'veterinaria',
+        'direccion' => 'Direccion principal Tu Huella Vet',
+        'telefono' => '3000000001',
+        'email' => 'tuhuellavet@demo.local',
+        'logo' => 'storage/uploads/empresas/logo_tuhuellavet.webp',
         'estado' => 1,
-    ];
-}
+    ],
+    [
+        'nombre' => 'Hacienda Agusbella',
+        'tipo' => 'hacienda',
+        'direccion' => 'Direccion principal Hacienda Agusbella',
+        'telefono' => '3000000002',
+        'email' => 'haciendaagusbella@demo.local',
+        'logo' => 'storage/uploads/empresas/logo_haciendaagusbella.webp',
+        'estado' => 1,
+    ],
+];
 $insert($pdo, 'empresas', $rows);
 
 $rows = [];
-for ($i = 1; $i <= 20; $i++) {
+for ($i = 1; $i <= 2; $i++) {
     $rows[] = [
         'usuario_id' => $adminUserId,
         'empresa_id' => $i,
@@ -179,7 +191,7 @@ $insert($pdo, 'razas', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'nombres' => 'Propietario' . $i,
         'apellidos' => 'Apellido' . $i,
         'identificacion' => 'CC' . str_pad((string) $i, 6, '0', STR_PAD_LEFT),
@@ -198,7 +210,7 @@ $insert($pdo, 'propietarios', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'propietario_id' => $i,
         'especie_id' => $i,
         'raza_id' => $i,
@@ -219,7 +231,7 @@ $insert($pdo, 'animales', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'animal_id' => $i,
         'veterinario_id' => $adminUserId,
         'fecha_consulta' => date('Y-m-d H:i:s', strtotime('-' . $i . ' days')),
@@ -244,7 +256,7 @@ $insert($pdo, 'consultas', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'nombre' => 'Vacuna ' . $i,
         'descripcion' => 'Descripcion vacuna ' . $i,
     ];
@@ -254,7 +266,7 @@ $insert($pdo, 'vacunas', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'nombre' => 'Catalogo Vacuna ' . $i,
         'descripcion' => 'Catalogo de vacuna ' . $i,
         'estado' => 1,
@@ -283,7 +295,7 @@ $insert($pdo, 'animal_vacunas', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'nombre' => 'Medicamento ' . $i,
         'descripcion' => 'Descripcion medicamento ' . $i,
         'foto' => 'storage/uploads/medicamentos/med_' . $i . '.webp',
@@ -298,7 +310,7 @@ $insert($pdo, 'medicamentos', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'medicamento_id' => $i,
         'nombre' => 'Formula ' . $i,
         'formula' => '(peso * dosis) / concentracion',
@@ -359,7 +371,7 @@ $insert($pdo, 'categorias_productos', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'categoria_id' => $i,
         'codigo' => 'PRD' . str_pad((string) $i, 5, '0', STR_PAD_LEFT),
         'nombre' => 'Producto ' . $i,
@@ -378,7 +390,7 @@ $types = ['entrada', 'salida', 'ajuste'];
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'producto_id' => $i,
         'tipo' => $types[$i % 3],
         'cantidad' => number_format(2 + $i, 2, '.', ''),
@@ -392,7 +404,7 @@ $states = ['pendiente', 'confirmada', 'atendida', 'cancelada'];
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'animal_id' => $i,
         'veterinario_id' => $adminUserId,
         'fecha_inicio' => date('Y-m-d H:i:s', strtotime('+' . $i . ' days')),
@@ -408,7 +420,7 @@ $notifStates = ['pendiente', 'enviado', 'error'];
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'propietario_id' => $i,
         'tipo' => $notifTypes[$i % 4],
         'titulo' => 'Recordatorio ' . $i,
@@ -423,7 +435,7 @@ $insert($pdo, 'notificaciones', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'usuario_id' => $adminUserId,
         'modulo' => 'modulo_' . $i,
         'accion' => 'accion_' . $i,
@@ -454,7 +466,7 @@ $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $entity = $entities[$i % count($entities)];
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'entidad' => $entity,
         'entidad_id' => $i,
         'tipo_archivo' => $i % 2 === 0 ? 'imagen' : 'pdf',
@@ -531,7 +543,7 @@ $insert($pdo, 'consulta_diagnosticos', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'animal_id' => $i,
         'farmaco' => 'Farmaco ' . $i,
         'dosis' => '5 mg/kg',
@@ -561,7 +573,7 @@ $hStates = ['activa', 'alta', 'traslado', 'cancelada'];
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'animal_id' => $i,
         'consulta_id' => $i,
         'fecha_ingreso' => date('Y-m-d H:i:s', strtotime('-' . (2 * $i) . ' hours')),
@@ -592,7 +604,7 @@ $insert($pdo, 'fluidoterapia', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'animal_id' => $i,
         'consulta_id' => $i,
         'tipo_examen' => 'Examen ' . $i,
@@ -607,7 +619,7 @@ $insert($pdo, 'examenes_laboratorio', $rows);
 $rows = [];
 for ($i = 1; $i <= 20; $i++) {
     $rows[] = [
-        'empresa_id' => $i,
+        'empresa_id' => $companyIdFor($i),
         'animal_id' => $i,
         'consulta_id' => $i,
         'procedimiento_quirurgico' => 'Procedimiento ' . $i,

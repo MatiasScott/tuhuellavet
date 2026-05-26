@@ -1,14 +1,8 @@
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(asset('css/global.css')); ?>" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(asset('css/dashboard.css')); ?>" rel="stylesheet">
-</head>
-<body>
+<?php
+
+$pageTitle = 'Dashboard';
+require BASE_PATH . '/app/views/layaouts/header.php';
+?>
 <?php
 $userSafe = isset($user) && is_array($user) ? $user : [];
 $empresaIdSafe = isset($empresaId) ? (int) $empresaId : 0;
@@ -18,15 +12,9 @@ $empresaTipoSafe = isset($empresaTipo) ? (string) $empresaTipo : 'global';
 $widgetsSafe = isset($widgets) && is_array($widgets) ? $widgets : [];
 $metricsSafe = isset($metrics) && is_array($metrics) ? $metrics : [];
 ?>
-<header class="tvg-header py-3 mb-4">
-    <div class="container d-flex justify-content-between align-items-center">
-        <h1 class="h5 m-0">Tu Huella Vet</h1>
-        <form action="<?php echo htmlspecialchars(url('/logout')); ?>" method="post">
-            <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfTokenSafe); ?>">
-            <button class="btn btn-sm btn-outline-light" type="submit">Cerrar sesion</button>
-        </form>
-    </div>
-</header>
+
+<?php require BASE_PATH . '/app/views/layaouts/sidebar.php'; ?>
+<section class="col-12 col-lg-9 col-xl-10">
 <main class="container">
     <section class="row g-3 mb-3">
         <div class="col-12 col-lg-8">
@@ -139,5 +127,6 @@ $metricsSafe = isset($metrics) && is_array($metrics) ? $metrics : [];
     </section>
 </main>
 <script src="<?php echo htmlspecialchars(asset('js/dashboard.js')); ?>"></script>
-</body>
-</html>
+
+</section>
+<?php require BASE_PATH . '/app/views/layaouts/footer.php'; ?>

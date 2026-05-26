@@ -55,3 +55,14 @@ body {
     background-color: #ddebf0;
     color: #234;
 }
+
+.tvg-sidebar {
+    position: sticky;
+    top: 1rem;
+}
+
+@media (max-width: 991.98px) {
+    .tvg-sidebar {
+        position: static;
+    }
+}

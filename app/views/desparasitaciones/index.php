@@ -1,13 +1,8 @@
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Desparasitaciones</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(asset('css/global.css')); ?>" rel="stylesheet">
-</head>
-<body>
+<?php
+
+$pageTitle = 'Desparasitaciones';
+require BASE_PATH . '/app/views/layaouts/header.php';
+?>
 <?php
 $animalesSafe = isset($animales) && is_array($animales) ? $animales : [];
 $rowsSafe = isset($rows) && is_array($rows) ? $rows : [];
@@ -15,6 +10,9 @@ $csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
 $successSafe = isset($success) ? (string) $success : '';
 $errorSafe = isset($error) ? (string) $error : '';
 ?>
+
+<?php require BASE_PATH . '/app/views/layaouts/sidebar.php'; ?>
+<section class="col-12 col-lg-9 col-xl-10">
 <main class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4 m-0">Desparasitaciones</h1>
@@ -69,5 +67,6 @@ $errorSafe = isset($error) ? (string) $error : '';
         </div>
     </section>
 </main>
-</body>
-</html>
+
+</section>
+<?php require BASE_PATH . '/app/views/layaouts/footer.php'; ?>
