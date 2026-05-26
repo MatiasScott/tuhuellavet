@@ -6,7 +6,10 @@ use App\Controllers\AnimalController;
 use App\Controllers\AuthController;
 use App\Controllers\ConsultaController;
 use App\Controllers\DashboardController;
+use App\Controllers\DesparasitacionController;
+use App\Controllers\DiagnosticoController;
 use App\Controllers\PropietarioController;
+use App\Controllers\VacunaController;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\CompanyContextMiddleware;
 use App\Middlewares\RequirePasswordChangeMiddleware;
@@ -44,3 +47,14 @@ $router->post('/animales/actualizar', [AnimalController::class, 'update'], [Auth
 
 $router->get('/consultas', [ConsultaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/consultas', [ConsultaController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/diagnosticos', [DiagnosticoController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/diagnosticos/catalogo', [DiagnosticoController::class, 'createCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/diagnosticos/asignar', [DiagnosticoController::class, 'asignar'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/vacunas', [VacunaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/vacunas/catalogo', [VacunaController::class, 'createCatalogo'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/vacunas/aplicar', [VacunaController::class, 'aplicar'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/desparasitaciones', [DesparasitacionController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/desparasitaciones', [DesparasitacionController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
