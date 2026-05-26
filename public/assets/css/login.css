@@ -1,0 +1,20 @@
+.login-page {
+    display: flex;
+    align-items: center;
+}
+
+.login-page .tvg-card {
+    animation: rise 0.5s ease-out;
+}
+
+@keyframes rise {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

@@ -1,0 +1,57 @@
+:root {
+    --brand-primary: #0f4c5c;
+    --brand-secondary: #2f9e44;
+    --brand-accent: #ffb703;
+    --surface-100: #f5f7f9;
+    --surface-200: #ffffff;
+    --text-main: #1f2933;
+    --text-soft: #52606d;
+    --border-main: #d9e2ec;
+    --radius-main: 14px;
+}
+
+body {
+    font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+    color: var(--text-main);
+    background: radial-gradient(circle at top left, #f2fbf7 0%, #f5f7f9 45%, #eef3f8 100%);
+    min-height: 100vh;
+}
+
+.tvg-header {
+    background: linear-gradient(120deg, var(--brand-primary), #134e4a);
+    color: #fff;
+}
+
+.tvg-card {
+    border: 1px solid var(--border-main);
+    border-radius: var(--radius-main);
+    box-shadow: 0 8px 24px rgba(15, 76, 92, 0.08);
+    background: var(--surface-200);
+}
+
+.btn-brand {
+    background: linear-gradient(130deg, var(--brand-secondary), #3db05c);
+    border: 0;
+    color: #fff;
+}
+
+.btn-brand:hover {
+    filter: brightness(0.95);
+    color: #fff;
+}
+
+.form-control,
+.form-select {
+    border-radius: 10px;
+    border-color: var(--border-main);
+}
+
+.table thead th {
+    background-color: #e8eff4;
+    color: var(--text-main);
+}
+
+.badge-soft {
+    background-color: #ddebf0;
+    color: #234;
+}

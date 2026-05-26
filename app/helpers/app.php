@@ -1,0 +1,78 @@
+<?php
+
+declare(strict_types=1);
+
+if (!function_exists('app_set')) {
+    function app_set(string $key, mixed $value): void
+    {
+        $GLOBALS['_app_container'][$key] = $value;
+    }
+}
+
+if (!function_exists('app')) {
+    function app(string $key, mixed $default = null): mixed
+    {
+        return $GLOBALS['_app_container'][$key] ?? $default;
+    }
+}
+
+if (!function_exists('config')) {
+    function config(string $key, mixed $default = null): mixed
+    {
+        $segments = explode('.', $key);
+        $value = app('config', []);
+
+        foreach ($segments as $segment) {
+            if (!is_array($value) || !array_key_exists($segment, $value)) {
+                return $default;
+            }
+            $value = $value[$segment];
+        }
+
+        return $value;
+    }
+}
+
+if (!function_exists('base_url_path')) {
+    function base_url_path(): string
+    {
+        $appUrl = (string) (config('app.url', '') ?? '');
+
+        if ($appUrl !== '') {
+            $path = (string) parse_url($appUrl, PHP_URL_PATH);
+            $path = '/' . trim($path, '/');
+
+            return $path === '/' ? '' : $path;
+        }
+
+        $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+        $path = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+
+        return ($path === '' || $path === '.') ? '' : $path;
+    }
+}
+
+if (!function_exists('url')) {
+    function url(string $path = '/'): string
+    {
+        if (preg_match('/^https?:\/\//i', $path) === 1) {
+            return $path;
+        }
+
+        $basePath = base_url_path();
+        $normalized = '/' . ltrim($path, '/');
+
+        if ($normalized === '/') {
+            return ($basePath !== '' ? $basePath : '') . '/';
+        }
+
+        return ($basePath !== '' ? $basePath : '') . $normalized;
+    }
+}
+
+if (!function_exists('asset')) {
+    function asset(string $path): string
+    {
+        return url('/assets/' . ltrim($path, '/'));
+    }
+}
