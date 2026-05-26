@@ -8,6 +8,7 @@ use App\Controllers\ConsultaController;
 use App\Controllers\DashboardController;
 use App\Controllers\DesparasitacionController;
 use App\Controllers\DiagnosticoController;
+use App\Controllers\HospitalizacionController;
 use App\Controllers\PropietarioController;
 use App\Controllers\VacunaController;
 use App\Middlewares\AuthMiddleware;
@@ -58,3 +59,9 @@ $router->post('/vacunas/aplicar', [VacunaController::class, 'aplicar'], [AuthMid
 
 $router->get('/desparasitaciones', [DesparasitacionController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/desparasitaciones', [DesparasitacionController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/hospitalizaciones', [HospitalizacionController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/hospitalizaciones', [HospitalizacionController::class, 'createHospitalizacion'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/hospitalizaciones/tamanos', [HospitalizacionController::class, 'createTamano'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/hospitalizaciones/estado', [HospitalizacionController::class, 'updateEstado'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/hospitalizaciones/fluidoterapia', [HospitalizacionController::class, 'createFluidoterapia'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
