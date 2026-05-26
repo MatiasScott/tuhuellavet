@@ -5,11 +5,14 @@ declare(strict_types=1);
 use App\Controllers\AnimalController;
 use App\Controllers\AuthController;
 use App\Controllers\ConsultaController;
+use App\Controllers\CirugiaController;
 use App\Controllers\DashboardController;
 use App\Controllers\DesparasitacionController;
 use App\Controllers\DiagnosticoController;
+use App\Controllers\ExamenLaboratorioController;
 use App\Controllers\HospitalizacionController;
 use App\Controllers\PropietarioController;
+use App\Controllers\TimelineController;
 use App\Controllers\VacunaController;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\CompanyContextMiddleware;
@@ -65,3 +68,11 @@ $router->post('/hospitalizaciones', [HospitalizacionController::class, 'createHo
 $router->post('/hospitalizaciones/tamanos', [HospitalizacionController::class, 'createTamano'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/hospitalizaciones/estado', [HospitalizacionController::class, 'updateEstado'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->post('/hospitalizaciones/fluidoterapia', [HospitalizacionController::class, 'createFluidoterapia'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/examenes', [ExamenLaboratorioController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/examenes', [ExamenLaboratorioController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/cirugias', [CirugiaController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/cirugias', [CirugiaController::class, 'create'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+
+$router->get('/timeline', [TimelineController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);

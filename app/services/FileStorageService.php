@@ -105,6 +105,78 @@ final class FileStorageService
         return $uploaded;
     }
 
+    public function uploadDocument(array $file, string $entity, int $entityId, array $options = []): array
+    {
+        $config = (array) config('files', []);
+        $this->assertValidUpload($file);
+
+        $maxSize = (int) ($options['max_size_bytes'] ?? ($config['max_size_bytes'] ?? 5242880));
+        $size = (int) $file['size'];
+
+        if ($size <= 0 || $size > $maxSize) {
+            throw new RuntimeException('Tamano de archivo invalido o excede limite permitido.');
+        }
+
+        $tmpFile = (string) $file['tmp_name'];
+        if (!is_file($tmpFile)) {
+            throw new RuntimeException('Archivo temporal no encontrado.');
+        }
+
+        $originalName = (string) ($file['name'] ?? 'documento.pdf');
+        $extension = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowedExtensions = (array) ($options['allowed_extensions'] ?? ['pdf']);
+
+        if (!in_array($extension, $allowedExtensions, true)) {
+            throw new RuntimeException('Extension de documento no permitida.');
+        }
+
+        $mime = $this->detectMimeType($tmpFile);
+        $allowedMimes = (array) ($options['allowed_mimes'] ?? ['application/pdf', 'application/x-pdf']);
+
+        if (!in_array($mime, $allowedMimes, true)) {
+            throw new RuntimeException('Tipo MIME de documento no permitido.');
+        }
+
+        $folder = $this->resolveEntityFolder($entity, $config);
+        $storageRoot = rtrim((string) ($config['storage_root'] ?? (BASE_PATH . '/storage/uploads')), '/\\');
+        $relativeRoot = trim((string) ($config['relative_root'] ?? 'storage/uploads'), '/');
+
+        $targetDir = $storageRoot . '/' . $folder;
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+            throw new RuntimeException('No se pudo crear directorio de carga de documentos.');
+        }
+
+        $suffix = date('YmdHis') . '_' . bin2hex(random_bytes(4));
+        $baseName = sprintf('%s_%d_%s', $entity, $entityId, $suffix);
+        $targetFilename = $baseName . '.' . $extension;
+        $targetAbsolute = $targetDir . '/' . $targetFilename;
+
+        if (!move_uploaded_file($tmpFile, $targetAbsolute)) {
+            if (!rename($tmpFile, $targetAbsolute)) {
+                throw new RuntimeException('No se pudo guardar el documento cargado.');
+            }
+        }
+
+        return [
+            'filename' => $targetFilename,
+            'path' => $relativeRoot . '/' . $folder . '/' . $targetFilename,
+            'extension' => $extension,
+            'mime' => $mime,
+            'size_bytes' => (int) filesize($targetAbsolute),
+        ];
+    }
+
+    public function replaceDocument(array $file, string $entity, int $entityId, ?string $oldPath = null, array $options = []): array
+    {
+        $uploaded = $this->uploadDocument($file, $entity, $entityId, $options);
+
+        if (is_string($oldPath) && trim($oldPath) !== '' && $oldPath !== $uploaded['path']) {
+            $this->deleteFile($oldPath);
+        }
+
+        return $uploaded;
+    }
+
     public function deleteFile(string $storedPath): bool
     {
         $absolute = $this->toAbsolutePath($storedPath);
