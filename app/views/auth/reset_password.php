@@ -1,13 +1,6 @@
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Restablecer contrasena</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(asset('css/global.css')); ?>" rel="stylesheet">
-</head>
-<body>
+<?php
+ob_start();
+?>
 <?php
 $csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
 $tokenSafe = isset($token) ? (string) $token : '';
@@ -39,5 +32,10 @@ $errorSafe = isset($error) ? (string) $error : '';
         </div>
     </div>
 </main>
-</body>
-</html>
+<?php
+$authContent = ob_get_clean();
+$pageTitle = 'Restablecer contrasena';
+$authBodyClass = 'auth-page';
+$authExtraCss = [asset('css/login.css')];
+require BASE_PATH . '/app/views/layaouts/auth.php';
+?>

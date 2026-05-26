@@ -1,14 +1,6 @@
-<!doctype html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Iniciar sesion - Tu Huella Vet</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(asset('css/global.css')); ?>" rel="stylesheet">
-    <link href="<?php echo htmlspecialchars(asset('css/login.css')); ?>" rel="stylesheet">
-</head>
-<body class="login-page">
+<?php
+ob_start();
+?>
 <?php
 $csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
 $errorSafe = isset($error) ? (string) $error : '';
@@ -40,5 +32,10 @@ $errorSafe = isset($error) ? (string) $error : '';
     </div>
 </main>
 <script src="<?php echo htmlspecialchars(asset('js/auth/login.js')); ?>"></script>
-</body>
-</html>
+<?php
+$authContent = ob_get_clean();
+$pageTitle = 'Iniciar sesion - Tu Huella Vet';
+$authBodyClass = 'login-page';
+$authExtraCss = [asset('css/login.css')];
+require BASE_PATH . '/app/views/layaouts/auth.php';
+?>

@@ -1,10 +1,31 @@
-.login-page {
+.login-page,
+.auth-page {
+    min-height: 100vh;
+    background:
+        radial-gradient(80% 80% at 10% 10%, rgba(47, 158, 68, 0.12) 0%, rgba(47, 158, 68, 0) 45%),
+        radial-gradient(70% 70% at 90% 0%, rgba(15, 76, 92, 0.18) 0%, rgba(15, 76, 92, 0) 50%),
+        linear-gradient(180deg, #f8fbff 0%, #f2f7fc 100%);
     display: flex;
     align-items: center;
 }
 
-.login-page .tvg-card {
-    animation: rise 0.5s ease-out;
+.login-page .tvg-card,
+.auth-page .tvg-card {
+    animation: rise 0.45s ease-out;
+    border-radius: 18px;
+    box-shadow: 0 12px 40px rgba(31, 41, 51, 0.10);
+}
+
+.login-page .form-control,
+.auth-page .form-control,
+.auth-page .form-select {
+    min-height: 44px;
+}
+
+.login-page .btn-brand,
+.auth-page .btn-brand {
+    min-height: 44px;
+    border-radius: 12px;
 }
 
 @keyframes rise {
