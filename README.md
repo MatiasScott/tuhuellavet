@@ -60,6 +60,44 @@ Base tecnica inicial en PHP MVC para un sistema multiempresa.
 - Inventario (modelo de movimientos)
 - Auditoria
 - Motor de formulas dinamicas sin eval
+- Gestion de archivos e imagenes (subida, reemplazo, eliminacion)
+
+## Imagenes y archivos
+
+- Almacenamiento fisico en `storage/uploads/*`.
+- Validaciones: extension, MIME, tamano y dimensiones.
+- Formatos permitidos: jpg, jpeg, png, webp.
+- Conversion opcional a WEBP para optimizacion.
+- Renombrado automatico para evitar duplicados.
+
+Servicio disponible:
+
+- `App\\Services\\FileStorageService`
+
+Metodos clave:
+
+- `uploadImage($file, $entity, $entityId, $options)`
+- `replaceImage($file, $entity, $entityId, $oldPath, $options)`
+- `deleteFile($storedPath)`
+
+Entidades configuradas:
+
+- usuarios
+- propietarios
+- animales
+- productos
+- medicamentos
+- empresas
+- consultas/documentos
+
+Migracion recomendada para esquema actual:
+
+- `storage/database/migrations/20260526_01_archivos_y_fotos.sql`
+
+Incluye:
+
+- Columnas `foto` faltantes en `propietarios`, `productos`, `medicamentos`.
+- Tabla generica `archivos` para multiples evidencias futuras (pdf, examenes, radiografias, etc.).
 
 ## Pendientes funcionales recomendados
 

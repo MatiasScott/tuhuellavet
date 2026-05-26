@@ -42,6 +42,7 @@ final class Application
             'app' => require $this->basePath . '/app/config/app.php',
             'database' => require $this->basePath . '/app/config/database.php',
             'auth' => require $this->basePath . '/app/config/auth.php',
+            'files' => require $this->basePath . '/app/config/files.php',
         ];
     }
 

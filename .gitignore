@@ -8,6 +8,8 @@
 
 /storage/uploads/*
 !/storage/uploads/.gitkeep
+!/storage/uploads/**/
+!/storage/uploads/**/.gitkeep
 
 /uploads/tmp/*
 !/uploads/tmp/.gitkeep
