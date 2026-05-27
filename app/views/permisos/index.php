@@ -16,7 +16,13 @@ $errorSafe = isset($error) ? (string) $error : '';
 <main class="container py-4">
     <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
         <h1 class="h4 m-0">Permisos del sistema</h1>
-        <a class="btn btn-outline-secondary" href="<?php echo htmlspecialchars(url('/dashboard')); ?>">Volver</a>
+        <div class="d-flex gap-2">
+            <form method="post" action="<?php echo htmlspecialchars(url('/permisos/sincronizar')); ?>" class="m-0">
+                <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfTokenSafe); ?>">
+                <button class="btn btn-outline-primary" type="submit">Sincronizar permisos</button>
+            </form>
+            <a class="btn btn-outline-secondary" href="<?php echo htmlspecialchars(url('/dashboard')); ?>">Volver</a>
+        </div>
     </div>
 
     <?php if ($successSafe !== ''): ?><div class="alert alert-success"><?php echo htmlspecialchars($successSafe); ?></div><?php endif; ?>
@@ -24,6 +30,7 @@ $errorSafe = isset($error) ? (string) $error : '';
 
     <section class="card tvg-card p-3 mb-4">
         <h2 class="h6">Crear permiso</h2>
+        <p class="text-muted small mb-2">La creacion manual sigue disponible, pero se recomienda usar "Sincronizar permisos" para generar automaticamente modulo.ver/crear/editar/eliminar.</p>
         <form method="post" action="<?php echo htmlspecialchars(url('/permisos/crear')); ?>" class="row g-2">
             <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfTokenSafe); ?>">
             <div class="col-md-4">

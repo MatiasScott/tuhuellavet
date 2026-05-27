@@ -8,9 +8,19 @@ $pageTitle = 'Roles';
 <?php
 $rolesSafe = isset($roles) && is_array($roles) ? $roles : [];
 $permisosSafe = isset($permisos) && is_array($permisos) ? $permisos : [];
+$modulosMatrizSafe = isset($modulosMatriz) && is_array($modulosMatriz) ? $modulosMatriz : [];
+$accionesMatrizSafe = isset($accionesMatriz) && is_array($accionesMatriz) ? $accionesMatriz : ['ver', 'crear', 'editar', 'eliminar'];
 $csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
 $successSafe = isset($success) ? (string) $success : '';
 $errorSafe = isset($error) ? (string) $error : '';
+
+$permisosPorSlug = [];
+foreach ($permisosSafe as $permisoItem) {
+    $slug = trim((string) ($permisoItem['slug'] ?? ''));
+    if ($slug !== '') {
+        $permisosPorSlug[$slug] = (int) ($permisoItem['id'] ?? 0);
+    }
+}
 ?>
 
 <main class="container py-4">
@@ -76,14 +86,39 @@ $errorSafe = isset($error) ? (string) $error : '';
                                             <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($csrfTokenSafe); ?>">
                                             <input type="hidden" name="id" value="<?php echo (int) ($r['id'] ?? 0); ?>">
                                             <div class="col-md-12">
-                                                <select class="form-select form-select-sm" name="permiso_ids[]" multiple size="8">
-                                                    <?php foreach ($permisosSafe as $p): ?>
-                                                        <?php $pid = (int) ($p['id'] ?? 0); ?>
-                                                        <option value="<?php echo $pid; ?>" <?php echo in_array($pid, $selected, true) ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars((string) ($p['modulo_nombre'] ?? 'Modulo')); ?> - <?php echo htmlspecialchars((string) ($p['nombre'] ?? 'Permiso')); ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm align-middle mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Modulo</th>
+                                                                <?php foreach ($accionesMatrizSafe as $accion): ?>
+                                                                    <th class="text-center"><?php echo htmlspecialchars(ucfirst((string) $accion)); ?></th>
+                                                                <?php endforeach; ?>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php foreach ($modulosMatrizSafe as $moduloSlug): ?>
+                                                                <tr>
+                                                                    <td><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', (string) $moduloSlug))); ?></td>
+                                                                    <?php foreach ($accionesMatrizSafe as $accion): ?>
+                                                                        <?php
+                                                                        $slug = (string) $moduloSlug . '.' . (string) $accion;
+                                                                        $permisoId = (int) ($permisosPorSlug[$slug] ?? 0);
+                                                                        $checked = $permisoId > 0 && in_array($permisoId, $selected, true);
+                                                                        ?>
+                                                                        <td class="text-center">
+                                                                            <?php if ($permisoId > 0): ?>
+                                                                                <input type="checkbox" name="permiso_ids[]" value="<?php echo $permisoId; ?>" <?php echo $checked ? 'checked' : ''; ?>>
+                                                                            <?php else: ?>
+                                                                                <span class="text-muted">-</span>
+                                                                            <?php endif; ?>
+                                                                        </td>
+                                                                    <?php endforeach; ?>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
                                             <div class="col-md-12"><button class="btn btn-sm btn-outline-dark" type="submit">Guardar permisos del rol</button></div>
                                         </form>

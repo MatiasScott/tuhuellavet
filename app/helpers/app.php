@@ -101,3 +101,26 @@ if (!function_exists('flash_get')) {
         return is_string($message) ? $message : null;
     }
 }
+
+if (!function_exists('auth_user')) {
+    function auth_user(): ?array
+    {
+        $user = \App\Core\Session::get((string) config('auth.session_key'));
+        return is_array($user) ? $user : null;
+    }
+}
+
+if (!function_exists('auth_role')) {
+    function auth_role(): string
+    {
+        $user = auth_user();
+        return is_array($user) ? (string) ($user['rol_codigo'] ?? 'invitado') : 'invitado';
+    }
+}
+
+if (!function_exists('auth_can')) {
+    function auth_can(string $permission): bool
+    {
+        return (new \App\Services\AccessControlService())->can($permission);
+    }
+}

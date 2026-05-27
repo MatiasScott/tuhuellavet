@@ -81,6 +81,15 @@ final class AdminAccess extends Model
         return is_array($row) ? $row : null;
     }
 
+    public function findRolNombreById(int $id): ?string
+    {
+        $stmt = $this->pdo->prepare('SELECT nombre FROM roles WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $value = $stmt->fetchColumn();
+
+        return is_string($value) ? $value : null;
+    }
+
     public function createRol(array $payload): int
     {
         $stmt = $this->pdo->prepare('INSERT INTO roles (nombre, descripcion) VALUES (:nombre, :descripcion)');
@@ -181,6 +190,87 @@ final class AdminAccess extends Model
         $stmt = $this->pdo->query('SELECT id, nombre, slug FROM modulos ORDER BY nombre ASC');
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function findModuloBySlug(string $slug): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, nombre, slug FROM modulos WHERE slug = :slug LIMIT 1');
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function createModulo(string $nombre, string $slug): int
+    {
+        $stmt = $this->pdo->prepare('INSERT INTO modulos (nombre, slug, descripcion) VALUES (:nombre, :slug, :descripcion)');
+        $stmt->execute([
+            ':nombre' => $nombre,
+            ':slug' => $slug,
+            ':descripcion' => 'Modulo sincronizado automaticamente',
+        ]);
+
+        return (int) $this->pdo->lastInsertId();
+    }
+
+    public function findPermisoBySlug(string $slug): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, modulo_id, nombre, slug FROM permisos WHERE slug = :slug LIMIT 1');
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function updatePermisoById(int $id, int $moduloId, string $nombre, string $slug): bool
+    {
+        $stmt = $this->pdo->prepare('UPDATE permisos SET modulo_id = :modulo_id, nombre = :nombre, slug = :slug WHERE id = :id');
+
+        return $stmt->execute([
+            ':id' => $id,
+            ':modulo_id' => $moduloId,
+            ':nombre' => $nombre,
+            ':slug' => $slug,
+        ]);
+    }
+
+    public function beginTransaction(): void
+    {
+        $this->pdo->beginTransaction();
+    }
+
+    public function commit(): void
+    {
+        $this->pdo->commit();
+    }
+
+    public function rollBack(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
+    }
+
+    public function cleanupDemoPermisos(): int
+    {
+        $stmt = $this->pdo->prepare('DELETE FROM permisos WHERE slug REGEXP :slug_pattern OR nombre REGEXP :name_pattern');
+        $stmt->execute([
+            ':slug_pattern' => '^(permiso[_-]?[0-9]+|permiso[0-9]+)$',
+            ':name_pattern' => '^Permiso[[:space:]]+[0-9]+$',
+        ]);
+
+        return (int) $stmt->rowCount();
+    }
+
+    public function cleanupDemoModulosSinUso(): int
+    {
+        $stmt = $this->pdo->prepare('DELETE m FROM modulos m LEFT JOIN permisos p ON p.modulo_id = m.id WHERE p.id IS NULL AND (m.slug REGEXP :slug_pattern OR m.nombre REGEXP :name_pattern)');
+        $stmt->execute([
+            ':slug_pattern' => '^(modulo[_-]?[0-9]+|modulo[0-9]+)$',
+            ':name_pattern' => '^Modulo[[:space:]]+[0-9]+$',
+        ]);
+
+        return (int) $stmt->rowCount();
     }
 
     public function rolePermissionIds(int $rolId): array

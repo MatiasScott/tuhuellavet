@@ -65,6 +65,7 @@ $router->post('/roles/permisos', [AdminAccessController::class, 'syncRolPermisos
 $router->get('/permisos', [AdminAccessController::class, 'permisosIndex'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class]);
 $router->post('/permisos/crear', [AdminAccessController::class, 'createPermiso'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class]);
 $router->post('/permisos/actualizar', [AdminAccessController::class, 'updatePermiso'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class]);
+$router->post('/permisos/sincronizar', [AdminAccessController::class, 'syncPermisos'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class]);
 
 $router->get('/especies', [AdminCatalogoAnimalController::class, 'especiesIndex'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class]);
 $router->post('/especies/crear', [AdminCatalogoAnimalController::class, 'createEspecie'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class]);

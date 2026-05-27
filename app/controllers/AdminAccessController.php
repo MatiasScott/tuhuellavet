@@ -134,6 +134,8 @@ final class AdminAccessController extends Controller
         $response->view('roles/index', [
             'roles' => $data['roles'],
             'permisos' => $data['permisos'],
+            'modulosMatriz' => $data['modulosMatriz'],
+            'accionesMatriz' => $data['accionesMatriz'],
             'csrfToken' => Csrf::token((int) config('auth.csrf_token_ttl', 3600)),
             'success' => flash_get('success'),
             'error' => flash_get('error'),
@@ -256,6 +258,30 @@ final class AdminAccessController extends Controller
         try {
             $this->service->updatePermiso($id, $request->all());
             flash_set('success', 'Permiso actualizado correctamente.');
+        } catch (Throwable $exception) {
+            flash_set('error', $exception->getMessage());
+        }
+
+        $response->redirect('/permisos');
+    }
+
+    public function syncPermisos(Request $request, Response $response): never
+    {
+        if (!Csrf::verify((string) $request->input('_csrf_token'), (int) config('auth.csrf_token_ttl', 3600))) {
+            flash_set('error', 'Token CSRF invalido.');
+            $response->redirect('/permisos');
+        }
+
+        try {
+            $stats = $this->service->sincronizarPermisos();
+            flash_set(
+                'success',
+                'Sincronizacion completada. Modulos creados: ' . (int) ($stats['modulos_creados'] ?? 0)
+                . ', permisos creados: ' . (int) ($stats['permisos_creados'] ?? 0)
+                . ', permisos actualizados: ' . (int) ($stats['permisos_actualizados'] ?? 0)
+                . ', demo permisos eliminados: ' . (int) ($stats['demo_permisos_eliminados'] ?? 0)
+                . ', demo modulos eliminados: ' . (int) ($stats['demo_modulos_eliminados'] ?? 0)
+            );
         } catch (Throwable $exception) {
             flash_set('error', $exception->getMessage());
         }

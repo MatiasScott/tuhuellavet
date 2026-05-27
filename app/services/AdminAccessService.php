@@ -4,11 +4,34 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\Session;
 use App\Models\AdminAccess;
 use RuntimeException;
 
 final class AdminAccessService
 {
+    private const ACCIONES_ESTANDAR = ['ver', 'crear', 'editar', 'eliminar'];
+
+    private const MODULOS_SISTEMA = [
+        'usuarios' => 'Usuarios',
+        'roles' => 'Roles',
+        'permisos' => 'Permisos',
+        'empresas' => 'Empresas',
+        'pacientes' => 'Pacientes',
+        'propietarios' => 'Propietarios',
+        'consultas' => 'Consultas',
+        'vacunas' => 'Vacunas',
+        'hospitalizacion' => 'Hospitalizacion',
+        'cirugias' => 'Cirugias',
+        'inventario' => 'Inventario',
+        'formulas' => 'Formulas',
+        'auditoria' => 'Auditoria',
+        'especies' => 'Especies',
+        'razas' => 'Razas',
+        'categorias' => 'Categorias',
+        'reportes' => 'Reportes',
+    ];
+
     public function __construct(
         private readonly AdminAccess $model = new AdminAccess(),
         private readonly AuditService $audit = new AuditService()
@@ -138,6 +161,16 @@ final class AdminAccessService
             throw new RuntimeException('Debes seleccionar al menos una empresa.');
         }
 
+        $currentUser = Session::get((string) config('auth.session_key'));
+        $currentRole = is_array($currentUser) ? (string) ($currentUser['rol_codigo'] ?? 'invitado') : 'invitado';
+        if ($currentRole === 'administrador') {
+            $targetRoleName = (string) ($this->model->findRolNombreById($rolId) ?? '');
+            $targetRoleNormalized = strtolower(trim(str_replace([' ', '-'], '_', $targetRoleName)));
+            if (!in_array($targetRoleNormalized, ['cliente', 'clientes'], true)) {
+                throw new RuntimeException('Como administrador solo puedes asignar usuarios con rol Cliente.');
+            }
+        }
+
         $this->model->syncUsuarioEmpresasRol($usuarioId, $rolId, array_values(array_unique($empresaIds)));
     }
 
@@ -153,6 +186,8 @@ final class AdminAccessService
         return [
             'roles' => $roles,
             'permisos' => $permisos,
+            'modulosMatriz' => array_keys(self::MODULOS_SISTEMA),
+            'accionesMatriz' => self::ACCIONES_ESTANDAR,
         ];
     }
 
@@ -219,6 +254,68 @@ final class AdminAccessService
             'permisos' => $this->model->permisos(),
             'modulos' => $this->model->modulos(),
         ];
+    }
+
+    public function sincronizarPermisos(): array
+    {
+        $this->model->beginTransaction();
+
+        try {
+            $demoPermisosEliminados = $this->model->cleanupDemoPermisos();
+            $demoModulosEliminados = $this->model->cleanupDemoModulosSinUso();
+
+            $modulosCreados = 0;
+            $permisosCreados = 0;
+            $permisosActualizados = 0;
+
+            foreach (self::MODULOS_SISTEMA as $slugModulo => $nombreModulo) {
+                $modulo = $this->model->findModuloBySlug($slugModulo);
+                if (!is_array($modulo)) {
+                    $moduloId = $this->model->createModulo($nombreModulo, $slugModulo);
+                    $modulosCreados++;
+                } else {
+                    $moduloId = (int) ($modulo['id'] ?? 0);
+                }
+
+                foreach (self::ACCIONES_ESTANDAR as $accion) {
+                    $slugPermiso = $slugModulo . '.' . $accion;
+                    $nombrePermiso = ucfirst($accion);
+                    $permiso = $this->model->findPermisoBySlug($slugPermiso);
+
+                    if (!is_array($permiso)) {
+                        $this->model->createPermiso([
+                            'modulo_id' => $moduloId,
+                            'nombre' => $nombrePermiso,
+                            'slug' => $slugPermiso,
+                        ]);
+                        $permisosCreados++;
+                        continue;
+                    }
+
+                    $permisoId = (int) ($permiso['id'] ?? 0);
+                    $permisoModuloId = (int) ($permiso['modulo_id'] ?? 0);
+                    $permisoNombre = (string) ($permiso['nombre'] ?? '');
+
+                    if ($permisoModuloId !== $moduloId || strtolower($permisoNombre) !== strtolower($nombrePermiso)) {
+                        $this->model->updatePermisoById($permisoId, $moduloId, $nombrePermiso, $slugPermiso);
+                        $permisosActualizados++;
+                    }
+                }
+            }
+
+            $this->model->commit();
+
+            return [
+                'demo_permisos_eliminados' => $demoPermisosEliminados,
+                'demo_modulos_eliminados' => $demoModulosEliminados,
+                'modulos_creados' => $modulosCreados,
+                'permisos_creados' => $permisosCreados,
+                'permisos_actualizados' => $permisosActualizados,
+            ];
+        } catch (\Throwable $exception) {
+            $this->model->rollBack();
+            throw $exception;
+        }
     }
 
     public function createPermiso(array $input): int

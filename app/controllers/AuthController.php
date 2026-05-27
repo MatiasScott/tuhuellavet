@@ -204,7 +204,9 @@ final class AuthController extends Controller
 
     public function selectCompany(Request $request, Response $response): never
     {
-        if (!(new AuthService())->ensureCsrf((string) $request->input('_csrf_token'))) {
+        $authService = new AuthService();
+
+        if (!$authService->ensureCsrf((string) $request->input('_csrf_token'))) {
             $response->redirect('/empresa/seleccionar');
         }
 
@@ -216,12 +218,13 @@ final class AuthController extends Controller
             $response->redirect('/login');
         }
 
-        if (!(new AuthService())->userHasCompany((int) ($user['id'] ?? 0), $companyId)) {
+        if (!$authService->userHasCompany((int) ($user['id'] ?? 0), $companyId)) {
             $response->redirect('/empresa/seleccionar');
         }
 
         $prevCompanyId = (int) Session::get((string) config('auth.company_session_key'), 0);
         Session::put((string) config('auth.company_session_key'), $companyId);
+        $authService->refreshSessionAccess((int) ($user['id'] ?? 0), $companyId);
 
         (new AuditService())->log([
             'usuario_id' => $user['id'] ?? null,
