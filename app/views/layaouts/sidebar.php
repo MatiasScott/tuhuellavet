@@ -44,6 +44,20 @@ $isActive = static function (string $path) use ($requestUri): string {
             <a class="tvg-nav-link <?php echo $isActive('/desparasitaciones'); ?>" href="<?php echo htmlspecialchars(url('/desparasitaciones')); ?>"><i class="bi bi-bug"></i><span>Desparasitaciones</span></a>
         </details>
 
+        <details class="tvg-nav-group" open>
+            <summary><i class="bi bi-gear"></i><span>Administracion</span></summary>
+            <a class="tvg-nav-link <?php echo $isActive('/usuarios'); ?>" href="<?php echo htmlspecialchars(url('/usuarios')); ?>"><i class="bi bi-person-gear"></i><span>Usuarios</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/roles'); ?>" href="<?php echo htmlspecialchars(url('/roles')); ?>"><i class="bi bi-person-badge"></i><span>Roles</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/permisos'); ?>" href="<?php echo htmlspecialchars(url('/permisos')); ?>"><i class="bi bi-shield-lock"></i><span>Permisos</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/empresas'); ?>" href="<?php echo htmlspecialchars(url('/empresas')); ?>"><i class="bi bi-buildings"></i><span>Empresas</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/especies'); ?>" href="<?php echo htmlspecialchars(url('/especies')); ?>"><i class="bi bi-diagram-3"></i><span>Especies</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/razas'); ?>" href="<?php echo htmlspecialchars(url('/razas')); ?>"><i class="bi bi-list-nested"></i><span>Razas</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/categorias-animales'); ?>" href="<?php echo htmlspecialchars(url('/categorias-animales')); ?>"><i class="bi bi-tags"></i><span>Categorias animales</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/medicamentos'); ?>" href="<?php echo htmlspecialchars(url('/medicamentos')); ?>"><i class="bi bi-capsule"></i><span>Medicamentos</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/laboratorios'); ?>" href="<?php echo htmlspecialchars(url('/laboratorios')); ?>"><i class="bi bi-bezier2"></i><span>Laboratorios</span></a>
+            <a class="tvg-nav-link <?php echo $isActive('/tipos-examen'); ?>" href="<?php echo htmlspecialchars(url('/tipos-examen')); ?>"><i class="bi bi-clipboard2-data"></i><span>Tipos examen</span></a>
+        </details>
+
         <a class="tvg-nav-link <?php echo $isActive('/auditoria'); ?>" href="<?php echo htmlspecialchars(url('/auditoria')); ?>">
             <i class="bi bi-journal-text"></i>
             <span>Auditoria</span>
