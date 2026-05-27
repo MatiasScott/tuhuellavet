@@ -117,63 +117,6 @@ $trendSerialized = implode(',', $trendPoints);
     </section>
 
     <section class="row g-3 mb-3">
-        <div class="col-12 col-lg-7">
-            <article class="card tvg-card p-3">
-                <h2 class="h6">Widgets dinamicos por rol</h2>
-                <?php if ($widgetsSafe === []): ?>
-                    <p class="mb-0 text-muted">No hay widgets configurados para el rol/contexto actual.</p>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table tvg-table table-hover mb-0">
-                            <thead>
-                            <tr>
-                                <th>Orden</th>
-                                <th>Codigo</th>
-                                <th>Nombre</th>
-                                <th>Modulo</th>
-                                <th>Contexto</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($widgetsSafe as $widget): ?>
-                                <tr>
-                                    <td><?php echo (int) ($widget['orden'] ?? 0); ?></td>
-                                    <td><?php echo htmlspecialchars((string) ($widget['codigo'] ?? '')); ?></td>
-                                    <td><?php echo htmlspecialchars((string) ($widget['nombre'] ?? '')); ?></td>
-                                    <td><?php echo htmlspecialchars((string) ($widget['modulo_origen'] ?? '')); ?></td>
-                                    <td><?php echo htmlspecialchars((string) ($widget['contexto'] ?? '')); ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
-            </article>
-        </div>
-        <div class="col-12 col-lg-5">
-            <article class="card tvg-card p-3">
-                <h2 class="h6 mb-2">Actividad resumida</h2>
-                <div class="tvg-activity-item">
-                    <p class="tvg-activity-title">Consultas del dia</p>
-                    <p class="tvg-activity-meta"><?php echo (int) ($metricsSafe['consultas_hoy'] ?? 0); ?> atenciones registradas.</p>
-                </div>
-                <div class="tvg-activity-item">
-                    <p class="tvg-activity-title">Vacunacion pendiente</p>
-                    <p class="tvg-activity-meta"><?php echo (int) ($metricsSafe['vacunas_proximas_7_dias'] ?? 0); ?> pacientes por controlar en 7 dias.</p>
-                </div>
-                <div class="tvg-activity-item">
-                    <p class="tvg-activity-title">Examenes de laboratorio</p>
-                    <p class="tvg-activity-meta"><?php echo (int) ($metricsSafe['examenes_mes'] ?? 0); ?> pruebas durante el mes actual.</p>
-                </div>
-                <div class="tvg-activity-item">
-                    <p class="tvg-activity-title">Cirugias del periodo</p>
-                    <p class="tvg-activity-meta"><?php echo (int) ($metricsSafe['cirugias_mes'] ?? 0); ?> procedimientos en curso mensual.</p>
-                </div>
-            </article>
-        </div>
-    </section>
-
-    <section class="row g-3 mb-3">
         <div class="col-12 col-lg-4">
             <article class="card tvg-card p-3">
                 <h2 class="h6 mb-2">Pacientes recientes</h2>

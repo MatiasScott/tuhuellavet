@@ -77,14 +77,22 @@ final class PropietarioService
             throw new RuntimeException('Propietario no encontrado.');
         }
 
+        $nombres = trim((string) ($input['nombres'] ?? ''));
+        if ($nombres === '') {
+            throw new RuntimeException('El nombre del propietario es obligatorio.');
+        }
+
         $fotoPath = (string) ($actual['foto'] ?? '');
+        $fotoAnterior = $fotoPath;
+        $seSubioFotoNueva = false;
         if (is_array($foto) && (int) ($foto['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
             $stored = $this->files->replaceImage($foto, 'propietarios', $id, $fotoPath !== '' ? $fotoPath : null);
             $fotoPath = $stored['path'];
+            $seSubioFotoNueva = true;
         }
 
-        $this->model->update($id, $empresaId, [
-            'nombres' => trim((string) ($input['nombres'] ?? '')),
+        $updated = $this->model->update($id, $empresaId, [
+            'nombres' => $nombres,
             'apellidos' => trim((string) ($input['apellidos'] ?? '')),
             'identificacion' => trim((string) ($input['identificacion'] ?? '')),
             'telefono' => trim((string) ($input['telefono'] ?? '')),
@@ -95,5 +103,16 @@ final class PropietarioService
             'portal_cliente_activo' => isset($input['portal_cliente_activo']) ? 1 : 0,
             'estado' => isset($input['estado']) ? (int) $input['estado'] : 1,
         ]);
+
+        if ($updated !== true) {
+            throw new RuntimeException('No fue posible actualizar el propietario. Intenta nuevamente.');
+        }
+
+        if ($seSubioFotoNueva) {
+            $verificacion = $this->find($id, $empresaId);
+            if (!is_array($verificacion) || (string) ($verificacion['foto'] ?? '') !== $fotoPath || $fotoPath === $fotoAnterior) {
+                throw new RuntimeException('La foto no se pudo actualizar correctamente. Verifica permisos de escritura en storage/uploads/propietarios.');
+            }
+        }
     }
 }

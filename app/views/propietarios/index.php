@@ -47,7 +47,7 @@ $errorSafe = isset($error) ? (string) $error : '';
                 <?php foreach ($rowsSafe as $row): ?>
                     <?php
                     $fotoRaw = trim((string) ($row['foto'] ?? ''));
-                    $fotoUrl = $fotoRaw !== '' ? url('/' . ltrim($fotoRaw, '/')) : '';
+                    $fotoUrl = $fotoRaw !== '' ? url('/imagen/ver?path=' . rawurlencode($fotoRaw)) : '';
                     $nombreCompleto = trim((string) ($row['nombres'] ?? '') . ' ' . (string) ($row['apellidos'] ?? ''));
                     ?>
                     <tr>

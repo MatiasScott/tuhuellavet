@@ -34,42 +34,57 @@ $errorSafe = isset($error) ? (string) $error : '';
         <div class="table-responsive">
             <table id="tabla-animales" class="table tvg-table table-hover mb-0">
                 <thead>
-                <tr>
-                    <th>Paciente</th>
-                    <th>Nombre</th>
-                    <th>Propietario</th>
-                    <th>Especie/Raza</th>
-                    <th>Peso</th>
-                    <th>Edad</th>
-                    <th class="text-end">Acciones</th>
-                </tr>
+                    <tr>
+                        <th>Paciente</th>
+                        <th>Nombre</th>
+                        <th>Propietario</th>
+                        <th>Especie/Raza</th>
+                        <th>Peso</th>
+                        <th>Edad</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($rowsSafe as $row): ?>
-                    <?php
-                    $fotoRaw = trim((string) ($row['foto'] ?? ''));
-                    $fotoUrl = $fotoRaw !== '' ? url('/' . ltrim($fotoRaw, '/')) : '';
-                    $nombrePaciente = (string) ($row['nombre'] ?? '');
-                    ?>
-                    <tr>
-                        <td>
-                            <?php if ($fotoUrl !== ''): ?>
-                                <img class="tvg-avatar" src="<?php echo htmlspecialchars($fotoUrl); ?>" alt="Foto paciente">
-                            <?php else: ?>
-                                <span class="tvg-avatar tvg-avatar-fallback"><?php echo htmlspecialchars(strtoupper(substr($nombrePaciente, 0, 1))); ?></span>
-                            <?php endif; ?>
-                        </td>
-                        <td>
-                            <div class="fw-semibold"><?php echo htmlspecialchars($nombrePaciente); ?></div>
-                            <small class="text-muted">ID #<?php echo (int) ($row['id'] ?? 0); ?></small>
-                        </td>
-                        <td><?php echo htmlspecialchars((string) ($row['propietario_nombre'] ?? '')); ?></td>
-                        <td><?php echo htmlspecialchars((string) (($row['especie'] ?? '') . ' / ' . ($row['raza'] ?? ''))); ?></td>
-                        <td><?php echo htmlspecialchars((string) ($row['peso_actual'] ?? '')); ?></td>
-                        <td><?php echo htmlspecialchars((string) ($row['edad_anios'] ?? '')); ?> anos</td>
-                        <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars(url('/animales/editar?id=' . (int) ($row['id'] ?? 0))); ?>">Editar</a></td>
-                    </tr>
-                <?php endforeach; ?>
+                    <?php foreach ($rowsSafe as $row): ?>
+                        <?php
+                        $fotoRaw = trim((string) ($row['foto'] ?? ''));
+                        $fotoUrl = $fotoRaw !== '' ? url('/imagen/ver?path=' . rawurlencode($fotoRaw)) : '';
+                        $nombrePaciente = (string) ($row['nombre'] ?? '');
+                        ?>
+                        <tr>
+                            <td>
+                                <?php if ($fotoUrl !== ''): ?>
+                                    <img class="tvg-avatar" src="<?php echo htmlspecialchars($fotoUrl); ?>" alt="Foto paciente">
+                                <?php else: ?>
+                                    <span class="tvg-avatar tvg-avatar-fallback"><?php echo htmlspecialchars(strtoupper(substr($nombrePaciente, 0, 1))); ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div class="fw-semibold"><?php echo htmlspecialchars($nombrePaciente); ?></div>
+                                <small class="text-muted">ID #<?php echo (int) ($row['id'] ?? 0); ?></small>
+                            </td>
+                            <td><?php echo htmlspecialchars((string) ($row['propietario_nombre'] ?? '')); ?></td>
+                            <td><?php echo htmlspecialchars((string) (($row['especie'] ?? '') . ' / ' . ($row['raza'] ?? ''))); ?></td>
+                            <td><?php echo htmlspecialchars((string) ($row['peso_actual'] ?? '')); ?></td>
+                            <td>
+                                <?php
+                                if (!empty($row['fecha_nacimiento'])) {
+
+                                    $fechaNacimiento = new DateTime($row['fecha_nacimiento']);
+                                    $hoy = new DateTime();
+
+                                    $edad = $fechaNacimiento->diff($hoy);
+
+                                    echo $edad->y . ' años y ' . $edad->m . ' meses';
+                                } else {
+
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </td>
+                            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars(url('/animales/editar?id=' . (int) ($row['id'] ?? 0))); ?>">Editar</a></td>
+                        </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
         </div>

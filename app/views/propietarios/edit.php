@@ -9,6 +9,9 @@ $pageTitle = 'Editar propietario';
 $rowSafe = isset($row) && is_array($row) ? $row : [];
 $csrfTokenSafe = isset($csrfToken) ? (string) $csrfToken : '';
 $errorSafe = isset($error) ? (string) $error : '';
+$fotoActualSafe = trim((string) ($rowSafe['foto'] ?? ''));
+$fotoActualUrl = $fotoActualSafe !== '' ? url('/imagen/ver?path=' . rawurlencode($fotoActualSafe)) : '';
+$convierteAWebp = (bool) config('files.convert_to_webp', false);
 ?>
 
 <main class="container py-4">
@@ -33,7 +36,24 @@ $errorSafe = isset($error) ? (string) $error : '';
             <div class="col-md-3"><input class="form-control" type="file" name="foto" accept=".jpg,.jpeg,.png,.webp"></div>
             <div class="col-md-2 d-flex align-items-center"><label class="form-check-label"><input class="form-check-input me-1" type="checkbox" name="portal_cliente_activo" value="1" <?php echo ((int) ($rowSafe['portal_cliente_activo'] ?? 0) === 1) ? 'checked' : ''; ?>>Portal activo</label></div>
             <div class="col-md-2"><button class="btn btn-brand w-100" type="submit">Actualizar</button></div>
-            <div class="col-12"><small class="text-muted">Foto actual: <?php echo htmlspecialchars((string) ($rowSafe['foto'] ?? '')); ?></small></div>
+            <div class="col-12">
+                <?php if ($fotoActualUrl !== ''): ?>
+                    <div class="d-flex align-items-center gap-3">
+                        <img src="<?php echo htmlspecialchars($fotoActualUrl); ?>" alt="Foto actual del propietario" style="width:72px;height:72px;object-fit:cover;border-radius:12px;border:1px solid #d5e0e7;">
+                        <div>
+                            <small class="text-muted d-block">Foto actual cargada correctamente.</small>
+                            <?php if ($convierteAWebp): ?>
+                                <small class="text-muted d-block">El sistema convierte imagenes PNG/JPG a WEBP para optimizar almacenamiento.</small>
+                            <?php else: ?>
+                                <small class="text-muted d-block">El sistema conserva el formato original de la imagen al actualizar.</small>
+                            <?php endif; ?>
+                            <small class="text-muted d-block">Archivo: <?php echo htmlspecialchars($fotoActualSafe); ?></small>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <small class="text-muted">Este propietario no tiene foto registrada.</small>
+                <?php endif; ?>
+            </div>
         </form>
     </section>
 </main>

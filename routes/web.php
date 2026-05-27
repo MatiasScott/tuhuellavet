@@ -31,6 +31,7 @@ $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::cla
 
 $router->get('/pdf/ver', [FileController::class, 'viewPdf'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
 $router->get('/pdf/descargar', [FileController::class, 'downloadPdf'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
+$router->get('/imagen/ver', [FileController::class, 'viewImage'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class]);
 
 $router->get('/password/change', [AuthController::class, 'showForcePasswordChange'], [AuthMiddleware::class]);
 $router->post('/password/change', [AuthController::class, 'forcePasswordChange'], [AuthMiddleware::class]);

@@ -105,13 +105,16 @@ final class AnimalService
 
         $pesoActual = $this->toNullableFloat($input['peso_actual'] ?? null);
         $fotoPath = (string) ($actual['foto'] ?? '');
+        $fotoAnterior = $fotoPath;
+        $seSubioFotoNueva = false;
 
         if (is_array($foto) && (int) ($foto['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
             $stored = $this->files->replaceImage($foto, 'animales', $id, $fotoPath !== '' ? $fotoPath : null);
             $fotoPath = $stored['path'];
+            $seSubioFotoNueva = true;
         }
 
-        $this->model->update($id, $empresaId, [
+        $updated = $this->model->update($id, $empresaId, [
             'propietario_id' => $this->toNullableInt($input['propietario_id'] ?? null),
             'especie_id' => $especieId,
             'raza_id' => $this->toNullableInt($input['raza_id'] ?? null),
@@ -126,6 +129,17 @@ final class AnimalService
             'observaciones' => trim((string) ($input['observaciones'] ?? '')),
             'estado' => isset($input['estado']) ? (int) $input['estado'] : 1,
         ]);
+
+        if ($updated !== true) {
+            throw new RuntimeException('No fue posible actualizar el paciente. Intenta nuevamente.');
+        }
+
+        if ($seSubioFotoNueva) {
+            $verificacion = $this->find($id, $empresaId);
+            if (!is_array($verificacion) || (string) ($verificacion['foto'] ?? '') !== $fotoPath || $fotoPath === $fotoAnterior) {
+                throw new RuntimeException('La foto no se pudo actualizar correctamente. Verifica permisos de escritura en storage/uploads/animales.');
+            }
+        }
 
         if ($pesoActual !== null && (float) ($actual['peso_actual'] ?? -1) !== $pesoActual) {
             $this->model->insertPesoHistorico($id, null, $pesoActual, $usuarioId, 'Actualizacion de peso desde modulo animales');

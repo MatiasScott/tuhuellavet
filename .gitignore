@@ -6,6 +6,7 @@
 /storage/cache/*
 !/storage/cache/.gitkeep
 
+/storage/
 /storage/uploads/*
 !/storage/uploads/.gitkeep
 !/storage/uploads/**/
