@@ -53,7 +53,7 @@ final class Propietario extends Model
 
     public function update(int $id, int $empresaId, array $payload): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE propietarios SET nombres = :nombres, apellidos = :apellidos, identificacion = :identificacion, telefono = :telefono, celular = :celular, email = :email, direccion = :direccion, foto = :foto, portal_cliente_activo = :portal_cliente_activo, estado = :estado, updated_at = NOW() WHERE id = :id AND empresa_id = :empresa_id');
+        $stmt = $this->pdo->prepare('UPDATE propietarios SET nombres = :nombres, apellidos = :apellidos, identificacion = :identificacion, telefono = :telefono, celular = :celular, email = :email, direccion = :direccion, usuario_id = :usuario_id, foto = :foto, portal_cliente_activo = :portal_cliente_activo, estado = :estado, updated_at = NOW() WHERE id = :id AND empresa_id = :empresa_id');
 
         return $stmt->execute([
             ':id' => $id,
@@ -65,9 +65,27 @@ final class Propietario extends Model
             ':celular' => $payload['celular'],
             ':email' => $payload['email'],
             ':direccion' => $payload['direccion'],
+            ':usuario_id' => $payload['usuario_id'],
             ':foto' => $payload['foto'],
             ':portal_cliente_activo' => $payload['portal_cliente_activo'],
             ':estado' => $payload['estado'],
         ]);
+    }
+
+    public function beginTransaction(): void
+    {
+        $this->pdo->beginTransaction();
+    }
+
+    public function commit(): void
+    {
+        $this->pdo->commit();
+    }
+
+    public function rollBack(): void
+    {
+        if ($this->pdo->inTransaction()) {
+            $this->pdo->rollBack();
+        }
     }
 }

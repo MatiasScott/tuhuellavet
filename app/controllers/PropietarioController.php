@@ -51,8 +51,22 @@ final class PropietarioController extends Controller
         }
 
         try {
-            $this->service->create($empresaId, $request->all(), $request->file('foto'));
-            flash_set('success', 'Propietario creado correctamente.');
+            $result = $this->service->create($empresaId, $request->all(), $request->file('foto'));
+            $message = 'Propietario creado correctamente.';
+
+            if ((int) ($result['portal_cliente_activo'] ?? 0) === 1) {
+                if ((bool) ($result['usuario_creado'] ?? false)) {
+                    $message .= ' Usuario cliente creado y vinculado.';
+                    $tempPassword = (string) ($result['clave_temporal'] ?? '');
+                    if ($tempPassword !== '') {
+                        $message .= ' Clave temporal: ' . $tempPassword;
+                    }
+                } else {
+                    $message .= ' Usuario cliente vinculado al portal.';
+                }
+            }
+
+            flash_set('success', $message);
         } catch (Throwable $e) {
             flash_set('error', $e->getMessage());
         }

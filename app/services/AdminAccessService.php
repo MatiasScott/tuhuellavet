@@ -75,6 +75,26 @@ final class AdminAccessService
         ]);
     }
 
+    public function findUsuarioByEmail(string $email): ?array
+    {
+        return $this->model->findUsuarioByEmail($email);
+    }
+
+    public function findUsuarioById(int $id): ?array
+    {
+        return $this->model->findUsuarioById($id);
+    }
+
+    public function findRolByCodigo(string $codigo): ?array
+    {
+        return $this->model->findRolByCodigo($codigo);
+    }
+
+    public function assignUsuarioEmpresaRol(int $usuarioId, int $empresaId, int $rolId): void
+    {
+        $this->model->assignUsuarioEmpresaRol($usuarioId, $empresaId, $rolId);
+    }
+
     public function updateUsuario(int $id, array $input): void
     {
         $current = $this->model->findUsuarioById($id);

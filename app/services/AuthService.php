@@ -16,7 +16,7 @@ final class AuthService
     {
         $pdo = Database::connection((array) config('database'));
 
-        $stmt = $pdo->prepare('SELECT u.id, u.nombres, u.apellidos, u.email, u.password, u.estado FROM usuarios u WHERE u.email = :email AND u.estado = 1 LIMIT 1');
+        $stmt = $pdo->prepare('SELECT u.id, u.nombres, u.apellidos, u.email, u.password, u.estado, u.ultimo_login FROM usuarios u WHERE u.email = :email AND u.estado = 1 LIMIT 1');
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -39,8 +39,8 @@ final class AuthService
             'rol_codigo' => 'invitado',
             'rol_id' => null,
             'permisos' => [],
-            'require_password_change' => 0,
-            'password_changed_at' => null,
+            'require_password_change' => empty($user['ultimo_login']) ? 1 : 0,
+            'password_changed_at' => $user['ultimo_login'] ?? null,
         ];
 
         Session::put((string) config('auth.session_key'), $authPayload);
@@ -56,7 +56,7 @@ final class AuthService
     public function updatePassword(int $userId, string $newPassword): bool
     {
         $pdo = Database::connection((array) config('database'));
-        $stmt = $pdo->prepare('UPDATE usuarios SET password = :password_hash, updated_at = NOW() WHERE id = :id');
+        $stmt = $pdo->prepare('UPDATE usuarios SET password = :password_hash, ultimo_login = NOW(), updated_at = NOW() WHERE id = :id');
 
         return $stmt->execute([
             ':password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),

@@ -97,6 +97,10 @@ $router->get('/tipos-examen', [AdminBusinessController::class, 'tiposExamenIndex
 $router->post('/tipos-examen/renombrar', [AdminBusinessController::class, 'renameTipoExamen'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, AdminMiddleware::class, CompanyContextMiddleware::class]);
 
 $router->get('/dashboard', [DashboardController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/portal', [DashboardController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/portal/perfil/foto', [DashboardController::class, 'updateProfilePhoto'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->post('/portal/mascotas/foto', [DashboardController::class, 'updatePetPhoto'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
+$router->get('/portal/mascotas/detalle', [DashboardController::class, 'showPetDetail'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 
 $router->get('/propietarios', [PropietarioController::class, 'index'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);
 $router->get('/propietarios/crear', [PropietarioController::class, 'createForm'], [AuthMiddleware::class, RequirePasswordChangeMiddleware::class, CompanyContextMiddleware::class]);

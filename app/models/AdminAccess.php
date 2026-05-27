@@ -26,10 +26,26 @@ final class AdminAccess extends Model
         return is_array($row) ? $row : null;
     }
 
+    public function findUsuarioByEmail(string $email): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, nombres, apellidos, email, telefono, estado FROM usuarios WHERE email = :email LIMIT 1');
+        $stmt->execute([':email' => $email]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
     public function createUsuario(array $payload): int
     {
         $stmt = $this->pdo->prepare('INSERT INTO usuarios (nombres, apellidos, email, password, telefono, estado) VALUES (:nombres, :apellidos, :email, :password, :telefono, :estado)');
-        $stmt->execute($payload);
+        $stmt->execute([
+            ':nombres' => $payload['nombres'],
+            ':apellidos' => $payload['apellidos'],
+            ':email' => $payload['email'],
+            ':password' => $payload['password'],
+            ':telefono' => $payload['telefono'],
+            ':estado' => $payload['estado'],
+        ]);
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -50,7 +66,7 @@ final class AdminAccess extends Model
 
     public function resetPassword(int $id, string $passwordHash): bool
     {
-        $stmt = $this->pdo->prepare('UPDATE usuarios SET password = :password, updated_at = NOW() WHERE id = :id');
+        $stmt = $this->pdo->prepare('UPDATE usuarios SET password = :password, ultimo_login = NOW(), updated_at = NOW() WHERE id = :id');
 
         return $stmt->execute([
             ':id' => $id,
@@ -88,6 +104,15 @@ final class AdminAccess extends Model
         $value = $stmt->fetchColumn();
 
         return is_string($value) ? $value : null;
+    }
+
+    public function findRolByCodigo(string $codigo): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, nombre, descripcion FROM roles WHERE REPLACE(REPLACE(LOWER(nombre), " ", "_"), "-", "_") = :codigo LIMIT 1');
+        $stmt->execute([':codigo' => strtolower(trim($codigo))]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
     }
 
     public function createRol(array $payload): int
@@ -344,5 +369,21 @@ final class AdminAccess extends Model
             }
             throw $exception;
         }
+    }
+
+    public function assignUsuarioEmpresaRol(int $usuarioId, int $empresaId, int $rolId): void
+    {
+        $delete = $this->pdo->prepare('DELETE FROM usuarios_empresas WHERE usuario_id = :usuario_id AND empresa_id = :empresa_id');
+        $delete->execute([
+            ':usuario_id' => $usuarioId,
+            ':empresa_id' => $empresaId,
+        ]);
+
+        $insert = $this->pdo->prepare('INSERT INTO usuarios_empresas (usuario_id, empresa_id, rol_id) VALUES (:usuario_id, :empresa_id, :rol_id)');
+        $insert->execute([
+            ':usuario_id' => $usuarioId,
+            ':empresa_id' => $empresaId,
+            ':rol_id' => $rolId,
+        ]);
     }
 }

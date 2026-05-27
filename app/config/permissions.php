@@ -93,6 +93,8 @@ return [
     'route_map' => [
         'GET' => [
             '/dashboard' => 'dashboard.ver',
+            '/portal' => 'cliente.panel.ver',
+            '/portal/mascotas/detalle' => 'cliente.panel.ver',
             '/propietarios' => 'propietarios.ver',
             '/propietarios/crear' => 'propietarios.crear',
             '/propietarios/editar' => 'propietarios.editar',
@@ -126,6 +128,8 @@ return [
             '/tipos-examen' => 'catalogos.ver',
         ],
         'POST' => [
+            '/portal/perfil/foto' => 'cliente.panel.ver',
+            '/portal/mascotas/foto' => 'cliente.panel.ver',
             '/propietarios' => 'propietarios.crear',
             '/propietarios/actualizar' => 'propietarios.editar',
             '/animales' => 'pacientes.crear',

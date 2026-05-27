@@ -3,6 +3,12 @@
 declare(strict_types=1);
 
 $pageTitleSafe = isset($pageTitle) && is_string($pageTitle) && $pageTitle !== '' ? $pageTitle : 'Tu Huella Vet';
+$layoutRole = auth_role();
+$brandSubtitle = match ($layoutRole) {
+    'cliente' => 'Portal cliente veterinario',
+    'invitado' => 'Acceso de consulta',
+    default => 'Clinica y gestion integral',
+};
 ?>
 <!doctype html>
 <html lang="es">
@@ -60,11 +66,11 @@ $redirectToSafe = $requestPath . ($requestQuery !== '' ? ('?' . $requestQuery) :
     <div class="container d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h5 m-0 tvg-brand-title">Tu Huella Vet</h1>
-            <small class="tvg-brand-subtitle">Clinica y gestion integral</small>
+            <small class="tvg-brand-subtitle"><?php echo htmlspecialchars($brandSubtitle); ?></small>
         </div>
         <?php if (is_array($sessionUser)): ?>
             <div class="d-flex align-items-center gap-2">
-                <?php if ($headerCompanies !== []): ?>
+                <?php if ($headerCompanies !== [] && $layoutRole !== 'cliente' && $layoutRole !== 'invitado'): ?>
                     <form action="<?php echo htmlspecialchars(url('/empresa/cambiar')); ?>" method="post" class="m-0 d-flex align-items-center gap-2">
                         <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($headerCsrf); ?>">
                         <input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($redirectToSafe); ?>">
