@@ -209,7 +209,7 @@ final class AuthController extends Controller
         }
 
         $companyId = (int) $request->input('empresa_id', 0);
-        $redirectTo = (string) $request->input('redirect_to', '/dashboard');
+        $redirectTo = $this->normalizeRedirectTo((string) $request->input('redirect_to', '/dashboard'));
         $user = Session::get((string) config('auth.session_key'));
 
         if (!is_array($user)) {
@@ -235,10 +235,31 @@ final class AuthController extends Controller
             'datos_nuevos' => ['empresa_id' => $companyId],
         ]);
 
-        if ($redirectTo === '' || $redirectTo[0] !== '/') {
-            $redirectTo = '/dashboard';
+        $response->redirect($redirectTo);
+    }
+
+    private function normalizeRedirectTo(string $redirectTo): string
+    {
+        $path = (string) (parse_url($redirectTo, PHP_URL_PATH) ?? '');
+        $query = (string) (parse_url($redirectTo, PHP_URL_QUERY) ?? '');
+
+        if ($path === '' || $path[0] !== '/') {
+            return '/dashboard';
         }
 
-        $response->redirect($redirectTo);
+        $basePath = base_url_path();
+        if ($basePath !== '' && str_starts_with($path, $basePath . '/')) {
+            $path = substr($path, strlen($basePath));
+        }
+
+        if ($basePath !== '' && $path === $basePath) {
+            $path = '/';
+        }
+
+        if ($path === '' || $path[0] !== '/') {
+            $path = '/dashboard';
+        }
+
+        return $path . ($query !== '' ? ('?' . $query) : '');
     }
 }

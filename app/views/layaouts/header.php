@@ -36,6 +36,25 @@ $headerCsrf = \App\Core\Csrf::token((int) config('auth.csrf_token_ttl', 3600));
 if (is_array($sessionUser) && (int) ($sessionUser['id'] ?? 0) > 0) {
     $headerCompanies = (new \App\Services\AuthService())->userCompanies((int) $sessionUser['id']);
 }
+
+$requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/dashboard');
+$requestPath = (string) (parse_url($requestUri, PHP_URL_PATH) ?? '/dashboard');
+$requestQuery = (string) (parse_url($requestUri, PHP_URL_QUERY) ?? '');
+$basePath = base_url_path();
+
+if ($basePath !== '' && str_starts_with($requestPath, $basePath . '/')) {
+    $requestPath = substr($requestPath, strlen($basePath));
+}
+
+if ($basePath !== '' && $requestPath === $basePath) {
+    $requestPath = '/';
+}
+
+if ($requestPath === '' || $requestPath[0] !== '/') {
+    $requestPath = '/dashboard';
+}
+
+$redirectToSafe = $requestPath . ($requestQuery !== '' ? ('?' . $requestQuery) : '');
 ?>
 <header class="tvg-header py-3 mb-4">
     <div class="container d-flex justify-content-between align-items-center">
@@ -48,7 +67,7 @@ if (is_array($sessionUser) && (int) ($sessionUser['id'] ?? 0) > 0) {
                 <?php if ($headerCompanies !== []): ?>
                     <form action="<?php echo htmlspecialchars(url('/empresa/cambiar')); ?>" method="post" class="m-0 d-flex align-items-center gap-2">
                         <input type="hidden" name="_csrf_token" value="<?php echo htmlspecialchars($headerCsrf); ?>">
-                        <input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars((string) ($_SERVER['REQUEST_URI'] ?? '/dashboard')); ?>">
+                        <input type="hidden" name="redirect_to" value="<?php echo htmlspecialchars($redirectToSafe); ?>">
                         <select class="form-select form-select-sm tvg-company-switch" name="empresa_id" onchange="this.form.submit()">
                             <?php foreach ($headerCompanies as $company): ?>
                                 <?php $companyId = (int) ($company['id'] ?? 0); ?>
