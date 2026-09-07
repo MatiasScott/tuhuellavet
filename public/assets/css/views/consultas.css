@@ -1,1 +1,285 @@
 /* Estilos específicos de consultas. */
+.modal-xl {
+    width:
+        min(
+            1100px,
+            100%
+        );
+}
+
+
+.consultation-section {
+    padding:
+        1rem 0;
+
+    border-bottom:
+        1px solid
+        var(--border);
+}
+
+
+.consultation-section:first-child {
+    padding-top:
+        0;
+}
+
+
+.consultation-section:last-child {
+    border-bottom:
+        0;
+}
+
+
+.consultation-section h3 {
+    margin:
+        0 0 1rem;
+
+    font-size:
+        1rem;
+}
+
+
+.clinical-checkboxes {
+    display:
+        flex;
+
+    flex-wrap:
+        wrap;
+
+    gap:
+        .7rem;
+}
+
+
+.clinical-checkboxes label {
+    display:
+        flex;
+
+    flex-direction:
+        row;
+
+    align-items:
+        center;
+
+    gap:
+        .45rem;
+
+    padding:
+        .7rem .9rem;
+
+    background:
+        var(--surface-soft);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        12px;
+}
+
+
+.clinical-checkboxes input {
+    width:
+        auto;
+}
+
+.consultation-detail-grid {
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:
+        1rem;
+
+    margin-bottom:
+        1rem;
+}
+
+
+.clinical-text {
+    color:
+        var(--text);
+
+    line-height:
+        1.7;
+}
+
+
+.clinical-data-grid {
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    gap:
+        .8rem;
+}
+
+
+.clinical-data-grid div {
+    background:
+        var(--surface-soft);
+
+    padding:
+        .8rem;
+
+    border-radius:
+        12px;
+}
+
+
+.clinical-data-grid span {
+    display:
+        block;
+
+    color:
+        var(--muted);
+
+    font-size:
+        .74rem;
+
+    margin-bottom:
+        .3rem;
+}
+
+
+.clinical-symptoms {
+    display:
+        flex;
+
+    gap:
+        .6rem;
+
+    flex-wrap:
+        wrap;
+
+    margin-top:
+        1rem;
+}
+
+
+.clinical-symptoms span {
+    padding:
+        .5rem .7rem;
+
+    border-radius:
+        999px;
+
+    font-size:
+        .78rem;
+
+    font-weight:
+        800;
+}
+
+
+.symptom-positive {
+    background:
+        #fff0f0;
+
+    color:
+        #b43434;
+}
+
+
+.symptom-negative {
+    background:
+        #eaf8f1;
+
+    color:
+        #166b48;
+}
+
+
+.diagnosis-list {
+    display:
+        grid;
+
+    gap:
+        .8rem;
+}
+
+
+.diagnosis-item {
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        14px;
+
+    padding:
+        1rem;
+}
+
+
+.diagnosis-item p {
+    margin:
+        .5rem 0;
+
+    line-height:
+        1.6;
+}
+
+
+.diagnosis-item small {
+    color:
+        var(--muted);
+}
+
+
+.diagnosis-type {
+    font-size:
+        .72rem;
+
+    font-weight:
+        900;
+
+    text-transform:
+        uppercase;
+
+    color:
+        var(--primary-dark);
+}
+
+
+@media (
+    max-width: 900px
+) {
+
+    .clinical-data-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                1fr
+            );
+    }
+
+}
+
+
+@media (
+    max-width: 650px
+) {
+
+    .consultation-detail-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+    .clinical-data-grid {
+        grid-template-columns:
+            1fr;
+    }
+
+}

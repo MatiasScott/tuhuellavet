@@ -19,7 +19,8 @@
       "app/Helpers/url.php",
       "app/Helpers/auth.php",
       "app/Helpers/permission.php",
-      "app/Helpers/format.php"
+      "app/Helpers/format.php",
+      "app/Helpers/file.php"
     ]
   }
 }

@@ -1,0 +1,402 @@
+.treatment-section {
+    margin-top: 1rem;
+}
+
+
+.treatment-list {
+    display: grid;
+
+    gap: 1rem;
+}
+
+
+.treatment-card {
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        16px;
+
+    padding:
+        1rem;
+
+    background:
+        var(--surface-soft);
+}
+
+
+.treatment-card-header {
+    display:
+        flex;
+
+    align-items:
+        flex-start;
+
+    justify-content:
+        space-between;
+
+    gap:
+        1rem;
+
+    margin-bottom:
+        .8rem;
+}
+
+
+.treatment-card-header h3 {
+    margin:
+        .25rem 0 0;
+}
+
+
+.treatment-card-header small {
+    color:
+        var(--muted);
+}
+
+
+.treatment-type {
+    color:
+        var(--primary-dark);
+
+    font-size:
+        .72rem;
+
+    font-weight:
+        900;
+
+    text-transform:
+        uppercase;
+
+    letter-spacing:
+        .06em;
+}
+
+
+.medication-list {
+    display:
+        grid;
+
+    gap:
+        .8rem;
+
+    margin-top:
+        1rem;
+}
+
+
+.medication-card {
+    background:
+        var(--surface);
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        14px;
+
+    padding:
+        1rem;
+}
+
+
+.medication-main {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        .75rem;
+}
+
+
+.medication-main span {
+    display:
+        block;
+
+    color:
+        var(--muted);
+
+    font-size:
+        .8rem;
+
+    margin-top:
+        .2rem;
+}
+
+
+.medication-icon {
+    width:
+        42px;
+
+    height:
+        42px;
+
+    display:
+        grid;
+
+    place-items:
+        center;
+
+    border-radius:
+        12px;
+
+    background:
+        var(--primary-soft);
+
+    font-size:
+        1.25rem;
+}
+
+
+.medication-prescription {
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    gap:
+        .7rem;
+
+    margin:
+        1rem 0;
+}
+
+
+.medication-prescription div {
+    padding:
+        .7rem;
+
+    background:
+        var(--surface-soft);
+
+    border-radius:
+        10px;
+}
+
+
+.medication-prescription span {
+    display:
+        block;
+
+    color:
+        var(--muted);
+
+    font-size:
+        .7rem;
+
+    margin-bottom:
+        .2rem;
+}
+
+
+.formula-result-small {
+    background:
+        #f0f7ff;
+
+    color:
+        #315f96;
+
+    border-radius:
+        10px;
+
+    padding:
+        .7rem;
+
+    margin-bottom:
+        .7rem;
+
+    font-size:
+        .82rem;
+}
+
+
+.treatment-medications-header {
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    margin:
+        1.5rem 0 .8rem;
+}
+
+
+.treatment-medications-header h3 {
+    margin: 0;
+}
+
+
+.treatment-medications-header p {
+    color:
+        var(--muted);
+
+    margin:
+        .2rem 0 0;
+}
+
+
+.treatment-medication-editor {
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        16px;
+
+    padding:
+        1rem;
+
+    margin-bottom:
+        1rem;
+
+    background:
+        var(--surface-soft);
+}
+
+
+.medication-editor-header {
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    margin-bottom:
+        1rem;
+}
+
+
+.dose-row {
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap:
+        .5rem;
+}
+
+
+.formula-calculator {
+    border:
+        1px solid
+        var(--border);
+
+    background:
+        #f7fbff;
+
+    border-radius:
+        14px;
+
+    padding:
+        1rem;
+}
+
+
+.formula-calculator-title {
+    font-weight:
+        800;
+
+    margin-bottom:
+        .8rem;
+}
+
+
+.formula-variable-grid {
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    gap:
+        .7rem;
+
+    margin-bottom:
+        .8rem;
+}
+
+
+.formula-calculation-result {
+    margin-top:
+        .8rem;
+
+    padding:
+        .7rem;
+
+    border-radius:
+        10px;
+
+    background:
+        var(--primary-soft);
+}
+
+
+.formula-calculation-result.is-error {
+    background:
+        #fff0f0;
+
+    color:
+        #b43434;
+}
+
+
+@media (
+    max-width: 800px
+) {
+
+    .medication-prescription {
+        grid-template-columns:
+            repeat(
+                2,
+                1fr
+            );
+    }
+
+}
+
+
+@media (
+    max-width: 560px
+) {
+
+    .medication-prescription,
+    .formula-variable-grid,
+    .dose-row {
+        grid-template-columns:
+            1fr;
+    }
+
+    .treatment-card-header,
+    .treatment-medications-header {
+        flex-direction:
+            column;
+    }
+
+}
