@@ -1,0 +1,1 @@
+<div class="auth-form-card"><div class="auth-logo">🐾</div><h2>Ocurrió un problema</h2><p><?= e($message??'Error interno del sistema.') ?></p><a class="btn btn-primary" href="<?= url('/') ?>">Volver al inicio</a></div>

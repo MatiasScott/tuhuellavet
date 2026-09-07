@@ -1,0 +1,1 @@
+// JS específico de consultas.

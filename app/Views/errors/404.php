@@ -1,0 +1,1 @@
+<div class="auth-form-card"><div class="auth-logo">🐾</div><h2>Página no encontrada</h2><p>La ruta solicitada no existe.</p><a class="btn btn-primary" href="<?= url('/') ?>">Volver al inicio</a></div>

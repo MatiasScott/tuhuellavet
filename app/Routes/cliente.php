@@ -1,0 +1,2 @@
+<?php
+// Rutas cliente.
