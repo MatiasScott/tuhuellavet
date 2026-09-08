@@ -2352,3 +2352,133 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================================
 -- FIN DEL ESQUEMA
 -- ============================================================
+
+-- ============================================================
+-- 25. SEEDS ADICIONALES DEL PROYECTO TU HUELLA VET
+-- ============================================================
+
+INSERT INTO empresas (nombre, nombre_comercial, activo)
+SELECT 'Tu Huella Vet - Hacienda Agusbella', 'Tu Huella Vet', 1
+WHERE NOT EXISTS (SELECT 1 FROM empresas WHERE nombre='Tu Huella Vet - Hacienda Agusbella');
+
+SET @empresa_seed_id = (SELECT id FROM empresas WHERE nombre='Tu Huella Vet - Hacienda Agusbella' ORDER BY id LIMIT 1);
+
+INSERT INTO entornos (empresa_id,tipo_entorno_id,nombre,codigo,descripcion,es_productivo,permite_facturacion_real,activo)
+SELECT @empresa_seed_id, te.id, 'Tu Huella Vet','TU_HUELLA_VET','Entorno operativo real de la clínica veterinaria Tu Huella Vet',1,1,1
+FROM tipos_entorno te WHERE te.codigo='VETERINARIA'
+AND NOT EXISTS (SELECT 1 FROM entornos WHERE empresa_id=@empresa_seed_id AND codigo='TU_HUELLA_VET');
+
+INSERT INTO entornos (empresa_id,tipo_entorno_id,nombre,codigo,descripcion,es_productivo,permite_facturacion_real,activo)
+SELECT @empresa_seed_id, te.id, 'Hacienda Agusbella','HACIENDA_AGUSBELLA','Entorno operativo real de Hacienda Agusbella',1,0,1
+FROM tipos_entorno te WHERE te.codigo='HACIENDA'
+AND NOT EXISTS (SELECT 1 FROM entornos WHERE empresa_id=@empresa_seed_id AND codigo='HACIENDA_AGUSBELLA');
+
+INSERT INTO entornos (empresa_id,tipo_entorno_id,nombre,codigo,descripcion,es_productivo,permite_facturacion_real,activo)
+SELECT @empresa_seed_id, te.id, 'Académico','ACADEMICO','Entorno académico y de simulación para docentes y estudiantes',0,0,1
+FROM tipos_entorno te WHERE te.codigo='ACADEMICO'
+AND NOT EXISTS (SELECT 1 FROM entornos WHERE empresa_id=@empresa_seed_id AND codigo='ACADEMICO');
+
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'PERRO','Perro','Canis lupus familiaris',1 FROM categorias_animales ca WHERE ca.codigo='MASCOTA'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='PERRO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'GATO','Gato','Felis catus',1 FROM categorias_animales ca WHERE ca.codigo='MASCOTA'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='GATO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'BOVINO','Bovino','Bos taurus',1 FROM categorias_animales ca WHERE ca.codigo='BOVINO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='BOVINO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'OVINO','Ovino','Ovis aries',1 FROM categorias_animales ca WHERE ca.codigo='OVINO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='OVINO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'PORCINO','Cerdo','Sus scrofa domesticus',1 FROM categorias_animales ca WHERE ca.codigo='PORCINO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='PORCINO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'CABALLO','Caballo','Equus caballus',1 FROM categorias_animales ca WHERE ca.codigo='EQUINO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='CABALLO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'BURRO','Burro','Equus asinus',1 FROM categorias_animales ca WHERE ca.codigo='EQUINO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='BURRO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'CABRA','Cabra','Capra hircus',1 FROM categorias_animales ca WHERE ca.codigo='CAPRINO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='CABRA');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'CUY','Cuy','Cavia porcellus',1 FROM categorias_animales ca WHERE ca.codigo='ROEDOR'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='CUY');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'CONEJO','Conejo','Oryctolagus cuniculus',1 FROM categorias_animales ca WHERE ca.codigo='LAGOMORFO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='CONEJO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'PATO','Pato',NULL,1 FROM categorias_animales ca WHERE ca.codigo='AVE'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='PATO');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'GALLINA','Gallina','Gallus gallus domesticus',1 FROM categorias_animales ca WHERE ca.codigo='AVE'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='GALLINA');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'PAVO_REAL','Pavo real','Pavo cristatus',1 FROM categorias_animales ca WHERE ca.codigo='AVE'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='PAVO_REAL');
+INSERT INTO especies (categoria_id,codigo,nombre_comun,nombre_cientifico,activo)
+SELECT ca.id,'PEZ','Pez',NULL,1 FROM categorias_animales ca WHERE ca.codigo='ACUATICO'
+AND NOT EXISTS (SELECT 1 FROM especies WHERE codigo='PEZ');
+
+INSERT INTO categorias_mantenimiento_fluido (especie_id,codigo,nombre,descripcion,activo)
+SELECT e.id,'PERRO_PEQUENO','Perro pequeño','Categoría de mantenimiento para perros pequeños',1 FROM especies e WHERE e.codigo='PERRO'
+AND NOT EXISTS (SELECT 1 FROM categorias_mantenimiento_fluido WHERE codigo='PERRO_PEQUENO');
+INSERT INTO categorias_mantenimiento_fluido (especie_id,codigo,nombre,descripcion,activo)
+SELECT e.id,'PERRO_MEDIANO','Perro mediano','Categoría de mantenimiento para perros medianos',1 FROM especies e WHERE e.codigo='PERRO'
+AND NOT EXISTS (SELECT 1 FROM categorias_mantenimiento_fluido WHERE codigo='PERRO_MEDIANO');
+INSERT INTO categorias_mantenimiento_fluido (especie_id,codigo,nombre,descripcion,activo)
+SELECT e.id,'PERRO_GRANDE','Perro grande','Categoría de mantenimiento para perros grandes',1 FROM especies e WHERE e.codigo='PERRO'
+AND NOT EXISTS (SELECT 1 FROM categorias_mantenimiento_fluido WHERE codigo='PERRO_GRANDE');
+
+INSERT INTO tipos_examen_laboratorio (nombre,descripcion,activo) VALUES
+('Hemograma','Evaluación hematológica general',1),
+('Química sanguínea','Perfil bioquímico',1),
+('Coproparasitario','Evaluación coproparasitaria',1),
+('Urianálisis','Análisis de orina',1),
+('Citología','Evaluación citológica',1),
+('Otro','Tipo configurable',1);
+
+INSERT INTO procedimientos_quirurgicos (nombre,descripcion,activo) VALUES
+('Esterilización / castración','Procedimiento reproductivo',1),
+('Cirugía de tejidos blandos','Procedimiento de tejidos blandos',1),
+('Ortopedia','Procedimiento ortopédico',1),
+('Otro','Procedimiento configurable',1);
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- 26. PERMISOS BASE POR ROL
+-- ============================================================
+
+-- Administrador: operación completa, sin empresas/roles/permisos/auditoría.
+INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
+WHERE r.codigo='ADMINISTRADOR'
+  AND p.codigo NOT LIKE 'roles.%'
+  AND p.codigo NOT LIKE 'permisos.%'
+  AND p.codigo NOT LIKE 'auditoria.%'
+  AND p.codigo NOT LIKE 'empresas.%'
+  AND p.codigo NOT LIKE 'academico.%';
+
+-- Cliente: lectura clínica propia (el backend del portal además filtra por propietario).
+INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
+WHERE r.codigo='CLIENTE'
+  AND p.codigo IN ('dashboard.ver','pacientes.ver','consultas.ver','vacunas.ver','desparasitacion.ver','hospitalizacion.ver','laboratorio.ver','cirugias.ver');
+
+-- Invitado: lectura operativa limitada.
+INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
+WHERE r.codigo='INVITADO' AND p.codigo IN ('dashboard.ver','pacientes.ver','propietarios.ver','consultas.ver','vacunas.ver','desparasitacion.ver','hospitalizacion.ver','laboratorio.ver','cirugias.ver','inventario.ver','citas.ver');
+
+-- Docente: académico completo + lectura/creación clínica simulada.
+INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
+WHERE r.codigo='DOCENTE' AND (p.codigo LIKE 'academico.%' OR p.codigo IN ('dashboard.ver','pacientes.ver','pacientes.crear','pacientes.editar','consultas.ver','consultas.crear','hospitalizacion.ver','hospitalizacion.crear','hospitalizacion.editar','laboratorio.ver','laboratorio.crear','cirugias.ver','cirugias.crear','formulas.ver','formulas.calcular','tratamientos.ver','tratamientos.crear','tratamientos.editar'));
+
+-- Estudiante: académico + práctica clínica simulada sin administración.
+INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
+SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
+WHERE r.codigo='ESTUDIANTE' AND p.codigo IN ('academico.ver','dashboard.ver','pacientes.ver','pacientes.crear','consultas.ver','consultas.crear','hospitalizacion.ver','hospitalizacion.crear','hospitalizacion.editar','laboratorio.ver','laboratorio.crear','formulas.ver','formulas.calcular','tratamientos.ver','tratamientos.crear');
+

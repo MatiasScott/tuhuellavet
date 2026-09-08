@@ -44,7 +44,7 @@ class ConsultationService
                     );
 
                 /*
-                 * Evento clínico.
+                 * Evento clÃ­nico.
                  */
                 $stmt = $db->prepare(
                     '
@@ -174,7 +174,7 @@ class ConsultationService
                 ]);
 
                 /*
-                 * Examen clínico general.
+                 * Examen clÃ­nico general.
                  */
                 $this->createClinicalExam(
                     $db,
@@ -183,7 +183,7 @@ class ConsultationService
                 );
 
                 /*
-                 * Diagnósticos.
+                 * DiagnÃ³sticos.
                  */
                 $this->createDiagnoses(
                     $db,
@@ -557,7 +557,7 @@ class ConsultationService
 
         if (!$id) {
             throw new RuntimeException(
-                'No existe el tipo de evento clínico solicitado.'
+                'No existe el tipo de evento clÃ­nico solicitado.'
             );
         }
 
@@ -589,7 +589,7 @@ class ConsultationService
 
         if (!$id) {
             throw new RuntimeException(
-                'No existe el tipo de diagnóstico.'
+                'No existe el tipo de diagnÃ³stico.'
             );
         }
 

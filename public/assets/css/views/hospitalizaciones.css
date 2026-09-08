@@ -1,0 +1,4 @@
+/* Estilos específicos: hospitalizaciones. La base visual vive en global.css/components.css/layouts.css. */
+.hospitalizaciones-page{min-width:0}
+
+.formula-fluid-block{display:grid;gap:.6rem}.field-label{font-size:.85rem;font-weight:700}.formula-calculator-panel{margin-top:.6rem;padding:1rem;border:1px solid var(--border);border-radius:14px;background:var(--surface-soft)}.formula-calculator-panel h3{margin:0 0 .8rem}.formula-auto-variable{min-height:44px;display:flex;align-items:center;padding:.7rem .8rem;border-radius:10px;background:var(--surface);border:1px dashed var(--border);color:var(--muted);font-size:.8rem}.formula-calculator-result{margin:1rem 0;padding:1rem;border-radius:14px;background:var(--primary-soft)}.formula-calculator-result span{display:block;color:var(--muted);font-size:.75rem}.formula-calculator-result strong{display:block;margin-top:.2rem;font-size:1.35rem}

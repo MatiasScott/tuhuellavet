@@ -141,7 +141,7 @@ class ConsultaController extends Controller
             'consultas/show',
             [
                 'title'
-                => 'Consulta clínica',
+                => 'Consulta clÃ­nica',
 
                 'consultation'
                 => $consultation,

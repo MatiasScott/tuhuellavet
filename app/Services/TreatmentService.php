@@ -516,13 +516,13 @@ class TreatmentService
             === 0
         ) {
             throw new RuntimeException(
-                'El fármaco seleccionado no existe.'
+                'El fÃ¡rmaco seleccionado no existe.'
             );
         }
 
         /*
-         * Presentación debe corresponder
-         * al mismo fármaco.
+         * PresentaciÃ³n debe corresponder
+         * al mismo fÃ¡rmaco.
          */
         if (
             !empty(
@@ -563,14 +563,14 @@ class TreatmentService
                 === 0
             ) {
                 throw new RuntimeException(
-                    'La presentación no pertenece al fármaco seleccionado.'
+                    'La presentaciÃ³n no pertenece al fÃ¡rmaco seleccionado.'
                 );
             }
         }
 
         /*
-         * Si existe vía y presentación,
-         * respetamos las vías habilitadas.
+         * Si existe vÃ­a y presentaciÃ³n,
+         * respetamos las vÃ­as habilitadas.
          */
         if (
             !empty(
@@ -614,7 +614,7 @@ class TreatmentService
 
             /*
              * Solo restringimos si la
-             * presentación tiene vías
+             * presentaciÃ³n tiene vÃ­as
              * configuradas.
              */
             $configured = $db->prepare(
@@ -647,7 +647,7 @@ class TreatmentService
                 === 0
             ) {
                 throw new RuntimeException(
-                    'La vía seleccionada no está permitida para esta presentación.'
+                    'La vÃ­a seleccionada no estÃ¡ permitida para esta presentaciÃ³n.'
                 );
             }
         }
@@ -690,7 +690,7 @@ class TreatmentService
             === 0
         ) {
             throw new RuntimeException(
-                'Evento clínico no encontrado.'
+                'Evento clÃ­nico no encontrado.'
             );
         }
     }
@@ -721,7 +721,7 @@ class TreatmentService
             === 0
         ) {
             throw new RuntimeException(
-                'Tipo de tratamiento no válido.'
+                'Tipo de tratamiento no vÃ¡lido.'
             );
         }
     }

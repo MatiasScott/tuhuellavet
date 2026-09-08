@@ -30,7 +30,7 @@ class FormulaController extends Controller
                 [
                     'ok' => false,
                     'message'
-                        => 'Fórmula no encontrada.',
+                        => 'FÃ³rmula no encontrada.',
                 ],
                 404
             );
@@ -62,7 +62,7 @@ class FormulaController extends Controller
                 [
                     'ok' => false,
                     'message'
-                        => 'Sesión expirada.',
+                        => 'SesiÃ³n expirada.',
                 ],
                 419
             );
@@ -114,6 +114,15 @@ class FormulaController extends Controller
                         !empty(
                             $request->input(
                                 'simulacion'
+                            )
+                        ),
+
+                        strtoupper(
+                            trim(
+                                (string) $request->input(
+                                    'contexto',
+                                    'TRATAMIENTO'
+                                )
                             )
                         )
                     );

@@ -1,6 +1,6 @@
 {
-  "name": "superarse/vet-academic-erp",
-  "description": "Sistema veterinario, ganadero y académico en PHP MVC puro",
+  "name": "superarse/tuhuellavet",
+  "description": "Tu Huella Vet: sistema veterinario, hacienda y académico en PHP MVC puro",
   "type": "project",
   "require": {
     "php": "^8.2",
@@ -19,8 +19,11 @@
       "app/Helpers/url.php",
       "app/Helpers/auth.php",
       "app/Helpers/permission.php",
-      "app/Helpers/format.php",
-      "app/Helpers/file.php"
+      "app/Helpers/format.php"
     ]
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
   }
 }

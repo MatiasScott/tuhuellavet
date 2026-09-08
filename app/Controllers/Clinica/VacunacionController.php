@@ -33,7 +33,7 @@ class VacunacionController extends Controller
             'vacunas/index',
             [
                 'title'
-                    => 'Vacunación',
+                    => 'VacunaciÃ³n',
 
                 'vaccinations'
                     => (new PreventiveCare())
@@ -102,7 +102,7 @@ class VacunacionController extends Controller
 
             Session::flash(
                 'success',
-                'Vacunación registrada correctamente.'
+                'VacunaciÃ³n registrada correctamente.'
             );
 
             $patientId

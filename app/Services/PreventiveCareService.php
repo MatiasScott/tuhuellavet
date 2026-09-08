@@ -63,7 +63,7 @@ class PreventiveCareService
                     );
 
                 /*
-                 * Evento clínico.
+                 * Evento clÃ­nico.
                  */
                 $stmt = $db->prepare(
                     '
@@ -107,7 +107,7 @@ class PreventiveCareService
                         ),
 
                     'titulo'
-                        => 'Vacunación',
+                        => 'VacunaciÃ³n',
 
                     'observaciones'
                         => trim(
@@ -125,11 +125,11 @@ class PreventiveCareService
                             ->lastInsertId();
 
                 /*
-                 * Examen clínico general.
+                 * Examen clÃ­nico general.
                  *
-                 * Según los requisitos,
-                 * vacunación reutiliza el
-                 * examen clínico hasta tos.
+                 * SegÃºn los requisitos,
+                 * vacunaciÃ³n reutiliza el
+                 * examen clÃ­nico hasta tos.
                  */
                 $this->insertClinicalExam(
                     $db,
@@ -138,7 +138,7 @@ class PreventiveCareService
                 );
 
                 /*
-                 * Vacunación.
+                 * VacunaciÃ³n.
                  */
                 $stmt = $db->prepare(
                     '
@@ -324,7 +324,7 @@ class PreventiveCareService
 
                 if (!$drugId) {
                     throw new RuntimeException(
-                        'Debes seleccionar el fármaco.'
+                        'Debes seleccionar el fÃ¡rmaco.'
                     );
                 }
 
@@ -388,7 +388,7 @@ class PreventiveCareService
                         ),
 
                     'titulo'
-                        => 'Desparasitación',
+                        => 'DesparasitaciÃ³n',
 
                     'observaciones'
                         => trim(
@@ -483,8 +483,8 @@ class PreventiveCareService
                             ->lastInsertId();
 
                 /*
-                 * Según requisito original,
-                 * en desparasitación se puede
+                 * SegÃºn requisito original,
+                 * en desparasitaciÃ³n se puede
                  * actualizar el peso.
                  */
                 $this->insertWeightIfPresent(
@@ -855,7 +855,7 @@ class PreventiveCareService
             === 0
         ) {
             throw new RuntimeException(
-                'La vacuna seleccionada no está disponible.'
+                'La vacuna seleccionada no estÃ¡ disponible.'
             );
         }
     }
@@ -887,7 +887,7 @@ class PreventiveCareService
             === 0
         ) {
             throw new RuntimeException(
-                'El fármaco seleccionado no está disponible.'
+                'El fÃ¡rmaco seleccionado no estÃ¡ disponible.'
             );
         }
     }
@@ -919,7 +919,7 @@ class PreventiveCareService
 
         if (!$id) {
             throw new RuntimeException(
-                'No existe el tipo de evento clínico '
+                'No existe el tipo de evento clÃ­nico '
                 . $code
                 . '.'
             );
@@ -985,7 +985,7 @@ class PreventiveCareService
 
         if (!$date) {
             throw new RuntimeException(
-                'La fecha ingresada no es válida.'
+                'La fecha ingresada no es vÃ¡lida.'
             );
         }
 

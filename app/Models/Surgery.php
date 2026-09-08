@@ -1,0 +1,3 @@
+<?php
+namespace App\Models;use App\Core\Model;
+class Surgery extends Model{public function list(int $e,string $q=''):array{$sql='SELECT c.*,a.id AS animal_id,a.nombre AS paciente,pq.nombre AS procedimiento,CONCAT(u.nombres," ",u.apellidos) AS medico FROM cirugias c JOIN eventos_clinicos ec ON ec.id=c.evento_clinico_id JOIN animales a ON a.id=ec.animal_id JOIN procedimientos_quirurgicos pq ON pq.id=c.procedimiento_quirurgico_id JOIN usuarios u ON u.id=c.medico_responsable_id WHERE a.entorno_id=:e';$p=['e'=>$e];if($q!==''){$sql.=' AND CONCAT_WS(" ",a.nombre,pq.nombre,c.diagnostico_preoperatorio) LIKE :q';$p['q']='%'.$q.'%';}$s=$this->db->prepare($sql.' ORDER BY c.fecha_inicio DESC');$s->execute($p);return$s->fetchAll();}}

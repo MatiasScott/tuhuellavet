@@ -19,7 +19,8 @@ class FormulaService
         array $manualValues,
         int $environmentId,
         int $executedBy,
-        bool $simulation = false
+        bool $simulation = false,
+        string $context = 'TRATAMIENTO'
     ): array {
         return Database::transaction(
             function (PDO $db) use (
@@ -29,7 +30,8 @@ class FormulaService
                 $manualValues,
                 $environmentId,
                 $executedBy,
-                $simulation
+                $simulation,
+                $context
             ) {
                 $formulaModel
                     = new Formula();
@@ -43,7 +45,7 @@ class FormulaService
 
                 if (!$version) {
                     throw new RuntimeException(
-                        'La fórmula no existe, no está publicada o no pertenece al entorno.'
+                        'La fÃ³rmula no existe, no estÃ¡ publicada o no pertenece al entorno.'
                     );
                 }
 
@@ -96,7 +98,7 @@ class FormulaService
 
                     /*
                      * Symfony ExpressionLanguage
-                     * utilizará el código como nombre
+                     * utilizarÃ¡ el cÃ³digo como nombre
                      * de variable.
                      */
                     $expressionValues[
@@ -131,7 +133,7 @@ class FormulaService
                         );
                 } catch (\Throwable $e) {
                     throw new RuntimeException(
-                        'No fue posible calcular la fórmula: '
+                        'No fue posible calcular la fÃ³rmula: '
                         . $e->getMessage()
                     );
                 }
@@ -140,7 +142,7 @@ class FormulaService
                     !is_numeric($result)
                 ) {
                     throw new RuntimeException(
-                        'La fórmula no produjo un resultado numérico.'
+                        'La fÃ³rmula no produjo un resultado numÃ©rico.'
                     );
                 }
 
@@ -151,12 +153,17 @@ class FormulaService
                     !is_finite($result)
                 ) {
                     throw new RuntimeException(
-                        'El resultado de la fórmula no es válido.'
+                        'El resultado de la fÃ³rmula no es vÃ¡lido.'
                     );
                 }
 
+                $allowedContexts = ['TRATAMIENTO','FLUIDOTERAPIA','ANESTESIA','ACADEMICO','SIMULACION'];
+                $context = strtoupper(trim($context));
+                if (!in_array($context, $allowedContexts, true)) { $context = 'TRATAMIENTO'; }
+                if ($simulation) { $context = 'SIMULACION'; }
+
                 /*
-                 * Guardamos TODA ejecución.
+                 * Guardamos TODA ejecuciÃ³n.
                  * Incluso simulaciones.
                  */
                 $stmt = $db->prepare(
@@ -202,9 +209,7 @@ class FormulaService
                         => $executedBy,
 
                     'contexto'
-                        => $simulation
-                            ? 'SIMULACION'
-                            : 'TRATAMIENTO',
+                        => $context,
 
                     'resultado'
                         => $result,
@@ -696,7 +701,7 @@ class FormulaService
             === 0
         ) {
             throw new RuntimeException(
-                'Esta fórmula no está habilitada para la especie del paciente.'
+                'Esta fÃ³rmula no estÃ¡ habilitada para la especie del paciente.'
             );
         }
     }
