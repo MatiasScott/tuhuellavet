@@ -1,7 +1,70 @@
 <?php
+
 namespace App\Controllers\Admin;
-use App\Core\Controller;use App\Core\Request;use App\Models\Appointment;use App\Models\Patient;use App\Models\Owner;use App\Core\Database;
+
+use App\Core\Controller;
+use App\Core\Request;
+use App\Models\Appointment;
+use App\Models\Patient;
+use App\Models\Owner;
+use App\Core\Database;
+
 class DashboardController extends Controller
 {
- public function index(Request $r):void{$roles=auth_user()['roles']??[];if(in_array('CLIENTE',$roles,true))$this->redirect('/cliente');if((active_environment()['tipo_codigo']??'')==='ACADEMICO'&&(in_array('DOCENTE',$roles,true)||in_array('ESTUDIANTE',$roles,true)))$this->redirect('/academico');$e=active_environment_id();$db=Database::connection();$s=$db->prepare("SELECT COUNT(*) FROM hospitalizaciones h JOIN eventos_clinicos ec ON ec.id=h.evento_clinico_id JOIN animales a ON a.id=ec.animal_id JOIN estados_hospitalizacion eh ON eh.id=h.estado_hospitalizacion_id WHERE a.entorno_id=:e AND eh.codigo='ACTIVA'");$s->execute(['e'=>$e]);$h=(int)$s->fetchColumn();$s=$db->prepare('SELECT COUNT(*) FROM vacunaciones v JOIN eventos_clinicos ec ON ec.id=v.evento_clinico_id JOIN animales a ON a.id=ec.animal_id WHERE a.entorno_id=:e AND v.fecha_revacunacion BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 7 DAY)');$s->execute(['e'=>$e]);$v=(int)$s->fetchColumn();$a=new Appointment();$p=new Patient();$o=new Owner();$this->view('dashboard/index',['title'=>'Dashboard clínico','metrics'=>['appointments'=>$a->countToday($e),'vaccines_due'=>$v,'hospitalized'=>$h,'patients'=>$p->countByEnvironment($e),'owners'=>$o->countByEnvironment($e)],'appointments'=>$a->nextToday($e),'recentPatients'=>$p->recentByEnvironment($e)]);}
+    public function index(Request $r): void
+    {
+        $roles = auth_user()['roles'] ?? [];
+        if (in_array('CLIENTE', $roles, true)) $this->redirect('/cliente');
+        if ((active_environment()['tipo_codigo'] ?? '') === 'ACADEMICO' && (in_array('DOCENTE', $roles, true) || in_array('ESTUDIANTE', $roles, true)))
+            $this->redirect('/academico');
+        $e = active_environment_id();
+        $db = Database::connection();
+        $s = $db->prepare(
+            "SELECT COUNT(*)
+        FROM hospitalizaciones h
+        JOIN eventos_clinicos ec ON ec.id=h.evento_clinico_id
+        JOIN animales a ON a.id=ec.animal_id
+        JOIN estados_hospitalizacion eh ON eh.id=h.estado_hospitalizacion_id
+        WHERE a.entorno_id=:e
+        AND eh.codigo='ACTIVA'"
+        );
+        $s->execute(['e' => $e]);
+        $h = (int)$s->fetchColumn();
+        $s = $db->prepare(
+            '
+                SELECT COUNT(*)
+
+                FROM vacunaciones v
+
+                INNER JOIN eventos_clinicos ec
+                    ON ec.id = v.evento_clinico_id
+
+                INNER JOIN animales a
+                    ON a.id = ec.animal_id
+
+                WHERE a.entorno_id = :e
+
+                AND ec.anulado_at IS NULL
+
+                AND v.fecha_revacunacion
+                    BETWEEN CURDATE()
+                    AND DATE_ADD(
+                        CURDATE(),
+                        INTERVAL 7 DAY
+                    )
+                '
+                    );
+
+        $s->execute([
+            'e' => $e,
+        ]);
+
+        $v = (int) $s->fetchColumn();
+        $s->execute(['e' => $e]);
+        $v = (int)$s->fetchColumn();
+        $a = new Appointment();
+        $p = new Patient();
+        $o = new Owner();
+        $this->view('dashboard/index', ['title' => 'Dashboard clínico', 'metrics' => ['appointments' => $a->countToday($e), 'vaccines_due' => $v, 'hospitalized' => $h, 'patients' => $p->countByEnvironment($e), 'owners' => $o->countByEnvironment($e)], 'appointments' => $a->nextToday($e), 'recentPatients' => $p->recentByEnvironment($e)]);
+    }
 }

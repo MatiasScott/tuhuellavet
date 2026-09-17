@@ -64,10 +64,10 @@ class Treatment extends Model
 
         $stmt->execute([
             'evento'
-                => $eventId,
+            => $eventId,
 
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         $treatments
@@ -77,12 +77,10 @@ class Treatment extends Model
             $treatments
             as &$treatment
         ) {
-            $treatment[
-                'medications'
-            ] = $this
+            $treatment['medications'] = $this
                 ->medications(
                     (int)
-                        $treatment['id']
+                    $treatment['id']
                 );
         }
 
@@ -173,7 +171,7 @@ class Treatment extends Model
 
         $stmt->execute([
             'tratamiento'
-                => $treatmentId,
+            => $treatmentId,
         ]);
 
         return $stmt->fetchAll();
@@ -185,40 +183,56 @@ class Treatment extends Model
     ): array {
         $stmt = $this->db->prepare(
             '
-            SELECT
-                ma.*,
+        SELECT
+            ma.*,
 
-                um.simbolo
-                    AS unidad,
+            CASE
+                WHEN ma.anulado_at IS NULL
+                THEN 0
+                ELSE 1
+            END AS esta_anulado,
 
-                CONCAT(
-                    u.nombres,
-                    " ",
-                    u.apellidos
-                ) AS aplicado_por_nombre
+            um.simbolo
+                AS unidad,
 
-            FROM medicamento_aplicaciones ma
+            CONCAT(
+                u.nombres,
+                " ",
+                u.apellidos
+            ) AS aplicado_por_nombre,
 
-            INNER JOIN usuarios u
-                ON u.id =
-                   ma.aplicado_por
+            CONCAT(
+                ua.nombres,
+                " ",
+                ua.apellidos
+            ) AS anulado_por_nombre
 
-            LEFT JOIN unidades_medida um
-                ON um.id =
-                   ma.unidad_id
+        FROM medicamento_aplicaciones ma
 
-            WHERE ma.tratamiento_medicamento_id
-                = :medicamento
+        INNER JOIN usuarios u
+            ON u.id =
+               ma.aplicado_por
 
-            ORDER BY
-                ma.fecha_hora DESC,
-                ma.id DESC
-            '
+        LEFT JOIN usuarios ua
+            ON ua.id =
+               ma.anulado_por
+
+        LEFT JOIN unidades_medida um
+            ON um.id =
+               ma.unidad_id
+
+        WHERE ma.tratamiento_medicamento_id
+            = :medicamento
+
+        ORDER BY
+            ma.fecha_hora DESC,
+            ma.id DESC
+        '
         );
 
         $stmt->execute([
             'medicamento'
-                => $treatmentMedicationId,
+            => $treatmentMedicationId,
         ]);
 
         return $stmt->fetchAll();

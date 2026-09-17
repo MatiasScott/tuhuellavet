@@ -11,3 +11,17 @@ Thumbs.db
 .idea/
 .vscode/
 composer.phar
+/storage/qa/
+# Pruebas automatizadas: versionar el código, no sus resultados
+!/tests/
+# Entornos y credenciales locales
+.env.testing
+
+# Evidencias y archivos temporales de QA
+/storage/qa_quarantine/
+/storage/test-reports/*.xml
+/storage/test-reports/*.html
+/qa105_referencias.txt
+
+# Script temporal de integración: revisar antes de publicar
+/test_contifico.php

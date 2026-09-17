@@ -21,9 +21,9 @@ class ReminderService
             'VACUNA',
             'VACUNACION',
             $vaccinationId,
-            'Recordatorio de vacunaciÃ³n',
+            'Recordatorio de Vacunación',
             sprintf(
-                'La prÃ³xima vacunaciÃ³n de %s estÃ¡ programada para el %s.',
+                'La próxima Vacunación de %s está programada para el %s.',
                 $patient['nombre']
                     ?: 'el paciente',
                 $this->humanDate(
@@ -51,9 +51,9 @@ class ReminderService
             'DESPARASITACION',
             'DESPARASITACION',
             $dewormingId,
-            'Recordatorio de desparasitaciÃ³n',
+            'Recordatorio de Desparasitación',
             sprintf(
-                'La prÃ³xima desparasitaciÃ³n de %s estÃ¡ programada para el %s.',
+                'La próxima Desparasitación de %s está programada para el %s.',
                 $patient['nombre']
                     ?: 'el paciente',
                 $this->humanDate(
@@ -79,9 +79,9 @@ class ReminderService
         int $createdBy
     ): void {
         /*
-         * Recordatorio 3 dÃ­as antes.
+         * Recordatorio 3 días antes.
          *
-         * Si ya estÃ¡ demasiado cerca,
+         * Si ya está demasiado cerca,
          * programamos para la propia fecha.
          */
         $target
@@ -384,7 +384,7 @@ class ReminderService
             )
         ) {
             throw new \RuntimeException(
-                'CatÃ¡logo no permitido.'
+                'Catálogo no permitido.'
             );
         }
 
@@ -409,7 +409,7 @@ class ReminderService
 
         if (!$id) {
             throw new \RuntimeException(
-                'No existe el catÃ¡logo requerido: '
+                'No existe el Catálogo requerido: '
                 . $code
             );
         }

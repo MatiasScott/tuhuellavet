@@ -1,13 +1,38 @@
 <?php
+
 namespace App\Models;
+
 use App\Core\Model;
+
 class ClinicalHistory extends Model
 {
-    public function timeline(int $patientId,int $environmentId): array
+    public function timeline(int $patientId, int $environmentId): array
     {
-        $stmt=$this->db->prepare('
-            SELECT ec.id,ec.fecha_evento,ec.titulo,ec.observaciones,
-                   tec.codigo AS tipo_codigo,tec.nombre AS tipo_nombre,
+        $stmt = $this->db->prepare('
+            SELECT
+                    ec.id,
+                    ec.fecha_evento,
+                    ec.titulo,
+                    ec.observaciones,
+
+                    ec.anulado_at,
+                    ec.anulado_por,
+                    ec.motivo_anulacion,
+
+                    CASE
+                        WHEN ec.anulado_at IS NULL
+                        THEN 0
+                        ELSE 1
+                    END AS esta_anulado,
+
+                    CONCAT(
+                        ua.nombres,
+                        " ",
+                        ua.apellidos
+                    ) AS anulado_por_nombre,
+
+                    tec.codigo AS tipo_codigo,
+                    tec.nombre AS tipo_nombre,
                    CONCAT(u.nombres," ",u.apellidos) AS responsable_nombre,
                    ce.motivo_consulta,ce.anamnesis,ce.antecedentes,ce.recomendaciones,
                    ecg.temperatura_c,ecg.frecuencia_cardiaca,ecg.frecuencia_respiratoria,
@@ -25,6 +50,7 @@ class ClinicalHistory extends Model
             JOIN animales a ON a.id=ec.animal_id
             JOIN tipos_evento_clinico tec ON tec.id=ec.tipo_evento_id
             JOIN usuarios u ON u.id=ec.responsable_id
+            LEFT JOIN usuarios ua ON ua.id = ec.anulado_por
             LEFT JOIN consultas_externas ce ON ce.evento_clinico_id=ec.id
             LEFT JOIN examenes_clinicos_generales ecg ON ecg.evento_clinico_id=ec.id
             LEFT JOIN vacunaciones vac ON vac.evento_clinico_id=ec.id
@@ -41,10 +67,13 @@ class ClinicalHistory extends Model
             LEFT JOIN procedimientos_quirurgicos pq ON pq.id=c.procedimiento_quirurgico_id
             WHERE ec.animal_id=:animal AND a.entorno_id=:entorno
             ORDER BY ec.fecha_evento DESC,ec.id DESC');
-        $stmt->execute(['animal'=>$patientId,'entorno'=>$environmentId]);return $stmt->fetchAll();
+        $stmt->execute(['animal' => $patientId, 'entorno' => $environmentId]);
+        return $stmt->fetchAll();
     }
     public function diagnoses(int $eventId): array
     {
-        $s=$this->db->prepare('SELECT dc.id,dc.descripcion,td.codigo,td.nombre AS tipo,CONCAT(u.nombres," ",u.apellidos) AS ingresado_por_nombre,dc.created_at FROM diagnosticos_clinicos dc JOIN tipos_diagnostico td ON td.id=dc.tipo_diagnostico_id JOIN usuarios u ON u.id=dc.ingresado_por WHERE dc.evento_clinico_id=:evento ORDER BY td.id,dc.created_at');$s->execute(['evento'=>$eventId]);return$s->fetchAll();
+        $s = $this->db->prepare('SELECT dc.id,dc.descripcion,td.codigo,td.nombre AS tipo,CONCAT(u.nombres," ",u.apellidos) AS ingresado_por_nombre,dc.created_at FROM diagnosticos_clinicos dc JOIN tipos_diagnostico td ON td.id=dc.tipo_diagnostico_id JOIN usuarios u ON u.id=dc.ingresado_por WHERE dc.evento_clinico_id=:evento ORDER BY td.id,dc.created_at');
+        $s->execute(['evento' => $eventId]);
+        return $s->fetchAll();
     }
 }

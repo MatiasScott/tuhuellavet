@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+
+    bootstrap="tests/bootstrap.php"
+
+    colors="true"
+
+    cacheDirectory="storage/cache/phpunit"
+
+    failOnWarning="false"
+    failOnRisky="false"
+>
+
+    <php>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="DB_DATABASE" value="tuhuellavet_qa" force="true"/>
+    </php>
+    <testsuites>
+
+        <testsuite name="System">
+            <directory>tests/System</directory>
+        </testsuite>
+
+        <testsuite name="Database">
+            <directory>tests/Database</directory>
+        </testsuite>
+
+        <testsuite name="Security">
+            <directory>tests/Security</directory>
+        </testsuite>
+
+        <testsuite name="Clinical">
+            <directory>tests/Clinical</directory>
+        </testsuite>
+
+        <testsuite name="Routes">
+            <directory>tests/Routes</directory>
+        </testsuite>
+
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+
+        <testsuite name="Functional">
+            <directory>tests/Functional</directory>
+        </testsuite>
+
+    </testsuites>
+
+    <logging>
+
+        <junit
+            outputFile="storage/test-reports/junit.xml"
+        />
+
+        <testdoxHtml
+            outputFile="storage/test-reports/testdox.html"
+        />
+
+    </logging>
+
+</phpunit>

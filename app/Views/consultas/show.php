@@ -51,7 +51,7 @@
                     )
                 )
             ) ?>
-            Â·
+            .
             <?= e(
                 $consultation['responsable_nombre']
             ) ?>
@@ -69,7 +69,7 @@
             btn
             btn-secondary
         ">
-        â† Volver al paciente
+        → Volver al paciente
     </a>
 
 </div>
@@ -100,7 +100,7 @@
             <?= nl2br(
                 e(
                     $consultation['motivo_consulta']
-                        ?: 'Sin informaciÃ³n'
+                        ?: 'Sin información'
                 )
             ) ?>
 
@@ -124,7 +124,7 @@
             <?= nl2br(
                 e(
                     $consultation['anamnesis']
-                        ?: 'Sin informaciÃ³n'
+                        ?: 'Sin información'
                 )
             ) ?>
 
@@ -142,11 +142,11 @@
         <div>
 
             <h2>
-                Examen clÃ­nico general
+                Examen clínico general
             </h2>
 
             <p>
-                Signos y evaluaciÃ³n
+                Signos y evaluación
                 registrados.
             </p>
 
@@ -161,11 +161,11 @@
         ">
 
         <div>
-            <span>AlimentaciÃ³n</span>
+            <span>Alimentación</span>
             <strong>
                 <?= e(
                     $consultation['alimentacion']
-                        ?: 'â€”'
+                        ?: '—'
                 ) ?>
             </strong>
         </div>
@@ -175,7 +175,7 @@
             <strong>
                 <?= e(
                     $consultation['historial_reproductivo']
-                        ?: 'â€”'
+                        ?: '—'
                 ) ?>
             </strong>
         </div>
@@ -185,7 +185,7 @@
             <strong>
                 <?= e(
                     $consultation['frecuencia_cardiaca']
-                        ?: 'â€”'
+                        ?: '—'
                 ) ?>
             </strong>
         </div>
@@ -195,7 +195,7 @@
             <strong>
                 <?= e(
                     $consultation['frecuencia_respiratoria']
-                        ?: 'â€”'
+                        ?: '—'
                 ) ?>
             </strong>
         </div>
@@ -206,8 +206,8 @@
                 <?= $consultation['temperatura_c'] !== null
                     ? e(
                         $consultation['temperatura_c']
-                    ) . ' Â°C'
-                    : 'â€”'
+                    ) . ' °C'
+                    : '—'
                 ?>
             </strong>
         </div>
@@ -219,7 +219,7 @@
                     ? e(
                         $consultation['tiempo_llenado_capilar_seg']
                     ) . ' s'
-                    : 'â€”'
+                    : '—'
                 ?>
             </strong>
         </div>
@@ -229,17 +229,17 @@
             <strong>
                 <?= e(
                     $consultation['ganglios_linfaticos']
-                        ?: 'â€”'
+                        ?: '—'
                 ) ?>
             </strong>
         </div>
 
         <div>
-            <span>CondiciÃ³n corporal</span>
+            <span>Condición corporal</span>
             <strong>
                 <?= e(
                     $consultation['condicion_corporal']
-                        ?: 'â€”'
+                        ?: '—'
                 ) ?>
             </strong>
         </div>
@@ -257,7 +257,7 @@
                         ? 'symptom-positive'
                         : 'symptom-negative'
                     ?>">
-            VÃ³mitos
+            Vómitos
         </span>
 
         <span
@@ -288,7 +288,7 @@
         <div>
 
             <h2>
-                DiagnÃ³sticos
+                Diagnósticos
             </h2>
 
         </div>
@@ -302,7 +302,7 @@
 
         <div class="compact-empty">
             No se registraron
-            diagnÃ³sticos.
+            Diagnósticos.
         </div>
 
     <?php else: ?>
@@ -363,11 +363,11 @@
         <div>
 
             <h2>
-                ðŸ’Š Tratamientos
+                🧮 Tratamientos
             </h2>
 
             <p>
-                Tratamiento clÃ­nico
+                Tratamiento clínico
                 y tratamiento para casa.
             </p>
 
@@ -432,8 +432,8 @@
                             <h3>
 
                                 <?= $treatment['tipo_codigo'] === 'CASA'
-                                    ? 'ðŸ  Tratamiento en casa'
-                                    : 'ðŸ¥ Tratamiento clÃ­nico'
+                                    ? '💊  Tratamiento en casa'
+                                    : '🏥 Tratamiento clínico'
                                 ?>
 
                             </h3>
@@ -504,7 +504,7 @@
                                             class="
                                                 medication-icon
                                             ">
-                                            ðŸ’Š
+                                            🧮
                                         </div>
 
                                         <div>
@@ -554,7 +554,7 @@
                                                         $medication['dosis_unidad']
                                                             ?? ''
                                                     )
-                                                    : 'â€”'
+                                                    : '—'
                                                 ?>
 
                                             </strong>
@@ -564,13 +564,13 @@
 
                                         <div>
 
-                                            <span>VÃ­a</span>
+                                            <span>vía</span>
 
                                             <strong>
 
                                                 <?= e(
                                                     $medication['via_nombre']
-                                                        ?: 'â€”'
+                                                        ?: '—'
                                                 ) ?>
 
                                             </strong>
@@ -588,7 +588,7 @@
                                                     $medication['frecuencia_nombre']
                                                         ?: (
                                                             $medication['frecuencia_texto']
-                                                            ?: 'â€”'
+                                                            ?: '—'
                                                         )
                                                 ) ?>
 
@@ -599,7 +599,7 @@
 
                                         <div>
 
-                                            <span>DuraciÃ³n</span>
+                                            <span>Duración</span>
 
                                             <strong>
 
@@ -612,7 +612,7 @@
                                                         $medication['duracion_unidad']
                                                             ?? ''
                                                     )
-                                                    : 'â€”'
+                                                    : '—'
                                                 ?>
 
                                             </strong>
@@ -631,7 +631,7 @@
                                                 formula-result-small
                                             ">
 
-                                            ðŸ§® Calculado mediante fÃ³rmula:
+                                            🧮 Calculado mediante Fórmula:
 
                                             <strong>
 
@@ -679,7 +679,7 @@
                                                             $medication['dosis_unidad_id']
                                                                 ?? ''
                                                         ) ?>">
-                                            Registrar aplicaciÃ³n
+                                            Registrar aplicación
                                         </button>
 
                                     <?php endif; ?>
@@ -747,7 +747,7 @@
                 <div>
 
                     <span class="eyebrow">
-                        PrescripciÃ³n
+                        Prescripción
                     </span>
 
                     <h2>
@@ -760,7 +760,7 @@
                     type="button"
                     class="modal-close"
                     data-modal-close>
-                    Ã—
+                    ×
                 </button>
 
             </div>
@@ -947,11 +947,11 @@
             <div>
 
                 <span class="eyebrow">
-                    Tratamiento clÃ­nico
+                    Tratamiento clínico
                 </span>
 
                 <h2>
-                    Registrar aplicaciÃ³n
+                    Registrar aplicación
                 </h2>
 
             </div>
@@ -960,7 +960,7 @@
                 type="button"
                 class="modal-close"
                 data-modal-close>
-                Ã—
+                ×
             </button>
 
         </div>
@@ -1076,7 +1076,7 @@
                         btn
                         btn-primary
                     ">
-                    Registrar aplicaciÃ³n
+                    Registrar aplicación
                 </button>
 
             </div>

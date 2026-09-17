@@ -63,7 +63,7 @@ class PreventiveCareService
                     );
 
                 /*
-                 * Evento clÃ­nico.
+                 * Evento clínico.
                  */
                 $stmt = $db->prepare(
                     '
@@ -90,46 +90,42 @@ class PreventiveCareService
 
                 $stmt->execute([
                     'animal'
-                        => $patientId,
+                    => $patientId,
 
                     'tipo'
-                        => $eventTypeId,
+                    => $eventTypeId,
 
                     'responsable'
-                        => $createdBy,
+                    => $createdBy,
 
                     'fecha'
-                        => $this->dateTimeOrNow(
-                            $data[
-                                'fecha_evento'
-                            ]
+                    => $this->dateTimeOrNow(
+                        $data['fecha_evento']
                             ?? null
-                        ),
+                    ),
 
                     'titulo'
-                        => 'VacunaciÃ³n',
+                    => 'Vacunación',
 
                     'observaciones'
-                        => trim(
-                            $data[
-                                'observaciones_evento'
-                            ]
+                    => trim(
+                        $data['observaciones_evento']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
                 ]);
 
                 $eventId
                     = (int)
-                        $db
-                            ->lastInsertId();
+                    $db
+                        ->lastInsertId();
 
                 /*
-                 * Examen clÃ­nico general.
+                 * Examen clínico general.
                  *
-                 * SegÃºn los requisitos,
-                 * vacunaciÃ³n reutiliza el
-                 * examen clÃ­nico hasta tos.
+                 * Según los requisitos,
+                 * Vacunación reutiliza el
+                 * examen clínico hasta tos.
                  */
                 $this->insertClinicalExam(
                     $db,
@@ -138,7 +134,7 @@ class PreventiveCareService
                 );
 
                 /*
-                 * VacunaciÃ³n.
+                 * Vacunación.
                  */
                 $stmt = $db->prepare(
                     '
@@ -169,62 +165,151 @@ class PreventiveCareService
 
                 $stmt->execute([
                     'evento'
-                        => $eventId,
+                    => $eventId,
 
                     'vacuna'
-                        => $vaccineId,
+                    => $vaccineId,
 
                     'dosis'
-                        => $this->positiveNumberOrNull(
-                            $data['dosis']
+                    => $this->positiveNumberOrNull(
+                        $data['dosis']
                             ?? null,
-                            'La dosis'
-                        ),
+                        'La dosis'
+                    ),
 
                     'unidad'
-                        => !empty(
-                            $data[
-                                'unidad_dosis_id'
-                            ]
-                        )
-                            ? (int)
-                                $data[
-                                    'unidad_dosis_id'
-                                ]
-                            : null,
+                    => !empty($data['unidad_dosis_id'])
+                        ? (int)
+                        $data['unidad_dosis_id']
+                        : null,
 
                     'lote'
-                        => trim(
-                            $data['lote']
+                    => trim(
+                        $data['lote']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
 
                     'revacunacion'
-                        => $this->dateOrNull(
-                            $data[
-                                'fecha_revacunacion'
-                            ]
+                    => $this->dateOrNull(
+                        $data['fecha_revacunacion']
                             ?? null
-                        ),
+                    ),
 
                     'observaciones'
-                        => trim(
-                            $data[
-                                'observaciones'
-                            ]
+                    => trim(
+                        $data['observaciones']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
 
                     'usuario'
-                        => $createdBy,
+                    => $createdBy,
                 ]);
 
                 $vaccinationId
                     = (int)
-                        $db
-                            ->lastInsertId();
+                    $db
+                        ->lastInsertId();
+
+                /*
+ * Consumo automático de inventario.
+ *
+ * Es opcional para mantener compatibilidad
+ * con vacunaciones que todavía no utilicen
+ * control físico de existencias.
+ */
+                if (
+                    isset($data['inventario_consumo'])
+                    && is_array(
+                        $data['inventario_consumo']
+                    )
+                ) {
+                    $inventoryConsumption =
+                        $data['inventario_consumo'];
+
+                    $inventoryId = (int) (
+                        $inventoryConsumption['inventario_id']
+                        ?? 0
+                    );
+
+                    $productId = (int) (
+                        $inventoryConsumption['producto_id']
+                        ?? 0
+                    );
+
+                    $lotId = !empty($inventoryConsumption['lote_id'])
+                        ? (int)
+                        $inventoryConsumption['lote_id']
+                        : null;
+
+                    $consumedQuantity =
+                        $inventoryConsumption['cantidad_consumida']
+                        ?? null;
+
+                    if ($inventoryId <= 0) {
+                        throw new RuntimeException(
+                            'El inventario para el consumo clínico es obligatorio.'
+                        );
+                    }
+
+                    if ($productId <= 0) {
+                        throw new RuntimeException(
+                            'El producto para el consumo clínico es obligatorio.'
+                        );
+                    }
+
+                    $normalizedConsumedQuantity = null;
+
+                    if (
+                        $consumedQuantity !== null
+                        && $consumedQuantity !== ''
+                        && is_numeric($consumedQuantity)
+                    ) {
+                        $normalizedConsumedQuantity =
+                            (float) $consumedQuantity;
+                    }
+
+                    if (
+                        $normalizedConsumedQuantity === null
+                        || !is_finite(
+                            $normalizedConsumedQuantity
+                        )
+                        || $normalizedConsumedQuantity <= 0
+                    ) {
+                        throw new RuntimeException(
+                            'La cantidad consumida de inventario debe ser un número finito mayor que cero.'
+                        );
+                    }
+
+                    (new InventoryService())
+                        ->consumeClinical(
+                            [
+                                'inventario_id' =>
+                                $inventoryId,
+
+                                'producto_id' =>
+                                $productId,
+
+                                'lote_id' =>
+                                $lotId,
+
+                                'cantidad' =>
+                                $normalizedConsumedQuantity,
+
+                                'referencia_tipo' =>
+                                'VACUNACION',
+
+                                'referencia_id' =>
+                                $vaccinationId,
+
+                                'observaciones' =>
+                                'Consumo automático por vacunación',
+                            ],
+                            $environmentId,
+                            $createdBy
+                        );
+                }
 
                 /*
                  * Peso opcional.
@@ -232,10 +317,8 @@ class PreventiveCareService
                 $this->insertWeightIfPresent(
                     $db,
                     $patientId,
-                    $data[
-                        'peso_kg'
-                    ]
-                    ?? null,
+                    $data['peso_kg']
+                        ?? null,
                     $createdBy,
                     'VACUNACION'
                 );
@@ -244,11 +327,7 @@ class PreventiveCareService
                  * Crear recordatorio.
                  */
                 if (
-                    !empty(
-                        $data[
-                            'fecha_revacunacion'
-                        ]
-                    )
+                    !empty($data['fecha_revacunacion'])
                 ) {
                     (new ReminderService())
                         ->scheduleVaccinationReminder(
@@ -256,9 +335,7 @@ class PreventiveCareService
                             $environmentId,
                             $patient,
                             $vaccinationId,
-                            $data[
-                                'fecha_revacunacion'
-                            ],
+                            $data['fecha_revacunacion'],
                             $createdBy
                         );
                 }
@@ -274,15 +351,13 @@ class PreventiveCareService
                         null,
                         [
                             'animal_id'
-                                => $patientId,
+                            => $patientId,
 
                             'vacuna_id'
-                                => $vaccineId,
+                            => $vaccineId,
 
                             'fecha_revacunacion'
-                                => $data[
-                                    'fecha_revacunacion'
-                                ]
+                            => $data['fecha_revacunacion']
                                 ?? null,
                         ]
                     );
@@ -324,7 +399,7 @@ class PreventiveCareService
 
                 if (!$drugId) {
                     throw new RuntimeException(
-                        'Debes seleccionar el fÃ¡rmaco.'
+                        'Debes seleccionar el fármaco.'
                     );
                 }
 
@@ -371,39 +446,35 @@ class PreventiveCareService
 
                 $stmt->execute([
                     'animal'
-                        => $patientId,
+                    => $patientId,
 
                     'tipo'
-                        => $eventTypeId,
+                    => $eventTypeId,
 
                     'responsable'
-                        => $createdBy,
+                    => $createdBy,
 
                     'fecha'
-                        => $this->dateTimeOrNow(
-                            $data[
-                                'fecha_evento'
-                            ]
+                    => $this->dateTimeOrNow(
+                        $data['fecha_evento']
                             ?? null
-                        ),
+                    ),
 
                     'titulo'
-                        => 'DesparasitaciÃ³n',
+                    => 'Desparasitación',
 
                     'observaciones'
-                        => trim(
-                            $data[
-                                'observaciones_evento'
-                            ]
+                    => trim(
+                        $data['observaciones_evento']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
                 ]);
 
                 $eventId
                     = (int)
-                        $db
-                            ->lastInsertId();
+                    $db
+                        ->lastInsertId();
 
                 $stmt = $db->prepare(
                     '
@@ -432,78 +503,62 @@ class PreventiveCareService
 
                 $stmt->execute([
                     'evento'
-                        => $eventId,
+                    => $eventId,
 
                     'farmaco'
-                        => $drugId,
+                    => $drugId,
 
                     'dosis'
-                        => $this->positiveNumberOrNull(
-                            $data['dosis']
+                    => $this->positiveNumberOrNull(
+                        $data['dosis']
                             ?? null,
-                            'La dosis'
-                        ),
+                        'La dosis'
+                    ),
 
                     'unidad'
-                        => !empty(
-                            $data[
-                                'unidad_dosis_id'
-                            ]
-                        )
-                            ? (int)
-                                $data[
-                                    'unidad_dosis_id'
-                                ]
-                            : null,
+                    => !empty($data['unidad_dosis_id'])
+                        ? (int)
+                        $data['unidad_dosis_id']
+                        : null,
 
                     'proxima'
-                        => $this->dateOrNull(
-                            $data[
-                                'proxima_desparasitacion'
-                            ]
+                    => $this->dateOrNull(
+                        $data['proxima_desparasitacion']
                             ?? null
-                        ),
+                    ),
 
                     'observaciones'
-                        => trim(
-                            $data[
-                                'observaciones'
-                            ]
+                    => trim(
+                        $data['observaciones']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
 
                     'usuario'
-                        => $createdBy,
+                    => $createdBy,
                 ]);
 
                 $dewormingId
                     = (int)
-                        $db
-                            ->lastInsertId();
+                    $db
+                        ->lastInsertId();
 
                 /*
-                 * SegÃºn requisito original,
-                 * en desparasitaciÃ³n se puede
+                 * Según requisito original,
+                 * en Desparasitación se puede
                  * actualizar el peso.
                  */
                 $this->insertWeightIfPresent(
                     $db,
                     $patientId,
-                    $data[
-                        'peso_kg'
-                    ]
-                    ?? null,
+                    $data['peso_kg']
+                        ?? null,
                     $createdBy,
                     'DESPARASITACION'
                 );
 
                 if (
-                    !empty(
-                        $data[
-                            'proxima_desparasitacion'
-                        ]
-                    )
+                    !empty($data['proxima_desparasitacion'])
                 ) {
                     (new ReminderService())
                         ->scheduleDewormingReminder(
@@ -511,9 +566,7 @@ class PreventiveCareService
                             $environmentId,
                             $patient,
                             $dewormingId,
-                            $data[
-                                'proxima_desparasitacion'
-                            ],
+                            $data['proxima_desparasitacion'],
                             $createdBy
                         );
                 }
@@ -529,15 +582,13 @@ class PreventiveCareService
                         null,
                         [
                             'animal_id'
-                                => $patientId,
+                            => $patientId,
 
                             'farmaco_id'
-                                => $drugId,
+                            => $drugId,
 
                             'proxima_desparasitacion'
-                                => $data[
-                                    'proxima_desparasitacion'
-                                ]
+                            => $data['proxima_desparasitacion']
                                 ?? null,
                         ]
                     );
@@ -592,105 +643,81 @@ class PreventiveCareService
 
         $stmt->execute([
             'evento'
-                => $eventId,
+            => $eventId,
 
             'alimentacion'
-                => trim(
-                    $data[
-                        'alimentacion'
-                    ]
+            => trim(
+                $data['alimentacion']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'reproductivo'
-                => trim(
-                    $data[
-                        'historial_reproductivo'
-                    ]
+            => trim(
+                $data['historial_reproductivo']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'fc'
-                => $this->numberOrNull(
-                    $data[
-                        'frecuencia_cardiaca'
-                    ]
+            => $this->numberOrNull(
+                $data['frecuencia_cardiaca']
                     ?? null
-                ),
+            ),
 
             'fr'
-                => $this->numberOrNull(
-                    $data[
-                        'frecuencia_respiratoria'
-                    ]
+            => $this->numberOrNull(
+                $data['frecuencia_respiratoria']
                     ?? null
-                ),
+            ),
 
             'temperatura'
-                => $this->numberOrNull(
-                    $data[
-                        'temperatura_c'
-                    ]
+            => $this->numberOrNull(
+                $data['temperatura_c']
                     ?? null
-                ),
+            ),
 
             'tlc'
-                => $this->numberOrNull(
-                    $data[
-                        'tiempo_llenado_capilar_seg'
-                    ]
+            => $this->numberOrNull(
+                $data['tiempo_llenado_capilar_seg']
                     ?? null
-                ),
+            ),
 
             'ganglios'
-                => trim(
-                    $data[
-                        'ganglios_linfaticos'
-                    ]
+            => trim(
+                $data['ganglios_linfaticos']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'condicion'
-                => trim(
-                    $data[
-                        'condicion_corporal'
-                    ]
+            => trim(
+                $data['condicion_corporal']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'vomitos'
-                => !empty(
-                    $data['vomitos']
-                )
-                    ? 1
-                    : 0,
+            => !empty($data['vomitos'])
+                ? 1
+                : 0,
 
             'diarrea'
-                => !empty(
-                    $data['diarrea']
-                )
-                    ? 1
-                    : 0,
+            => !empty($data['diarrea'])
+                ? 1
+                : 0,
 
             'tos'
-                => !empty(
-                    $data['tos']
-                )
-                    ? 1
-                    : 0,
+            => !empty($data['tos'])
+                ? 1
+                : 0,
 
             'observaciones'
-                => trim(
-                    $data[
-                        'examen_observaciones'
-                    ]
+            => trim(
+                $data['examen_observaciones']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
         ]);
     }
 
@@ -742,27 +769,27 @@ class PreventiveCareService
 
         $stmt->execute([
             'animal'
-                => $patientId,
+            => $patientId,
 
             'peso'
-                => $weight,
+            => $weight,
 
             'usuario'
-                => $createdBy,
+            => $createdBy,
 
             'origen'
-                => $origin,
+            => $origin,
 
             'observacion'
-                => 'Peso registrado durante '
-                    . strtolower(
-                        str_replace(
-                            '_',
-                            ' ',
-                            $origin
-                        )
+            => 'Peso registrado durante '
+                . strtolower(
+                    str_replace(
+                        '_',
+                        ' ',
+                        $origin
                     )
-                    . '.',
+                )
+                . '.',
         ]);
     }
 
@@ -810,10 +837,10 @@ class PreventiveCareService
 
         $stmt->execute([
             'animal'
-                => $patientId,
+            => $patientId,
 
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         $patient
@@ -846,16 +873,16 @@ class PreventiveCareService
 
         $stmt->execute([
             'id'
-                => $vaccineId,
+            => $vaccineId,
         ]);
 
         if (
             (int)
-                $stmt->fetchColumn()
+            $stmt->fetchColumn()
             === 0
         ) {
             throw new RuntimeException(
-                'La vacuna seleccionada no estÃ¡ disponible.'
+                'La vacuna seleccionada no está disponible.'
             );
         }
     }
@@ -878,16 +905,16 @@ class PreventiveCareService
 
         $stmt->execute([
             'id'
-                => $drugId,
+            => $drugId,
         ]);
 
         if (
             (int)
-                $stmt->fetchColumn()
+            $stmt->fetchColumn()
             === 0
         ) {
             throw new RuntimeException(
-                'El fÃ¡rmaco seleccionado no estÃ¡ disponible.'
+                'El fármaco seleccionado no está disponible.'
             );
         }
     }
@@ -912,16 +939,16 @@ class PreventiveCareService
 
         $stmt->execute([
             'codigo'
-                => $code,
+            => $code,
         ]);
 
         $id = $stmt->fetchColumn();
 
         if (!$id) {
             throw new RuntimeException(
-                'No existe el tipo de evento clÃ­nico '
-                . $code
-                . '.'
+                'No existe el tipo de evento clínico '
+                    . $code
+                    . '.'
             );
         }
 
@@ -945,7 +972,7 @@ class PreventiveCareService
         if ($number <= 0) {
             throw new RuntimeException(
                 $label
-                . ' debe ser mayor a cero.'
+                    . ' debe ser mayor a cero.'
             );
         }
 
@@ -985,7 +1012,7 @@ class PreventiveCareService
 
         if (!$date) {
             throw new RuntimeException(
-                'La fecha ingresada no es vÃ¡lida.'
+                'La fecha ingresada no es válida.'
             );
         }
 
@@ -1025,5 +1052,212 @@ class PreventiveCareService
         }
 
         return $value;
+    }
+
+    public function cancelVaccination(
+        int $vaccinationId,
+        string $reason,
+        int $environmentId,
+        int $cancelledBy
+    ): void {
+        Database::transaction(
+            function (PDO $db) use (
+                $vaccinationId,
+                $reason,
+                $environmentId,
+                $cancelledBy
+            ): void {
+                $reason =
+                    trim($reason);
+
+                if ($vaccinationId <= 0) {
+                    throw new RuntimeException(
+                        'La vacunación es obligatoria.'
+                    );
+                }
+
+                if ($reason === '') {
+                    throw new RuntimeException(
+                        'El motivo de anulación es obligatorio.'
+                    );
+                }
+
+                /*
+             * Bloqueamos la vacunación y su evento.
+             */
+                $stmt = $db->prepare(
+                    '
+                SELECT
+                    v.id AS vacunacion_id,
+                    v.evento_clinico_id,
+
+                    ec.anulado_at,
+                    ec.anulado_por,
+                    ec.motivo_anulacion,
+
+                    a.entorno_id
+
+                FROM vacunaciones v
+
+                INNER JOIN eventos_clinicos ec
+                    ON ec.id =
+                       v.evento_clinico_id
+
+                INNER JOIN animales a
+                    ON a.id =
+                       ec.animal_id
+
+                WHERE v.id =
+                      :vacunacion
+
+                LIMIT 1
+
+                FOR UPDATE
+                '
+                );
+
+                $stmt->execute([
+                    'vacunacion' =>
+                    $vaccinationId,
+                ]);
+
+                $vaccination =
+                    $stmt->fetch();
+
+                if (!$vaccination) {
+                    throw new RuntimeException(
+                        'Vacunación no encontrada.'
+                    );
+                }
+
+                if (
+                    (int) $vaccination['entorno_id']
+                    !== $environmentId
+                ) {
+                    throw new RuntimeException(
+                        'La vacunación no pertenece al entorno actual.'
+                    );
+                }
+
+                if (
+                    !empty($vaccination['anulado_at'])
+                ) {
+                    throw new RuntimeException(
+                        'La vacunación ya fue anulada.'
+                    );
+                }
+
+                /*
+             * Reverso del consumo.
+             *
+             * Si la vacunación es histórica y nunca tuvo
+             * integración con inventario devuelve [].
+             */
+                $reversalIds =
+                    (new InventoryService())
+                    ->reverseClinicalConsumption(
+                        'VACUNACION',
+                        $vaccinationId,
+                        $environmentId,
+                        $cancelledBy,
+                        'Anulación de vacunación: '
+                            . $reason
+                    );
+
+                /*
+             * Cancelamos exclusivamente notificaciones
+             * todavía pendientes.
+             *
+             * ENVIADA y FALLIDA se conservan intactas
+             * como histórico.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE notificaciones
+                SET estado = "CANCELADA"
+                WHERE referencia_tipo =
+                      "VACUNACION"
+                  AND referencia_id =
+                      :vacunacion
+                  AND entorno_id =
+                      :entorno
+                  AND estado IN (
+                      "PENDIENTE",
+                      "PROGRAMADA"
+                  )
+                '
+                );
+
+                $stmt->execute([
+                    'vacunacion' =>
+                    $vaccinationId,
+
+                    'entorno' =>
+                    $environmentId,
+                ]);
+
+                $cancelledNotifications =
+                    $stmt->rowCount();
+
+                /*
+             * La vacunación permanece físicamente.
+             * Anulamos su evento clínico padre.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE eventos_clinicos
+                SET
+                    anulado_at = NOW(),
+                    anulado_por = :usuario,
+                    motivo_anulacion = :motivo
+                WHERE id = :evento
+                  AND anulado_at IS NULL
+                '
+                );
+
+                $stmt->execute([
+                    'usuario' =>
+                    $cancelledBy,
+
+                    'motivo' =>
+                    $reason,
+
+                    'evento' =>
+                    (int)
+                    $vaccination['evento_clinico_id'],
+                ]);
+
+                if ($stmt->rowCount() !== 1) {
+                    throw new RuntimeException(
+                        'No fue posible anular la vacunación.'
+                    );
+                }
+
+                (new AuditService())
+                    ->log(
+                        $cancelledBy,
+                        $environmentId,
+                        'VACUNAS',
+                        'ANULAR',
+                        'vacunaciones',
+                        $vaccinationId,
+                        null,
+                        [
+                            'evento_clinico_id' =>
+                            (int)
+                            $vaccination['evento_clinico_id'],
+
+                            'motivo_anulacion' =>
+                            $reason,
+
+                            'reversos_inventario' =>
+                            $reversalIds,
+
+                            'notificaciones_canceladas' =>
+                            $cancelledNotifications,
+                        ]
+                    );
+            }
+        );
     }
 }

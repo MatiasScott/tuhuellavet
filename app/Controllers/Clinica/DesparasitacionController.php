@@ -33,7 +33,7 @@ class DesparasitacionController extends Controller
             'desparasitaciones/index',
             [
                 'title'
-                    => 'DesparasitaciÃ³n',
+                    => 'Desparasitación',
 
                 'dewormings'
                     => (new PreventiveCare())
@@ -101,7 +101,7 @@ class DesparasitacionController extends Controller
 
             Session::flash(
                 'success',
-                'DesparasitaciÃ³n registrada correctamente.'
+                'Desparasitación registrada correctamente.'
             );
 
             $this->redirect(

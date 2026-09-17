@@ -20,17 +20,17 @@ class FormulaController extends Controller
     ): void {
         $formula
             = (new Formula())
-                ->version(
-                    (int) $versionId,
-                    active_environment_id()
-                );
+            ->version(
+                (int) $versionId,
+                active_environment_id()
+            );
 
         if (!$formula) {
             $this->json(
                 [
                     'ok' => false,
                     'message'
-                        => 'FÃ³rmula no encontrada.',
+                    => 'Fórmula no encontrada.',
                 ],
                 404
             );
@@ -38,9 +38,9 @@ class FormulaController extends Controller
 
         $variables
             = (new Formula())
-                ->variables(
-                    (int) $versionId
-                );
+            ->variables(
+                (int) $versionId
+            );
 
         $this->json([
             'ok' => true,
@@ -62,7 +62,7 @@ class FormulaController extends Controller
                 [
                     'ok' => false,
                     'message'
-                        => 'SesiÃ³n expirada.',
+                    => 'Sesión expirada.',
                 ],
                 419
             );
@@ -85,47 +85,45 @@ class FormulaController extends Controller
 
             $result
                 = (new FormulaService())
-                    ->calculate(
-                        (int)
-                            $request->input(
-                                'formula_version_id'
-                            ),
+                ->calculate(
+                    (int)
+                    $request->input(
+                        'formula_version_id'
+                    ),
 
-                        (int)
-                            $request->input(
-                                'animal_id'
-                            ),
+                    (int)
+                    $request->input(
+                        'animal_id'
+                    ),
 
+                    $request->input(
+                        'evento_clinico_id'
+                    )
+                        ? (int)
                         $request->input(
                             'evento_clinico_id'
                         )
-                            ? (int)
-                                $request->input(
-                                    'evento_clinico_id'
-                                )
-                            : null,
+                        : null,
 
-                        $manualValues,
+                    $manualValues,
 
-                        active_environment_id(),
+                    active_environment_id(),
 
-                        auth_id(),
+                    auth_id(),
 
-                        !empty(
-                            $request->input(
-                                'simulacion'
-                            )
-                        ),
+                    !empty($request->input(
+                            'simulacion'
+                        )),
 
-                        strtoupper(
-                            trim(
-                                (string) $request->input(
-                                    'contexto',
-                                    'TRATAMIENTO'
-                                )
+                    strtoupper(
+                        trim(
+                            (string) $request->input(
+                                'contexto',
+                                'TRATAMIENTO'
                             )
                         )
-                    );
+                    )
+                );
 
             $this->json([
                 'ok' => true,
@@ -136,32 +134,10 @@ class FormulaController extends Controller
                 [
                     'ok' => false,
                     'message'
-                        => $e->getMessage(),
+                    => $e->getMessage(),
                 ],
                 422
             );
         }
-    }
-
-
-    private function json(
-        array $data,
-        int $status = 200
-    ): never {
-        http_response_code(
-            $status
-        );
-
-        header(
-            'Content-Type: application/json; charset=utf-8'
-        );
-
-        echo json_encode(
-            $data,
-            JSON_UNESCAPED_UNICODE
-            | JSON_UNESCAPED_SLASHES
-        );
-
-        exit;
     }
 }

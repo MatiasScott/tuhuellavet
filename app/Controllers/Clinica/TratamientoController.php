@@ -101,7 +101,7 @@ class TratamientoController extends Controller
 
             Session::flash(
                 'success',
-                'AplicaciÃ³n registrada.'
+                'aplicación registrada.'
             );
         } catch (Throwable $e) {
             Session::flash(

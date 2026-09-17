@@ -71,7 +71,8 @@ class PreventiveCare extends Model
                 ON u.id = vac.aplicada_por
 
             WHERE a.entorno_id = :entorno
-              AND a.deleted_at IS NULL
+                AND a.deleted_at IS NULL
+                AND ec.anulado_at IS NULL
         ';
 
         $params = [
@@ -177,7 +178,8 @@ class PreventiveCare extends Model
                 ON u.id = d.aplicada_por
 
             WHERE a.entorno_id = :entorno
-              AND a.deleted_at IS NULL
+                AND a.deleted_at IS NULL
+                AND ec.anulado_at IS NULL
         ';
 
         $params = [
@@ -263,15 +265,17 @@ class PreventiveCare extends Model
 
             WHERE a.entorno_id = :entorno
 
-              AND vac.fecha_revacunacion
-                  BETWEEN CURDATE()
-                  AND DATE_ADD(
-                      CURDATE(),
-                      INTERVAL {$days} DAY
-                  )
+                AND ec.anulado_at IS NULL
 
-              AND a.activo = 1
-              AND a.deleted_at IS NULL
+                AND vac.fecha_revacunacion
+                    BETWEEN CURDATE()
+                    AND DATE_ADD(
+                        CURDATE(),
+                        INTERVAL {$days} DAY
+                    )
+
+                AND a.activo = 1
+                AND a.deleted_at IS NULL
 
             ORDER BY vac.fecha_revacunacion
             "
@@ -340,6 +344,7 @@ class PreventiveCare extends Model
 
               AND a.activo = 1
               AND a.deleted_at IS NULL
+              AND ec.anulado_at IS NULL
 
             ORDER BY d.proxima_desparasitacion
             "

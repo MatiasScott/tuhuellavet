@@ -38,14 +38,14 @@ class FormulaService
 
                 $version
                     = $formulaModel
-                        ->version(
-                            $versionId,
-                            $environmentId
-                        );
+                    ->version(
+                        $versionId,
+                        $environmentId
+                    );
 
                 if (!$version) {
                     throw new RuntimeException(
-                        'La fÃ³rmula no existe, no estÃ¡ publicada o no pertenece al entorno.'
+                        'La Fórmula no existe, no está publicada o no pertenece al entorno.'
                     );
                 }
 
@@ -56,23 +56,28 @@ class FormulaService
                         $environmentId
                     );
 
+                if ($eventId !== null) {
+                    $this->validateClinicalEvent(
+                        $db,
+                        $eventId,
+                        $patientId,
+                        $environmentId
+                    );
+                }
+
                 $this->validateSpecies(
                     $db,
                     (int)
-                        $version[
-                            'formula_id'
-                        ],
+                    $version['formula_id'],
                     (int)
-                        $patient[
-                            'especie_id'
-                        ]
+                    $patient['especie_id']
                 );
 
                 $variables
                     = $formulaModel
-                        ->variables(
-                            $versionId
-                        );
+                    ->variables(
+                        $versionId
+                    );
 
                 $expressionValues = [];
 
@@ -98,25 +103,21 @@ class FormulaService
 
                     /*
                      * Symfony ExpressionLanguage
-                     * utilizarÃ¡ el cÃ³digo como nombre
+                     * utilizará el código como nombre
                      * de variable.
                      */
-                    $expressionValues[
-                        $variable['codigo']
-                    ] = $value;
+                    $expressionValues[$variable['codigo']] = $value;
 
                     $savedValues[] = [
                         'variable_id'
-                            => (int)
-                                $variable['id'],
+                        => (int)
+                        $variable['id'],
 
                         'value'
-                            => $value,
+                        => $value,
 
                         'automatic'
-                            => $variable[
-                                'origen_codigo'
-                            ] !== 'MANUAL',
+                        => $variable['origen_codigo'] !== 'MANUAL',
                     ];
                 }
 
@@ -126,15 +127,13 @@ class FormulaService
 
                     $result = $language
                         ->evaluate(
-                            $version[
-                                'expresion'
-                            ],
+                            $version['expresion'],
                             $expressionValues
                         );
                 } catch (\Throwable $e) {
                     throw new RuntimeException(
-                        'No fue posible calcular la fÃ³rmula: '
-                        . $e->getMessage()
+                        'No fue posible calcular la Fórmula: '
+                            . $e->getMessage()
                     );
                 }
 
@@ -142,7 +141,7 @@ class FormulaService
                     !is_numeric($result)
                 ) {
                     throw new RuntimeException(
-                        'La fÃ³rmula no produjo un resultado numÃ©rico.'
+                        'La Fórmula no produjo un resultado numérico.'
                     );
                 }
 
@@ -153,17 +152,21 @@ class FormulaService
                     !is_finite($result)
                 ) {
                     throw new RuntimeException(
-                        'El resultado de la fÃ³rmula no es vÃ¡lido.'
+                        'El resultado de la Fórmula no es válido.'
                     );
                 }
 
-                $allowedContexts = ['TRATAMIENTO','FLUIDOTERAPIA','ANESTESIA','ACADEMICO','SIMULACION'];
+                $allowedContexts = ['TRATAMIENTO', 'FLUIDOTERAPIA', 'ANESTESIA', 'ACADEMICO', 'SIMULACION'];
                 $context = strtoupper(trim($context));
-                if (!in_array($context, $allowedContexts, true)) { $context = 'TRATAMIENTO'; }
-                if ($simulation) { $context = 'SIMULACION'; }
+                if (!in_array($context, $allowedContexts, true)) {
+                    $context = 'TRATAMIENTO';
+                }
+                if ($simulation) {
+                    $context = 'SIMULACION';
+                }
 
                 /*
-                 * Guardamos TODA ejecuciÃ³n.
+                 * Guardamos TODA ejecución.
                  * Incluso simulaciones.
                  */
                 $stmt = $db->prepare(
@@ -197,38 +200,36 @@ class FormulaService
 
                 $stmt->execute([
                     'version'
-                        => $versionId,
+                    => $versionId,
 
                     'animal'
-                        => $patientId,
+                    => $patientId,
 
                     'evento'
-                        => $eventId,
+                    => $eventId,
 
                     'usuario'
-                        => $executedBy,
+                    => $executedBy,
 
                     'contexto'
-                        => $context,
+                    => $context,
 
                     'resultado'
-                        => $result,
+                    => $result,
 
                     'unidad'
-                        => $version[
-                            'unidad_resultado_id'
-                        ],
+                    => $version['unidad_resultado_id'],
 
                     'simulacion'
-                        => $simulation
-                            ? 1
-                            : 0,
+                    => $simulation
+                        ? 1
+                        : 0,
                 ]);
 
                 $executionId
                     = (int)
-                        $db
-                            ->lastInsertId();
+                    $db
+                        ->lastInsertId();
 
                 foreach (
                     $savedValues
@@ -258,27 +259,21 @@ class FormulaService
 
                     $stmt->execute([
                         'ejecucion'
-                            => $executionId,
+                        => $executionId,
 
                         'variable'
-                            => $saved[
-                                'variable_id'
-                            ],
+                        => $saved['variable_id'],
 
                         'version'
-                            => $versionId,
+                        => $versionId,
 
                         'valor'
-                            => $saved[
-                                'value'
-                            ],
+                        => $saved['value'],
 
                         'automatico'
-                            => $saved[
-                                'automatic'
-                            ]
-                                ? 1
-                                : 0,
+                        => $saved['automatic']
+                            ? 1
+                            : 0,
                     ]);
                 }
 
@@ -293,38 +288,32 @@ class FormulaService
                         null,
                         [
                             'formula_version_id'
-                                => $versionId,
+                            => $versionId,
 
                             'animal_id'
-                                => $patientId,
+                            => $patientId,
 
                             'resultado'
-                                => $result,
+                            => $result,
 
                             'simulacion'
-                                => $simulation,
+                            => $simulation,
                         ]
                     );
 
                 return [
                     'execution_id'
-                        => $executionId,
+                    => $executionId,
 
                     'result'
-                        => $result,
+                    => $result,
 
                     'unit'
-                        => $version[
-                            'unidad_resultado_simbolo'
-                        ]
-                            ?: $version[
-                                'unidad_resultado'
-                            ],
+                    => $version['unidad_resultado_simbolo']
+                        ?: $version['unidad_resultado'],
 
                     'formula'
-                        => $version[
-                            'formula_nombre'
-                        ],
+                    => $version['formula_nombre'],
                 ];
             }
         );
@@ -337,55 +326,45 @@ class FormulaService
         array $patient,
         array $manualValues
     ): float {
-        return match (
-            $variable['origen_codigo']
-        ) {
+        return match ($variable['origen_codigo']) {
             'PESO_ACTUAL'
-                => $this
-                    ->currentWeight(
-                        $db,
-                        (int)
-                            $patient['id']
-                    ),
+            => $this
+                ->currentWeight(
+                    $db,
+                    (int)
+                    $patient['id']
+                ),
 
             'EDAD_DIAS'
-                => $this
-                    ->ageInDays(
-                        $patient[
-                            'fecha_nacimiento'
-                        ]
-                    ),
+            => $this
+                ->ageInDays(
+                    $patient['fecha_nacimiento']
+                ),
 
             'EDAD_MESES'
-                => $this
-                    ->ageInMonths(
-                        $patient[
-                            'fecha_nacimiento'
-                        ]
-                    ),
+            => $this
+                ->ageInMonths(
+                    $patient['fecha_nacimiento']
+                ),
 
             'EDAD_ANIOS'
-                => $this
-                    ->ageInYears(
-                        $patient[
-                            'fecha_nacimiento'
-                        ]
-                    ),
+            => $this
+                ->ageInYears(
+                    $patient['fecha_nacimiento']
+                ),
 
             'MANUAL'
-                => $this
-                    ->manualValue(
-                        $variable,
-                        $manualValues
-                    ),
+            => $this
+                ->manualValue(
+                    $variable,
+                    $manualValues
+                ),
 
             default
-                => throw new RuntimeException(
-                    'Origen de variable no soportado: '
-                    . $variable[
-                        'origen_codigo'
-                    ]
-                ),
+            => throw new RuntimeException(
+                'Origen de variable no soportado: '
+                    . $variable['origen_codigo']
+            ),
         };
     }
 
@@ -394,45 +373,94 @@ class FormulaService
         array $variable,
         array $manualValues
     ): float {
-        $code
-            = $variable['codigo'];
+        $code = (string) $variable['codigo'];
 
-        $value
-            = $manualValues[$code]
-            ?? null;
+        /*
+     * array_key_exists() es intencional:
+     * 0 y "0" son valores válidos y no deben
+     * confundirse con una variable ausente.
+     */
+        $value = array_key_exists(
+            $code,
+            $manualValues
+        )
+            ? $manualValues[$code]
+            : null;
 
-        if (
-            ($value === null
-                || $value === '')
-            && $variable[
-                'valor_default'
-            ] !== null
-        ) {
-            $value
-                = $variable[
-                    'valor_default'
-                ];
+        /*
+     * Normalizamos cadenas únicamente para
+     * detectar correctamente valores vacíos.
+     */
+        if (is_string($value)) {
+            $value = trim($value);
         }
 
+        /*
+     * Si no se proporcionó valor, utilizamos
+     * el valor por defecto cuando exista.
+     */
         if (
-            ($value === null
-                || $value === '')
-            && !empty(
-                $variable[
-                    'obligatorio'
-                ]
-            )
+            ($value === null || $value === '')
+            && $variable['valor_default'] !== null
+        ) {
+            $value = $variable['valor_default'];
+
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+        }
+
+        /*
+     * Una variable obligatoria no puede quedar
+     * vacía después de aplicar el default.
+     */
+        if (
+            ($value === null || $value === '')
+            && !empty($variable['obligatorio'])
         ) {
             throw new RuntimeException(
                 'Debes ingresar la variable: '
-                . $variable[
-                    'etiqueta'
-                ]
+                    . $variable['etiqueta']
             );
         }
 
-        return (float)
-            ($value ?: 0);
+        /*
+     * Conservamos el comportamiento histórico
+     * de variables opcionales sin valor/default:
+     * se resuelven como 0.
+     *
+     * Lo importante es que un valor REALMENTE
+     * ingresado pero inválido nunca se convierta
+     * silenciosamente en cero.
+     */
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        /*
+     * Validar ANTES del cast.
+     */
+        if (!is_numeric($value)) {
+            throw new RuntimeException(
+                $variable['etiqueta']
+                    . ' debe contener un valor numérico válido.'
+            );
+        }
+
+        $numericValue = (float) $value;
+
+        /*
+     * Evita INF, -INF y cualquier número
+     * no finito.
+     */
+        if (!is_finite($numericValue)) {
+            throw new RuntimeException(
+                $variable['etiqueta']
+                    . ' debe contener un valor numérico finito.'
+            );
+        }
+
+        return $numericValue;
     }
 
 
@@ -458,7 +486,7 @@ class FormulaService
 
         $stmt->execute([
             'animal'
-                => $patientId,
+            => $patientId,
         ]);
 
         $weight
@@ -474,7 +502,7 @@ class FormulaService
         }
 
         return (float)
-            $weight;
+        $weight;
     }
 
 
@@ -496,9 +524,9 @@ class FormulaService
             = new \DateTimeImmutable();
 
         return (float)
-            $birth
-                ->diff($today)
-                ->days;
+        $birth
+            ->diff($today)
+            ->days;
     }
 
 
@@ -541,15 +569,15 @@ class FormulaService
         }
 
         return (float)
-            (
-                new \DateTimeImmutable(
-                    $birthDate
-                )
+        (
+            new \DateTimeImmutable(
+                $birthDate
             )
-                ->diff(
-                    new \DateTimeImmutable()
-                )
-                ->y;
+        )
+            ->diff(
+                new \DateTimeImmutable()
+            )
+            ->y;
     }
 
 
@@ -557,43 +585,73 @@ class FormulaService
         array $variable,
         float $value
     ): void {
+        $type =
+            strtoupper(
+                (string) (
+                    $variable['tipo_codigo']
+                    ?? ''
+                )
+            );
+
+        switch ($type) {
+            case 'ENTERO':
+                if (floor($value) !== $value) {
+                    throw new RuntimeException(
+                        $variable['etiqueta']
+                            . ' debe ser un número entero.'
+                    );
+                }
+                break;
+
+            case 'BOOLEANO':
+                if (
+                    $value !== 0.0
+                    && $value !== 1.0
+                ) {
+                    throw new RuntimeException(
+                        $variable['etiqueta']
+                            . ' debe ser 0 o 1.'
+                    );
+                }
+                break;
+
+            case 'DECIMAL':
+                /*
+             * Cualquier valor numérico finito
+             * es válido como decimal.
+             */
+                break;
+
+            default:
+                throw new RuntimeException(
+                    'Tipo de variable no soportado: '
+                        . $type
+                );
+        }
+
         if (
-            $variable[
-                'valor_minimo'
-            ] !== null
+            $variable['valor_minimo'] !== null
             && $value
-                <
-                (float)
-                    $variable[
-                        'valor_minimo'
-                    ]
+            <
+            (float) $variable['valor_minimo']
         ) {
             throw new RuntimeException(
                 $variable['etiqueta']
-                . ' no puede ser menor a '
-                . $variable[
-                    'valor_minimo'
-                ]
+                    . ' no puede ser menor a '
+                    . $variable['valor_minimo']
             );
         }
 
         if (
-            $variable[
-                'valor_maximo'
-            ] !== null
+            $variable['valor_maximo'] !== null
             && $value
-                >
-                (float)
-                    $variable[
-                        'valor_maximo'
-                    ]
+            >
+            (float) $variable['valor_maximo']
         ) {
             throw new RuntimeException(
                 $variable['etiqueta']
-                . ' no puede ser mayor a '
-                . $variable[
-                    'valor_maximo'
-                ]
+                    . ' no puede ser mayor a '
+                    . $variable['valor_maximo']
             );
         }
     }
@@ -629,10 +687,10 @@ class FormulaService
 
         $stmt->execute([
             'animal'
-                => $patientId,
+            => $patientId,
 
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         $patient
@@ -665,12 +723,12 @@ class FormulaService
 
         $stmt->execute([
             'formula'
-                => $formulaId,
+            => $formulaId,
         ]);
 
         $restricted
             = (int)
-                $stmt->fetchColumn();
+            $stmt->fetchColumn();
 
         if ($restricted === 0) {
             return;
@@ -689,19 +747,58 @@ class FormulaService
 
         $stmt->execute([
             'formula'
-                => $formulaId,
+            => $formulaId,
 
             'especie'
-                => $speciesId,
+            => $speciesId,
         ]);
 
         if (
             (int)
-                $stmt->fetchColumn()
+            $stmt->fetchColumn()
             === 0
         ) {
             throw new RuntimeException(
-                'Esta fÃ³rmula no estÃ¡ habilitada para la especie del paciente.'
+                'Esta Fórmula no está habilitada para la especie del paciente.'
+            );
+        }
+    }
+
+    private function validateClinicalEvent(
+        PDO $db,
+        int $eventId,
+        int $patientId,
+        int $environmentId
+    ): void {
+        $stmt = $db->prepare(
+            '
+        SELECT
+            ec.id
+
+        FROM eventos_clinicos ec
+
+        INNER JOIN animales a
+            ON a.id = ec.animal_id
+
+        WHERE ec.id = :evento
+          AND ec.animal_id = :animal
+          AND a.entorno_id = :entorno
+          AND a.activo = 1
+          AND a.deleted_at IS NULL
+
+        LIMIT 1
+        '
+        );
+
+        $stmt->execute([
+            'evento' => $eventId,
+            'animal' => $patientId,
+            'entorno' => $environmentId,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'El evento clínico no pertenece al paciente o al entorno actual.'
             );
         }
     }

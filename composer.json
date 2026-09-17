@@ -22,8 +22,16 @@
       "app/Helpers/format.php"
     ]
   },
+  "autoload-dev": {
+    "psr-4": {
+        "Tests\\": "tests/"
+    }
+  },
   "config": {
     "sort-packages": true,
     "optimize-autoloader": true
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.5"
   }
 }

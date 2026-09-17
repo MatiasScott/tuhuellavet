@@ -112,8 +112,8 @@ class Formula extends Model
         $rows = $stmt->fetchAll();
 
         /*
-         * Solo la versiÃ³n publicada
-         * mÃ¡s alta por fÃ³rmula.
+         * Solo la versión publicada
+         * más alta por Fórmula.
          */
         $result = [];
 

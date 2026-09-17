@@ -1,3 +1,759 @@
 <?php
-namespace App\Services;use App\Core\Database;use PDO;use RuntimeException;
-class SurgeryService{public function create(array $d,array $files,int $env,int $by):int{return Database::transaction(function(PDO $db)use($d,$files,$env,$by){$animal=(int)($d['animal_id']??0);$proc=(int)($d['procedimiento_quirurgico_id']??0);if(!$animal||!$proc)throw new RuntimeException('Paciente y procedimiento son obligatorios.');$s=$db->prepare('SELECT 1 FROM animales WHERE id=:a AND entorno_id=:e AND deleted_at IS NULL');$s->execute(['a'=>$animal,'e'=>$env]);if(!$s->fetchColumn())throw new RuntimeException('Paciente no válido.');$type=(int)$db->query("SELECT id FROM tipos_evento_clinico WHERE codigo='CIRUGIA' LIMIT 1")->fetchColumn();$date=$this->dt($d['fecha_inicio']??null);$db->prepare('INSERT INTO eventos_clinicos(animal_id,tipo_evento_id,responsable_id,fecha_evento,titulo) VALUES(:a,:t,:u,:f,"Cirugía")')->execute(['a'=>$animal,'t'=>$type,'u'=>$by,'f'=>$date]);$event=(int)$db->lastInsertId();$db->prepare('INSERT INTO cirugias(evento_clinico_id,procedimiento_quirurgico_id,medico_responsable_id,fecha_inicio,fecha_fin,diagnostico_preoperatorio,descripcion_procedimiento,hallazgos,complicaciones,indicaciones_postoperatorias,observaciones) VALUES(:e,:p,:u,:fi,:ff,:d,:dp,:h,:c,:i,:o)')->execute(['e'=>$event,'p'=>$proc,'u'=>$by,'fi'=>$date,'ff'=>!empty($d['fecha_fin'])?$this->dt($d['fecha_fin']):null,'d'=>trim((string)($d['diagnostico_preoperatorio']??''))?:null,'dp'=>trim((string)($d['descripcion_procedimiento']??''))?:null,'h'=>trim((string)($d['hallazgos']??''))?:null,'c'=>trim((string)($d['complicaciones']??''))?:null,'i'=>trim((string)($d['indicaciones_postoperatorias']??''))?:null,'o'=>trim((string)($d['observaciones']??''))?:null]);if(isset($files['archivo'])&&($files['archivo']['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_OK){$fid=(new FileService())->store($files['archivo'],$by,'cirugias');$db->prepare('INSERT INTO cirugia_archivos(cirugia_evento_id,archivo_id,descripcion) VALUES(:c,:a,:d)')->execute(['c'=>$event,'a'=>$fid,'d'=>'Documento de cirugía']);}if(!empty($d['tipo_anestesia_id'])||!empty($d['protocolo_anestesia']))$db->prepare('INSERT INTO cirugia_anestesias(cirugia_evento_id,responsable_id,tipo_anestesia_id,protocolo,observaciones) VALUES(:c,:u,:t,:p,:o)')->execute(['c'=>$event,'u'=>$by,'t'=>!empty($d['tipo_anestesia_id'])?(int)$d['tipo_anestesia_id']:null,'p'=>trim((string)($d['protocolo_anestesia']??''))?:null,'o'=>null]);(new AuditService())->log($by,$env,'CIRUGIAS','CREAR','cirugias',$event);return$event;});}private function dt(mixed $v):string{if(!$v)return date('Y-m-d H:i:s');$v=str_replace('T',' ',(string)$v);return strlen($v)===16?$v.':00':$v;}}
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Core\Database;
+use PDO;
+use RuntimeException;
+use Throwable;
+
+class SurgeryService
+{
+    private FileService $fileService;
+
+    public function __construct(
+        ?FileService $fileService = null
+    ) {
+        $this->fileService =
+            $fileService ?? new FileService();
+    }
+
+    public function create(
+        array $data,
+        array $files,
+        int $environmentId,
+        int $createdBy
+    ): int {
+        $storedFileId = null;
+        $storedFilePath = null;
+
+        try {
+            return Database::transaction(
+                function (PDO $db) use (
+                    $data,
+                    $files,
+                    $environmentId,
+                    $createdBy,
+                    &$storedFileId,
+                    &$storedFilePath
+                ): int {
+                    $animalId =
+                        (int) ($data['animal_id'] ?? 0);
+
+                    $procedureId =
+                        (int) (
+                            $data['procedimiento_quirurgico_id']
+                            ?? 0
+                        );
+
+                    if (!$animalId || !$procedureId) {
+                        throw new RuntimeException(
+                            'Paciente y procedimiento son obligatorios.'
+                        );
+                    }
+
+                    $stmt = $db->prepare(
+                        '
+                        SELECT 1
+                        FROM animales
+                        WHERE id = :animal
+                          AND entorno_id = :entorno
+                          AND deleted_at IS NULL
+                        '
+                    );
+
+                    $stmt->execute([
+                        'animal' => $animalId,
+                        'entorno' => $environmentId,
+                    ]);
+
+                    if (!$stmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'Paciente no válido.'
+                        );
+                    }
+
+                    $stmt = $db->prepare(
+                        '
+                        SELECT id
+                        FROM procedimientos_quirurgicos
+                        WHERE id = :id
+                          AND activo = 1
+                        LIMIT 1
+                        '
+                    );
+
+                    $stmt->execute([
+                        'id' => $procedureId,
+                    ]);
+
+                    if (!$stmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'Procedimiento quirúrgico no válido.'
+                        );
+                    }
+
+                    $eventTypeId =
+                        (int) $db->query(
+                            "
+                            SELECT id
+                            FROM tipos_evento_clinico
+                            WHERE codigo = 'CIRUGIA'
+                              AND activo = 1
+                            LIMIT 1
+                            "
+                        )->fetchColumn();
+
+                    if (!$eventTypeId) {
+                        throw new RuntimeException(
+                            'No existe el tipo de evento CIRUGIA.'
+                        );
+                    }
+
+                    $startDate = $this->dt(
+                        $data['fecha_inicio'] ?? null
+                    );
+
+                    $endDate =
+                        !empty($data['fecha_fin'])
+                        ? $this->dt(
+                            $data['fecha_fin']
+                        )
+                        : null;
+
+                    if (
+                        $endDate !== null
+                        && strtotime($endDate)
+                        < strtotime($startDate)
+                    ) {
+                        throw new RuntimeException(
+                            'La fecha de finalización no puede ser anterior al inicio.'
+                        );
+                    }
+
+                    $stmt = $db->prepare(
+                        '
+                        INSERT INTO eventos_clinicos
+                        (
+                            animal_id,
+                            tipo_evento_id,
+                            responsable_id,
+                            fecha_evento,
+                            titulo
+                        )
+                        VALUES
+                        (
+                            :animal,
+                            :tipo,
+                            :usuario,
+                            :fecha,
+                            "Cirugía"
+                        )
+                        '
+                    );
+
+                    $stmt->execute([
+                        'animal' => $animalId,
+                        'tipo' => $eventTypeId,
+                        'usuario' => $createdBy,
+                        'fecha' => $startDate,
+                    ]);
+
+                    $eventId =
+                        (int) $db->lastInsertId();
+
+                    $stmt = $db->prepare(
+                        '
+                        INSERT INTO cirugias
+                        (
+                            evento_clinico_id,
+                            procedimiento_quirurgico_id,
+                            medico_responsable_id,
+                            fecha_inicio,
+                            fecha_fin,
+                            diagnostico_preoperatorio,
+                            descripcion_procedimiento,
+                            hallazgos,
+                            complicaciones,
+                            indicaciones_postoperatorias,
+                            observaciones
+                        )
+                        VALUES
+                        (
+                            :evento,
+                            :procedimiento,
+                            :medico,
+                            :fecha_inicio,
+                            :fecha_fin,
+                            :diagnostico,
+                            :descripcion,
+                            :hallazgos,
+                            :complicaciones,
+                            :indicaciones,
+                            :observaciones
+                        )
+                        '
+                    );
+
+                    $stmt->execute([
+                        'evento' => $eventId,
+                        'procedimiento' =>
+                        $procedureId,
+                        'medico' => $createdBy,
+                        'fecha_inicio' =>
+                        $startDate,
+                        'fecha_fin' =>
+                        $endDate,
+                        'diagnostico' =>
+                        trim(
+                            (string) (
+                                $data['diagnostico_preoperatorio']
+                                ?? ''
+                            )
+                        ) ?: null,
+                        'descripcion' =>
+                        trim(
+                            (string) (
+                                $data['descripcion_procedimiento']
+                                ?? ''
+                            )
+                        ) ?: null,
+                        'hallazgos' =>
+                        trim(
+                            (string) (
+                                $data['hallazgos']
+                                ?? ''
+                            )
+                        ) ?: null,
+                        'complicaciones' =>
+                        trim(
+                            (string) (
+                                $data['complicaciones']
+                                ?? ''
+                            )
+                        ) ?: null,
+                        'indicaciones' =>
+                        trim(
+                            (string) (
+                                $data['indicaciones_postoperatorias']
+                                ?? ''
+                            )
+                        ) ?: null,
+                        'observaciones' =>
+                        trim(
+                            (string) (
+                                $data['observaciones']
+                                ?? ''
+                            )
+                        ) ?: null,
+                    ]);
+
+                    if (
+                        isset($files['archivo'])
+                        && (
+                            $files['archivo']['error']
+                            ?? UPLOAD_ERR_NO_FILE
+                        ) === UPLOAD_ERR_OK
+                    ) {
+                        $storedFileId =
+                            $this->fileService->store(
+                                $files['archivo'],
+                                $createdBy,
+                                'cirugias',
+                                [
+                                    'application/pdf',
+                                    'image/jpeg',
+                                    'image/png',
+                                    'image/webp',
+                                ],
+                                $storedFilePath
+                            );
+
+                        if ($storedFilePath !== null) {
+                            $pathForRollback = $storedFilePath;
+
+                            Database::onRollback(
+                                function () use ($pathForRollback): void {
+                                    $this->fileService->compensatePhysicalFile(
+                                        $pathForRollback
+                                    );
+                                }
+                            );
+                        }
+
+                        $stmt = $db->prepare(
+                            '
+                            INSERT INTO cirugia_archivos
+                            (
+                                cirugia_evento_id,
+                                archivo_id,
+                                descripcion
+                            )
+                            VALUES
+                            (
+                                :cirugia,
+                                :archivo,
+                                :descripcion
+                            )
+                            '
+                        );
+
+                        $stmt->execute([
+                            'cirugia' => $eventId,
+                            'archivo' => $storedFileId,
+                            'descripcion' =>
+                            'Documento de cirugía',
+                        ]);
+                    }
+
+                    $hasAnesthesiaType =
+                        !empty($data['tipo_anestesia_id']);
+
+                    $anesthesiaProtocol =
+                        trim(
+                            (string) (
+                                $data['protocolo_anestesia']
+                                ?? ''
+                            )
+                        );
+
+                    if (
+                        $hasAnesthesiaType
+                        || $anesthesiaProtocol !== ''
+                    ) {
+                        $anesthesiaTypeId = null;
+
+                        if ($hasAnesthesiaType) {
+                            $anesthesiaTypeId =
+                                (int) $data['tipo_anestesia_id'];
+
+                            $stmt = $db->prepare(
+                                '
+                                SELECT id
+                                FROM tipos_anestesia
+                                WHERE id = :id
+                                  AND activo = 1
+                                LIMIT 1
+                                '
+                            );
+
+                            $stmt->execute([
+                                'id' =>
+                                $anesthesiaTypeId,
+                            ]);
+
+                            if (
+                                !$stmt->fetchColumn()
+                            ) {
+                                throw new RuntimeException(
+                                    'Tipo de anestesia no válido.'
+                                );
+                            }
+                        }
+
+                        $stmt = $db->prepare(
+                            '
+                            INSERT INTO cirugia_anestesias
+                            (
+                                cirugia_evento_id,
+                                responsable_id,
+                                tipo_anestesia_id,
+                                protocolo,
+                                observaciones
+                            )
+                            VALUES
+                            (
+                                :cirugia,
+                                :responsable,
+                                :tipo,
+                                :protocolo,
+                                :observaciones
+                            )
+                            '
+                        );
+
+                        $stmt->execute([
+                            'cirugia' => $eventId,
+                            'responsable' =>
+                            $createdBy,
+                            'tipo' =>
+                            $anesthesiaTypeId,
+                            'protocolo' =>
+                            $anesthesiaProtocol
+                                !== ''
+                                ? $anesthesiaProtocol
+                                : null,
+                            'observaciones' => null,
+                        ]);
+                    }
+
+                    (new AuditService())->log(
+                        $createdBy,
+                        $environmentId,
+                        'CIRUGIAS',
+                        'CREAR',
+                        'cirugias',
+                        $eventId
+                    );
+
+                    return $eventId;
+                }
+            );
+        } catch (Throwable $e) {
+            if ($storedFilePath !== null) {
+                try {
+                    $this->fileService->compensatePhysicalFile(
+                        $storedFilePath
+                    );
+                } catch (Throwable) {
+                    // Conservamos la excepción original.
+                }
+            }
+
+            throw $e;
+        }
+    }
+
+    public function addTeamMember(
+        int $eventId,
+        array $data,
+        int $environmentId,
+        int $createdBy
+    ): void {
+        Database::transaction(
+            function (PDO $db) use (
+                $eventId,
+                $data,
+                $environmentId,
+                $createdBy
+            ): void {
+                $this->assertSurgeryEnvironment(
+                    $db,
+                    $eventId,
+                    $environmentId
+                );
+
+                $userId =
+                    (int) ($data['usuario_id'] ?? 0);
+
+                $functionId =
+                    (int) ($data['funcion_id'] ?? 0);
+
+                if (!$userId || !$functionId) {
+                    throw new RuntimeException(
+                        'Usuario y función quirúrgica son obligatorios.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    '
+                SELECT 1
+                FROM usuarios
+                WHERE id = :id
+                LIMIT 1
+                '
+                );
+
+                $stmt->execute([
+                    'id' => $userId,
+                ]);
+
+                if (!$stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'Usuario no válido.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    '
+                SELECT id
+                FROM funciones_equipo_quirurgico
+                WHERE id = :id
+                  AND activo = 1
+                LIMIT 1
+                '
+                );
+
+                $stmt->execute([
+                    'id' => $functionId,
+                ]);
+
+                if (!$stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'Función quirúrgica no válida.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    '
+                SELECT 1
+                FROM cirugia_equipo
+                WHERE cirugia_evento_id = :cirugia
+                  AND usuario_id = :usuario
+                  AND funcion_id = :funcion
+                LIMIT 1
+                '
+                );
+
+                $stmt->execute([
+                    'cirugia' => $eventId,
+                    'usuario' => $userId,
+                    'funcion' => $functionId,
+                ]);
+
+                if ($stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'El integrante ya está registrado con esa función.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    '
+                INSERT INTO cirugia_equipo
+                (
+                    cirugia_evento_id,
+                    usuario_id,
+                    funcion_id
+                )
+                VALUES
+                (
+                    :cirugia,
+                    :usuario,
+                    :funcion
+                )
+                '
+                );
+
+                $stmt->execute([
+                    'cirugia' => $eventId,
+                    'usuario' => $userId,
+                    'funcion' => $functionId,
+                ]);
+
+                (new AuditService())->log(
+                    $createdBy,
+                    $environmentId,
+                    'CIRUGIAS',
+                    'AGREGAR_EQUIPO',
+                    'cirugia_equipo',
+                    $eventId,
+                    null,
+                    [
+                        'usuario_id' => $userId,
+                        'funcion_id' => $functionId,
+                    ]
+                );
+            }
+        );
+    }
+
+    public function removeTeamMember(
+        int $eventId,
+        int $userId,
+        int $functionId,
+        int $environmentId,
+        int $deletedBy
+    ): void {
+        Database::transaction(
+            function (PDO $db) use (
+                $eventId,
+                $userId,
+                $functionId,
+                $environmentId,
+                $deletedBy
+            ): void {
+                $this->assertSurgeryEnvironment(
+                    $db,
+                    $eventId,
+                    $environmentId
+                );
+
+                $stmt = $db->prepare(
+                    '
+                SELECT 1
+                FROM cirugia_equipo
+                WHERE cirugia_evento_id = :cirugia
+                  AND usuario_id = :usuario
+                  AND funcion_id = :funcion
+                LIMIT 1
+                '
+                );
+
+                $stmt->execute([
+                    'cirugia' => $eventId,
+                    'usuario' => $userId,
+                    'funcion' => $functionId,
+                ]);
+
+                if (!$stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'El integrante del equipo quirúrgico no existe.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    '
+                DELETE FROM cirugia_equipo
+                WHERE cirugia_evento_id = :cirugia
+                  AND usuario_id = :usuario
+                  AND funcion_id = :funcion
+                '
+                );
+
+                $stmt->execute([
+                    'cirugia' => $eventId,
+                    'usuario' => $userId,
+                    'funcion' => $functionId,
+                ]);
+
+                (new AuditService())->log(
+                    $deletedBy,
+                    $environmentId,
+                    'CIRUGIAS',
+                    'ELIMINAR_EQUIPO',
+                    'cirugia_equipo',
+                    $eventId,
+                    [
+                        'usuario_id' => $userId,
+                        'funcion_id' => $functionId,
+                    ]
+                );
+            }
+        );
+    }
+
+    public function addEvolution(
+        int $eventId,
+        array $data,
+        int $environmentId,
+        int $createdBy
+    ): int {
+        return Database::transaction(
+            function (PDO $db) use (
+                $eventId,
+                $data,
+                $environmentId,
+                $createdBy
+            ): int {
+                $this->assertSurgeryEnvironment(
+                    $db,
+                    $eventId,
+                    $environmentId
+                );
+
+                $evolution = trim(
+                    (string) ($data['evolucion'] ?? '')
+                );
+
+                if ($evolution === '') {
+                    throw new RuntimeException(
+                        'La evolución es obligatoria.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    '
+                INSERT INTO cirugia_evoluciones
+                (
+                    cirugia_evento_id,
+                    registrado_por,
+                    fecha_hora,
+                    evolucion,
+                    observaciones
+                )
+                VALUES
+                (
+                    :cirugia,
+                    :usuario,
+                    :fecha,
+                    :evolucion,
+                    :observaciones
+                )
+                '
+                );
+
+                $stmt->execute([
+                    'cirugia' => $eventId,
+                    'usuario' => $createdBy,
+                    'fecha' => $this->dt(
+                        $data['fecha_hora'] ?? null
+                    ),
+                    'evolucion' => $evolution,
+                    'observaciones' =>
+                    trim(
+                        (string) (
+                            $data['observaciones']
+                            ?? ''
+                        )
+                    ) ?: null,
+                ]);
+
+                $evolutionId =
+                    (int) $db->lastInsertId();
+
+                (new AuditService())->log(
+                    $createdBy,
+                    $environmentId,
+                    'CIRUGIAS',
+                    'REGISTRAR_EVOLUCION',
+                    'cirugia_evoluciones',
+                    $evolutionId
+                );
+
+                return $evolutionId;
+            }
+        );
+    }
+
+    private function assertSurgeryEnvironment(
+        PDO $db,
+        int $eventId,
+        int $environmentId
+    ): void {
+        $stmt = $db->prepare(
+            '
+        SELECT 1
+        FROM cirugias c
+        INNER JOIN eventos_clinicos ec
+            ON ec.id = c.evento_clinico_id
+        INNER JOIN animales a
+            ON a.id = ec.animal_id
+        WHERE c.evento_clinico_id = :cirugia
+          AND a.entorno_id = :entorno
+          AND a.deleted_at IS NULL
+        LIMIT 1
+        '
+        );
+
+        $stmt->execute([
+            'cirugia' => $eventId,
+            'entorno' => $environmentId,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'Cirugía no válida para el entorno actual.'
+            );
+        }
+    }
+
+    private function dt(
+        mixed $value
+    ): string {
+        if (!$value) {
+            return date('Y-m-d H:i:s');
+        }
+
+        $value = str_replace(
+            'T',
+            ' ',
+            (string) $value
+        );
+
+        return strlen($value) === 16
+            ? $value . ':00'
+            : $value;
+    }
+}

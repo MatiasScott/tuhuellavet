@@ -1,9 +1,95 @@
 <?php
-namespace App\Controllers\Cliente;use App\Core\Controller;use App\Core\Request;use App\Core\Session;use App\Core\Database;use App\Models\ClinicalHistory;use Throwable;
+
+namespace App\Controllers\Cliente;
+
+use App\Core\Controller;
+use App\Core\Request;
+use App\Core\Session;
+use App\Core\Database;
+use App\Models\ClinicalHistory;
+use Throwable;
+
 class PortalController extends Controller
 {
- public function index(Request $r):void{$db=Database::connection();$s=$db->prepare('SELECT p.id AS propietario_id,p.nombres,p.apellidos,a.id,a.nombre,a.foto_principal_path,e.nombre_comun AS especie,r.nombre AS raza,(SELECT peso_kg FROM animales_pesos WHERE animal_id=a.id ORDER BY fecha_registro DESC,id DESC LIMIT 1) AS peso_actual FROM propietarios p JOIN propietarios_entornos pe ON pe.propietario_id=p.id JOIN animales a ON a.propietario_entorno_id=pe.id JOIN especies e ON e.id=a.especie_id LEFT JOIN razas r ON r.id=a.raza_id WHERE p.usuario_id=:u AND pe.entorno_id=:e AND a.activo=1 AND a.deleted_at IS NULL ORDER BY a.nombre');$s->execute(['u'=>auth_id(),'e'=>active_environment_id()]);$this->view('cliente/index',['title'=>'Mis animales','animals'=>$s->fetchAll()],'layouts/cliente');}
- public function patient(Request $r,string $id):void{$p=$this->owned((int)$id);if(!$p){http_response_code(404);return;}$this->view('cliente/paciente',['title'=>$p['nombre'],'patient'=>$p,'timeline'=>(new ClinicalHistory())->timeline((int)$id,active_environment_id()),'success'=>Session::pullFlash('success'),'error'=>Session::pullFlash('error')],'layouts/cliente');}
- public function photo(Request $r,string $id):void{if(!Session::validateCsrf($r->input('_token'))){http_response_code(419);return;}try{$p=$this->owned((int)$id);if(!$p)throw new \RuntimeException('Paciente no encontrado.');$f=$r->files()['foto']??null;if(!$f||($f['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK)throw new \RuntimeException('Selecciona una foto.');$mime=(new \finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);if(!in_array($mime,['image/jpeg','image/png','image/webp'],true))throw new \RuntimeException('Formato de imagen no permitido.');$ext=match($mime){'image/png'=>'png','image/webp'=>'webp',default=>'jpg'};$name='patient_'.$id.'_'.bin2hex(random_bytes(8)).'.'.$ext;$dir=STORAGE_PATH.'/uploads/patients';if(!is_dir($dir))mkdir($dir,0775,true);move_uploaded_file($f['tmp_name'],$dir.'/'.$name);Database::connection()->prepare('UPDATE animales SET foto_principal_path=:p WHERE id=:id')->execute(['p'=>$name,'id'=>(int)$id]);Session::flash('success','Foto actualizada.');}catch(Throwable $e){Session::flash('error',$e->getMessage());}$this->redirect('/cliente/pacientes/'.$id);}
- private function owned(int $id):?array{$s=Database::connection()->prepare('SELECT a.*,e.nombre_comun AS especie,r.nombre AS raza FROM animales a JOIN propietarios_entornos pe ON pe.id=a.propietario_entorno_id JOIN propietarios p ON p.id=pe.propietario_id JOIN especies e ON e.id=a.especie_id LEFT JOIN razas r ON r.id=a.raza_id WHERE a.id=:a AND p.usuario_id=:u AND pe.entorno_id=:e LIMIT 1');$s->execute(['a'=>$id,'u'=>auth_id(),'e'=>active_environment_id()]);return$s->fetch()?:null;}
+    public function index(Request $r): void
+    {
+        $db = Database::connection();
+        $s = $db->prepare('SELECT p.id AS propietario_id,p.nombres,p.apellidos,a.id,a.nombre,a.foto_principal_path,e.nombre_comun AS especie,r.nombre AS raza,(SELECT peso_kg FROM animales_pesos WHERE animal_id=a.id ORDER BY fecha_registro DESC,id DESC LIMIT 1) AS peso_actual FROM propietarios p JOIN propietarios_entornos pe ON pe.propietario_id=p.id JOIN animales a ON a.propietario_entorno_id=pe.id JOIN especies e ON e.id=a.especie_id LEFT JOIN razas r ON r.id=a.raza_id WHERE p.usuario_id=:u AND pe.entorno_id=:e AND a.activo=1 AND a.deleted_at IS NULL ORDER BY a.nombre');
+        $s->execute(['u' => auth_id(), 'e' => active_environment_id()]);
+        $this->view('cliente/index', ['title' => 'Mis animales', 'animals' => $s->fetchAll()], 'layouts/cliente');
+    }
+    public function patient(Request $r, string $id): void
+    {
+        $p = $this->owned((int)$id);
+        if (!$p) {
+            http_response_code(404);
+            return;
+        }
+        $this->view('cliente/paciente', ['title' => $p['nombre'], 'patient' => $p, 'timeline' => (new ClinicalHistory())->timeline((int)$id, active_environment_id()), 'success' => Session::pullFlash('success'), 'error' => Session::pullFlash('error')], 'layouts/cliente');
+    }
+    public function photo(Request $r, string $id): void
+    {
+        if (!Session::validateCsrf($r->input('_token'))) {
+            http_response_code(419);
+            return;
+        }
+        try {
+            $p = $this->owned((int)$id);
+            if (!$p) throw new \RuntimeException('Paciente no encontrado.');
+            $f = $r->files()['foto'] ?? null;
+            if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) throw new \RuntimeException('Selecciona una foto.');
+            $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);
+            if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) throw new \RuntimeException('Formato de imagen no permitido.');
+            $ext = match ($mime) {
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                default => 'jpg'
+            };
+            $name = 'patient_' . $id . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+            $dir = STORAGE_PATH . '/uploads/patients';
+            if (!is_dir($dir)) mkdir($dir, 0775, true);
+            move_uploaded_file($f['tmp_name'], $dir . '/' . $name);
+            Database::connection()->prepare('UPDATE animales SET foto_principal_path=:p WHERE id=:id')->execute(['p' => $name, 'id' => (int)$id]);
+            Session::flash('success', 'Foto actualizada.');
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+        $this->redirect('/cliente/pacientes/' . $id);
+    }
+    private function owned(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT
+            a.*,
+            e.nombre_comun AS especie,
+            r.nombre AS raza
+         FROM animales a
+         INNER JOIN propietarios_entornos pe
+            ON pe.id = a.propietario_entorno_id
+         INNER JOIN propietarios p
+            ON p.id = pe.propietario_id
+         INNER JOIN especies e
+            ON e.id = a.especie_id
+         LEFT JOIN razas r
+            ON r.id = a.raza_id
+         WHERE a.id = :animal
+           AND a.entorno_id = :entorno
+           AND pe.entorno_id = :entorno
+           AND p.usuario_id = :usuario
+           AND a.activo = 1
+           AND a.deleted_at IS NULL
+           AND pe.activo = 1
+           AND p.activo = 1
+           AND p.deleted_at IS NULL
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'animal'  => $id,
+            'usuario' => auth_id(),
+            'entorno' => active_environment_id(),
+        ]);
+
+        return $stmt->fetch() ?: null;
+    }
 }
