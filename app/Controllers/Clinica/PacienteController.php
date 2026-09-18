@@ -1,12 +1,107 @@
 <?php
-namespace App\Controllers\Clinica;use App\Core\Controller;use App\Core\Request;use App\Core\Session;use App\Models\Patient;use App\Models\Owner;use App\Models\Catalog;use App\Models\ClinicalHistory;use App\Services\PatientService;use Throwable;
+
+namespace App\Controllers\Clinica;
+
+use App\Core\Controller;
+use App\Core\Request;
+use App\Core\Session;
+use App\Models\Patient;
+use App\Models\Owner;
+use App\Models\Catalog;
+use App\Models\ClinicalHistory;
+use App\Services\PatientService;
+use Throwable;
+
 class PacienteController extends Controller
 {
- public function index(Request $r):void{$q=trim((string)$r->input('q',''));$c=new Catalog();$this->view('pacientes/index',['title'=>'Pacientes','patients'=>(new Patient())->allByEnvironment(active_environment_id(),$q),'owners'=>(new Owner())->options(active_environment_id()),'species'=>$c->species(),'breeds'=>$c->breeds(),'sexes'=>$c->sexes(),'search'=>$q,'success'=>Session::pullFlash('success'),'error'=>Session::pullFlash('error')]);}
- public function show(Request $r,string $id):void{$p=(new Patient())->find((int)$id,active_environment_id());if(!$p){http_response_code(404);return;}$this->view('pacientes/show',['title'=>$p['nombre']?:'Paciente','patient'=>$p,'weights'=>(new Patient())->weights((int)$id),'timeline'=>(new ClinicalHistory())->timeline((int)$id,active_environment_id()),'success'=>Session::pullFlash('success'),'error'=>Session::pullFlash('error')]);}
- public function store(Request $r):void{$this->csrf($r);try{$id=(new PatientService())->create($r->all(),$r->files(),active_environment_id(),auth_id());Session::flash('success','Paciente creado correctamente.');$this->redirect('/pacientes/'.$id);}catch(Throwable $e){Session::flash('error',$e->getMessage());$this->redirect('/pacientes');}}
- public function update(Request $r,string $id):void{$this->csrf($r);try{(new PatientService())->update((int)$id,$r->all(),active_environment_id(),auth_id());Session::flash('success','Paciente actualizado.');}catch(Throwable $e){Session::flash('error',$e->getMessage());}$this->redirect('/pacientes/'.$id);}
- public function addWeight(Request $r,string $id):void{$this->csrf($r);try{(new PatientService())->addWeight((int)$id,(float)$r->input('peso_kg'),active_environment_id(),auth_id(),(string)$r->input('observacion',''));Session::flash('success','Peso registrado.');}catch(Throwable $e){Session::flash('error',$e->getMessage());}$this->redirect('/pacientes/'.$id);}
- public function destroy(Request $r,string $id):void{$this->csrf($r);(new PatientService())->delete((int)$id,active_environment_id(),auth_id());$this->redirect('/pacientes');}
- private function csrf(Request $r):void{if(!Session::validateCsrf($r->input('_token'))){http_response_code(419);exit('Sesión expirada.');}}
+    public function index(Request $r): void
+    {
+        $q = trim((string)$r->input('q', ''));
+        $c = new Catalog();
+        $this->view('pacientes/index', ['title' => 'Pacientes', 'patients' => (new Patient())->allByEnvironment(active_environment_id(), $q), 'owners' => (new Owner())->options(active_environment_id()), 'species' => $c->species(), 'breeds' => $c->breeds(), 'sexes' => $c->sexes(), 'search' => $q, 'success' => Session::pullFlash('success'), 'error' => Session::pullFlash('error')]);
+    }
+    public function show(Request $r, string $id): void
+    {
+        $environmentId = active_environment_id();
+
+        $patientModel = new Patient();
+
+        $patient = $patientModel->find(
+            (int) $id,
+            $environmentId
+        );
+
+        if (!$patient) {
+            http_response_code(404);
+            return;
+        }
+
+        $catalog = new Catalog();
+
+        $this->view('pacientes/show', [
+            'title' => $patient['nombre'] ?: 'Paciente',
+            'patient' => $patient,
+            'weights' => $patientModel->weights(
+                (int) $id,
+                $environmentId
+            ),
+            'timeline' => (new ClinicalHistory())->timeline(
+                (int) $id,
+                $environmentId
+            ),
+            'owners' => (new Owner())->options($environmentId),
+            'species' => $catalog->species(),
+            'breeds' => $catalog->breeds(),
+            'sexes' => $catalog->sexes(),
+            'success' => Session::pullFlash('success'),
+            'error' => Session::pullFlash('error'),
+        ]);
+    }
+    public function store(Request $r): void
+    {
+        $this->csrf($r);
+        try {
+            $id = (new PatientService())->create($r->all(), $r->files(), active_environment_id(), auth_id());
+            Session::flash('success', 'Paciente creado correctamente.');
+            $this->redirect('/pacientes/' . $id);
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+            $this->redirect('/pacientes');
+        }
+    }
+    public function update(Request $r, string $id): void
+    {
+        $this->csrf($r);
+        try {
+            (new PatientService())->update((int)$id, $r->all(), active_environment_id(), auth_id());
+            Session::flash('success', 'Paciente actualizado.');
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+        $this->redirect('/pacientes/' . $id);
+    }
+    public function addWeight(Request $r, string $id): void
+    {
+        $this->csrf($r);
+        try {
+            (new PatientService())->addWeight((int)$id, (float)$r->input('peso_kg'), active_environment_id(), auth_id(), (string)$r->input('observacion', ''));
+            Session::flash('success', 'Peso registrado.');
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+        $this->redirect('/pacientes/' . $id);
+    }
+    public function destroy(Request $r, string $id): void
+    {
+        $this->csrf($r);
+        (new PatientService())->delete((int)$id, active_environment_id(), auth_id());
+        $this->redirect('/pacientes');
+    }
+    private function csrf(Request $r): void
+    {
+        if (!Session::validateCsrf($r->input('_token'))) {
+            http_response_code(419);
+            exit('Sesión expirada.');
+        }
+    }
 }
