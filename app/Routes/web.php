@@ -49,6 +49,16 @@ $router->get(
 );
 $router->get('/media/documentos/{id}', [MediaController::class, 'document'], ['auth']);
 $router->get('/propietarios', [PropietarioController::class, 'index'], ['auth', 'environment', 'permission:propietarios.ver']);
+$router->get(
+    '/propietarios/validar',
+    [PropietarioController::class, 'validateField'],
+    ['auth', 'environment', 'permission:propietarios.ver']
+);
+$router->get(
+    '/propietarios/{id}',
+    [PropietarioController::class, 'show'],
+    ['auth', 'environment', 'permission:propietarios.ver']
+);
 $router->post('/propietarios', [PropietarioController::class, 'store'], ['auth', 'environment', 'permission:propietarios.crear']);
 $router->put('/propietarios/{id}', [PropietarioController::class, 'update'], ['auth', 'environment', 'permission:propietarios.editar']);
 $router->delete('/propietarios/{id}', [PropietarioController::class, 'destroy'], ['auth', 'environment', 'permission:propietarios.eliminar']);

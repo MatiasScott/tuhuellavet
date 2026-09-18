@@ -1,12 +1,680 @@
 <?php
+
 namespace App\Services;
-use App\Core\Database;use PDO;use RuntimeException;
+
+use App\Core\Database;
+use PDO;
+use PDOException;
+use RuntimeException;
+
 class OwnerService
 {
- public function create(array $d,int $env,int $by):array{return Database::transaction(function(PDO $db)use($d,$env,$by){$names=trim((string)($d['nombres']??''));if($names==='')throw new RuntimeException('Los nombres son obligatorios.');$email=trim((string)($d['email']??''))?:null;$userId=null;$temp=null;
-  if(!empty($d['crear_acceso'])&&$email){$s=$db->prepare('SELECT id FROM usuarios WHERE email=:e AND deleted_at IS NULL LIMIT 1');$s->execute(['e'=>$email]);$userId=$s->fetchColumn()?:null;if(!$userId){$temp=(string)($d['password_temporal']??'');if(strlen($temp)<8)$temp='Vet#'.bin2hex(random_bytes(4));$s=$db->prepare('INSERT INTO usuarios(nombres,apellidos,email,telefono,password_hash,requiere_cambio_password,activo) VALUES(:n,:a,:e,:t,:h,1,1)');$s->execute(['n'=>$names,'a'=>trim((string)($d['apellidos']??'')),'e'=>$email,'t'=>$d['celular']??$d['telefono']??null,'h'=>password_hash($temp,PASSWORD_DEFAULT)]);$userId=(int)$db->lastInsertId();}
-   $role=(int)$db->query("SELECT id FROM roles WHERE codigo='CLIENTE' LIMIT 1")->fetchColumn();$s=$db->prepare('INSERT IGNORE INTO usuarios_entornos(usuario_id,entorno_id,activo) VALUES(:u,:e,1)');$s->execute(['u'=>$userId,'e'=>$env]);$s=$db->prepare('INSERT IGNORE INTO usuarios_entornos_roles(usuario_id,entorno_id,rol_id) VALUES(:u,:e,:r)');$s->execute(['u'=>$userId,'e'=>$env,'r'=>$role]);}
-  $s=$db->prepare('INSERT INTO propietarios(usuario_id,tipo_identificacion_id,identificacion,nombres,apellidos,email,telefono,celular,direccion,activo) VALUES(:u,:ti,:i,:n,:a,:e,:t,:c,:d,1)');$s->execute(['u'=>$userId,'ti'=>!empty($d['tipo_identificacion_id'])?(int)$d['tipo_identificacion_id']:null,'i'=>trim((string)($d['identificacion']??''))?:null,'n'=>$names,'a'=>trim((string)($d['apellidos']??''))?:null,'e'=>$email,'t'=>trim((string)($d['telefono']??''))?:null,'c'=>trim((string)($d['celular']??''))?:null,'d'=>trim((string)($d['direccion']??''))?:null]);$id=(int)$db->lastInsertId();$s=$db->prepare('INSERT INTO propietarios_entornos(propietario_id,entorno_id,activo) VALUES(:p,:e,1)');$s->execute(['p'=>$id,'e'=>$env]);(new AuditService())->log($by,$env,'PROPIETARIOS','CREAR','propietarios',$id,null,['usuario_id'=>$userId]);return ['id'=>$id,'temporary_password'=>$temp];});}
- public function update(int $id,array $d,int $env,int $by):void{Database::transaction(function(PDO $db)use($id,$d,$env,$by){$s=$db->prepare('SELECT p.* FROM propietarios p JOIN propietarios_entornos pe ON pe.propietario_id=p.id WHERE p.id=:id AND pe.entorno_id=:e AND p.deleted_at IS NULL');$s->execute(['id'=>$id,'e'=>$env]);$old=$s->fetch();if(!$old)throw new RuntimeException('Propietario no encontrado.');$s=$db->prepare('UPDATE propietarios SET nombres=:n,apellidos=:a,email=:em,telefono=:t,celular=:c,direccion=:d WHERE id=:id');$s->execute(['n'=>trim((string)($d['nombres']??$old['nombres'])),'a'=>trim((string)($d['apellidos']??$old['apellidos']))?:null,'em'=>trim((string)($d['email']??$old['email']))?:null,'t'=>trim((string)($d['telefono']??$old['telefono']))?:null,'c'=>trim((string)($d['celular']??$old['celular']))?:null,'d'=>trim((string)($d['direccion']??$old['direccion']))?:null,'id'=>$id]);(new AuditService())->log($by,$env,'PROPIETARIOS','EDITAR','propietarios',$id,$old,$d);});}
- public function delete(int $id,int $env,int $by):void{$db=Database::connection();$s=$db->prepare('UPDATE propietarios p JOIN propietarios_entornos pe ON pe.propietario_id=p.id SET p.deleted_at=NOW(),p.activo=0,pe.activo=0 WHERE p.id=:id AND pe.entorno_id=:e');$s->execute(['id'=>$id,'e'=>$env]);(new AuditService())->log($by,$env,'PROPIETARIOS','ELIMINAR','propietarios',$id);}
+    /**
+     * Crear propietario.
+     */
+    public function create(
+        array $d,
+        int $env,
+        int $by
+    ): array {
+        return Database::transaction(function (PDO $db) use ($d, $env, $by) {
+
+            // =====================================================
+            // 1. NORMALIZAR DATOS
+            // =====================================================
+
+            $names = $this->nullableString($d['nombres'] ?? null);
+
+            if ($names === null) {
+                throw new RuntimeException(
+                    'Los nombres son obligatorios.'
+                );
+            }
+
+            $lastNames = $this->nullableString(
+                $d['apellidos'] ?? null
+            );
+
+            $identification = $this->normalizeIdentification(
+                $d['identificacion'] ?? null
+            );
+
+            $email = $this->normalizeEmail(
+                $d['email'] ?? null
+            );
+
+            $phone = $this->nullableString(
+                $d['telefono'] ?? null
+            );
+
+            $mobile = $this->normalizeMobile(
+                $d['celular'] ?? null
+            );
+
+            $address = $this->nullableString(
+                $d['direccion'] ?? null
+            );
+
+            $identificationTypeId = !empty($d['tipo_identificacion_id'])
+                ? (int) $d['tipo_identificacion_id']
+                : null;
+
+            // =====================================================
+            // 2. VALIDAR CORREO
+            // =====================================================
+
+            if (
+                $email !== null
+                && !filter_var($email, FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new RuntimeException(
+                    'El correo electrónico no tiene un formato válido.'
+                );
+            }
+
+            // =====================================================
+            // 3. VALIDAR DUPLICADOS
+            // =====================================================
+
+            $this->validateUnique(
+                $db,
+                $identification,
+                $email,
+                $mobile
+            );
+
+            // =====================================================
+            // 4. CREAR O VINCULAR USUARIO
+            // =====================================================
+
+            $userId = null;
+            $temporaryPassword = null;
+
+            $createAccess = !empty($d['crear_acceso']);
+
+            if ($createAccess) {
+
+                if ($email === null) {
+                    throw new RuntimeException(
+                        'El correo electrónico es obligatorio para crear acceso.'
+                    );
+                }
+
+                // Buscar usuario existente por correo.
+                $stmt = $db->prepare(
+                    'SELECT id
+                     FROM usuarios
+                     WHERE email = :email
+                       AND deleted_at IS NULL
+                     LIMIT 1'
+                );
+
+                $stmt->execute([
+                    'email' => $email,
+                ]);
+
+                $existingUserId = $stmt->fetchColumn();
+
+                if ($existingUserId) {
+
+                    $userId = (int) $existingUserId;
+                } else {
+
+                    // Generar contraseña temporal si no se proporciona
+                    // una contraseña válida.
+                    $temporaryPassword = (string) (
+                        $d['password_temporal'] ?? ''
+                    );
+
+                    if (strlen($temporaryPassword) < 8) {
+                        $temporaryPassword = 'Vet#'
+                            . bin2hex(random_bytes(4));
+                    }
+
+                    $stmt = $db->prepare(
+                        'INSERT INTO usuarios (
+                            nombres,
+                            apellidos,
+                            email,
+                            telefono,
+                            password_hash,
+                            requiere_cambio_password,
+                            activo
+                        ) VALUES (
+                            :names,
+                            :last_names,
+                            :email,
+                            :phone,
+                            :password,
+                            1,
+                            1
+                        )'
+                    );
+
+                    $stmt->execute([
+                        'names'      => $names,
+                        'last_names' => $lastNames,
+                        'email'      => $email,
+                        'phone'      => $mobile ?? $phone,
+                        'password'   => password_hash(
+                            $temporaryPassword,
+                            PASSWORD_DEFAULT
+                        ),
+                    ]);
+
+                    $userId = (int) $db->lastInsertId();
+                }
+
+                // =================================================
+                // 5. ASIGNAR ACCESO AL ENTORNO
+                // =================================================
+
+                $roleStmt = $db->prepare(
+                    "SELECT id
+                     FROM roles
+                     WHERE codigo = 'CLIENTE'
+                     LIMIT 1"
+                );
+
+                $roleStmt->execute();
+
+                $roleId = (int) $roleStmt->fetchColumn();
+
+                if ($roleId <= 0) {
+                    throw new RuntimeException(
+                        'No existe el rol CLIENTE.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    'INSERT IGNORE INTO usuarios_entornos (
+                        usuario_id,
+                        entorno_id,
+                        activo
+                    ) VALUES (
+                        :user_id,
+                        :environment_id,
+                        1
+                    )'
+                );
+
+                $stmt->execute([
+                    'user_id'        => $userId,
+                    'environment_id' => $env,
+                ]);
+
+                $stmt = $db->prepare(
+                    'INSERT IGNORE INTO usuarios_entornos_roles (
+                        usuario_id,
+                        entorno_id,
+                        rol_id
+                    ) VALUES (
+                        :user_id,
+                        :environment_id,
+                        :role_id
+                    )'
+                );
+
+                $stmt->execute([
+                    'user_id'        => $userId,
+                    'environment_id' => $env,
+                    'role_id'        => $roleId,
+                ]);
+            }
+
+            // =====================================================
+            // 6. INSERTAR PROPIETARIO
+            // =====================================================
+
+            $stmt = $db->prepare(
+                'INSERT INTO propietarios (
+                    usuario_id,
+                    tipo_identificacion_id,
+                    identificacion,
+                    nombres,
+                    apellidos,
+                    email,
+                    telefono,
+                    celular,
+                    direccion,
+                    activo
+                ) VALUES (
+                    :user_id,
+                    :identification_type,
+                    :identification,
+                    :names,
+                    :last_names,
+                    :email,
+                    :phone,
+                    :mobile,
+                    :address,
+                    1
+                )'
+            );
+
+            $stmt->execute([
+                'user_id'             => $userId,
+                'identification_type' => $identificationTypeId,
+                'identification'      => $identification,
+                'names'               => $names,
+                'last_names'          => $lastNames,
+                'email'               => $email,
+                'phone'               => $phone,
+                'mobile'              => $mobile,
+                'address'             => $address,
+            ]);
+
+            $ownerId = (int) $db->lastInsertId();
+
+            // =====================================================
+            // 7. VINCULAR PROPIETARIO AL ENTORNO
+            // =====================================================
+
+            $stmt = $db->prepare(
+                'INSERT INTO propietarios_entornos (
+                    propietario_id,
+                    entorno_id,
+                    activo
+                ) VALUES (
+                    :owner_id,
+                    :environment_id,
+                    1
+                )'
+            );
+
+            $stmt->execute([
+                'owner_id'       => $ownerId,
+                'environment_id' => $env,
+            ]);
+
+            // =====================================================
+            // 8. AUDITORÍA
+            // =====================================================
+
+            (new AuditService())->log(
+                $by,
+                $env,
+                'PROPIETARIOS',
+                'CREAR',
+                'propietarios',
+                $ownerId,
+                null,
+                [
+                    'usuario_id' => $userId,
+                ]
+            );
+
+            return [
+                'id'                 => $ownerId,
+                'temporary_password' => $temporaryPassword,
+            ];
+        });
+    }
+
+    /**
+     * Actualizar propietario.
+     */
+    public function update(
+        int $id,
+        array $d,
+        int $env,
+        int $by
+    ): void {
+        Database::transaction(function (PDO $db) use (
+            $id,
+            $d,
+            $env,
+            $by
+        ) {
+
+            // =====================================================
+            // 1. BUSCAR PROPIETARIO
+            // =====================================================
+
+            $stmt = $db->prepare(
+                'SELECT p.*
+                 FROM propietarios p
+                 INNER JOIN propietarios_entornos pe
+                    ON pe.propietario_id = p.id
+                 WHERE p.id = :id
+                   AND pe.entorno_id = :env
+                   AND pe.activo = 1
+                   AND p.deleted_at IS NULL
+                 LIMIT 1'
+            );
+
+            $stmt->execute([
+                'id'  => $id,
+                'env' => $env,
+            ]);
+
+            $old = $stmt->fetch();
+
+            if (!$old) {
+                throw new RuntimeException(
+                    'Propietario no encontrado.'
+                );
+            }
+
+            // =====================================================
+            // 2. NORMALIZAR DATOS
+            // =====================================================
+
+            $names = $this->nullableString(
+                $d['nombres'] ?? $old['nombres']
+            );
+
+            if ($names === null) {
+                throw new RuntimeException(
+                    'Los nombres son obligatorios.'
+                );
+            }
+
+            $lastNames = $this->nullableString(
+                $d['apellidos'] ?? $old['apellidos']
+            );
+
+            $identification = $this->normalizeIdentification(
+                $d['identificacion'] ?? $old['identificacion']
+            );
+
+            $email = $this->normalizeEmail(
+                $d['email'] ?? $old['email']
+            );
+
+            $phone = $this->nullableString(
+                $d['telefono'] ?? $old['telefono']
+            );
+
+            $mobile = $this->normalizeMobile(
+                $d['celular'] ?? $old['celular']
+            );
+
+            $address = $this->nullableString(
+                $d['direccion'] ?? $old['direccion']
+            );
+
+            $identificationTypeId = array_key_exists(
+                'tipo_identificacion_id',
+                $d
+            )
+                ? (
+                    !empty($d['tipo_identificacion_id'])
+                    ? (int) $d['tipo_identificacion_id']
+                    : null
+                )
+                : $old['tipo_identificacion_id'];
+
+            // =====================================================
+            // 3. VALIDAR CORREO
+            // =====================================================
+
+            if (
+                $email !== null
+                && !filter_var($email, FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new RuntimeException(
+                    'El correo electrónico no tiene un formato válido.'
+                );
+            }
+
+            // =====================================================
+            // 4. VALIDAR DUPLICADOS
+            // =====================================================
+
+            $this->validateUnique(
+                $db,
+                $identification,
+                $email,
+                $mobile,
+                $id
+            );
+
+            // =====================================================
+            // 5. ACTUALIZAR PROPIETARIO
+            // =====================================================
+
+            $stmt = $db->prepare(
+                'UPDATE propietarios
+                 SET
+                    tipo_identificacion_id = :identification_type,
+                    identificacion = :identification,
+                    nombres = :names,
+                    apellidos = :last_names,
+                    email = :email,
+                    telefono = :phone,
+                    celular = :mobile,
+                    direccion = :address
+                 WHERE id = :id
+                   AND deleted_at IS NULL'
+            );
+
+            $stmt->execute([
+                'identification_type' => $identificationTypeId,
+                'identification'      => $identification,
+                'names'               => $names,
+                'last_names'          => $lastNames,
+                'email'               => $email,
+                'phone'               => $phone,
+                'mobile'              => $mobile,
+                'address'             => $address,
+                'id'                  => $id,
+            ]);
+
+            // =====================================================
+            // 6. AUDITORÍA
+            // =====================================================
+
+            (new AuditService())->log(
+                $by,
+                $env,
+                'PROPIETARIOS',
+                'EDITAR',
+                'propietarios',
+                $id,
+                $old,
+                $d
+            );
+        });
+    }
+
+    /**
+     * Eliminación lógica.
+     *
+     * Conservamos los registros y sus relaciones históricas.
+     */
+    public function delete(
+        int $id,
+        int $env,
+        int $by
+    ): void {
+        $db = Database::connection();
+
+        $stmt = $db->prepare(
+            'UPDATE propietarios p
+             INNER JOIN propietarios_entornos pe
+                ON pe.propietario_id = p.id
+             SET
+                p.deleted_at = NOW(),
+                p.activo = 0,
+                pe.activo = 0
+             WHERE p.id = :id
+               AND pe.entorno_id = :env'
+        );
+
+        $stmt->execute([
+            'id'  => $id,
+            'env' => $env,
+        ]);
+
+        (new AuditService())->log(
+            $by,
+            $env,
+            'PROPIETARIOS',
+            'ELIMINAR',
+            'propietarios',
+            $id
+        );
+    }
+
+    /**
+     * Verificar identificación, correo y celular únicos.
+     *
+     * La búsqueda es global, independientemente del entorno.
+     * Incluye registros dados de baja para evitar reutilizar
+     * identificaciones vinculadas a historiales anteriores.
+     */
+    private function validateUnique(
+        PDO $db,
+        ?string $identification,
+        ?string $email,
+        ?string $mobile,
+        ?int $excludeId = null
+    ): void {
+        $fields = [
+            [
+                'column' => 'identificacion',
+                'value' => $identification,
+                'message' => 'Ya existe un propietario con esta identificación.',
+            ],
+            [
+                'column' => 'email',
+                'value' => $email,
+                'message' => 'Ya existe un propietario con este correo electrónico.',
+            ],
+            [
+                'column' => 'celular',
+                'value' => $mobile,
+                'message' => 'Ya existe un propietario con este número de celular.',
+            ],
+        ];
+
+        foreach ($fields as $field) {
+
+            if ($field['value'] === null || $field['value'] === '') {
+                continue;
+            }
+
+            // Nombre de columna procedente de una lista interna fija.
+            $sql = 'SELECT id
+                    FROM propietarios
+                    WHERE ' . $field['column'] . ' = :value';
+
+            $params = [
+                'value' => $field['value'],
+            ];
+
+            if ($excludeId !== null) {
+
+                $sql .= ' AND id <> :exclude_id';
+
+                $params['exclude_id'] = $excludeId;
+            }
+
+            $sql .= ' LIMIT 1';
+
+            $stmt = $db->prepare($sql);
+
+            $stmt->execute($params);
+
+            if ($stmt->fetchColumn()) {
+                throw new RuntimeException(
+                    $field['message']
+                );
+            }
+        }
+    }
+
+    /**
+     * Normalizar identificación.
+     *
+     * Elimina espacios, puntos y guiones.
+     */
+    private function normalizeIdentification(
+        mixed $value
+    ): ?string {
+        $value = $this->nullableString($value);
+
+        if ($value === null) {
+            return null;
+        }
+
+        $value = preg_replace(
+            '/[\s.\-]+/u',
+            '',
+            $value
+        );
+
+        return $value !== '' ? $value : null;
+    }
+
+    /**
+     * Normalizar correo electrónico.
+     */
+    private function normalizeEmail(
+        mixed $value
+    ): ?string {
+        $value = $this->nullableString($value);
+
+        return $value !== null
+            ? strtolower($value)
+            : null;
+    }
+
+    /**
+     * Normalizar celular.
+     *
+     * Formatos admitidos:
+     * 0991234567
+     * +593991234567
+     * 593991234567
+     *
+     * Se almacenan como 0991234567.
+     */
+    private function normalizeMobile(
+        mixed $value
+    ): ?string {
+        $value = $this->nullableString($value);
+
+        if ($value === null) {
+            return null;
+        }
+
+        // Conservar únicamente dígitos.
+        $digits = preg_replace('/\D+/', '', $value);
+
+        // Código internacional de Ecuador.
+        if (
+            str_starts_with($digits, '593')
+            && strlen($digits) === 12
+        ) {
+            $digits = '0' . substr($digits, 3);
+        }
+
+        // Celular ecuatoriano: 09 + 8 dígitos.
+        if (!preg_match('/^09\d{8}$/', $digits)) {
+            throw new RuntimeException(
+                'El celular debe tener 10 dígitos y comenzar con 09.'
+            );
+        }
+
+        return $digits;
+    }
+
+    /**
+     * Convertir cadenas vacías en NULL.
+     */
+    private function nullableString(
+        mixed $value
+    ): ?string {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value !== ''
+            ? $value
+            : null;
+    }
 }
