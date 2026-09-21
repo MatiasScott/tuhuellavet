@@ -134,34 +134,50 @@ class Surgery extends Model
         return $stmt->fetchAll();
     }
 
-    public function team(
-        int $eventId
-    ): array {
+    public function team(int $eventId): array
+    {
         $stmt = $this->db->prepare(
             '
-            SELECT
-                ce.cirugia_evento_id,
-                ce.usuario_id,
-                ce.funcion_id,
-                ce.created_at,
-                feq.codigo AS funcion_codigo,
-                feq.nombre AS funcion,
-                CONCAT(
-                    u.nombres,
+        SELECT
+            ce.id,
+            ce.cirugia_evento_id,
+            ce.usuario_id,
+            ce.tipo_profesional,
+            ce.nombre_externo,
+            ce.registro_profesional,
+            ce.institucion_externa,
+            ce.funcion_id,
+            ce.registrado_por,
+            ce.created_at,
+
+            feq.codigo AS funcion_codigo,
+            feq.nombre AS funcion,
+
+            CASE
+                WHEN ce.tipo_profesional = "EXTERNO"
+                    THEN ce.nombre_externo
+
+                ELSE CONCAT_WS(
                     " ",
+                    u.nombres,
                     u.apellidos
-                ) AS integrante
-            FROM cirugia_equipo ce
-            INNER JOIN usuarios u
-                ON u.id = ce.usuario_id
-            INNER JOIN funciones_equipo_quirurgico feq
-                ON feq.id = ce.funcion_id
-            WHERE ce.cirugia_evento_id = :evento
-            ORDER BY
-                feq.id,
-                u.apellidos,
-                u.nombres
-            '
+                )
+            END AS integrante
+
+        FROM cirugia_equipo ce
+
+        LEFT JOIN usuarios u
+            ON u.id = ce.usuario_id
+
+        INNER JOIN funciones_equipo_quirurgico feq
+            ON feq.id = ce.funcion_id
+
+        WHERE ce.cirugia_evento_id = :evento
+
+        ORDER BY
+            feq.id,
+            integrante
+        '
         );
 
         $stmt->execute([
@@ -220,5 +236,50 @@ class Surgery extends Model
         ]);
 
         return $stmt->fetchAll();
+    }
+
+    public function findFile(
+        int $fileId,
+        int $environmentId
+    ): ?array {
+        $stmt = $this->db->prepare(
+            '
+        SELECT
+            a.id,
+            a.nombre_original,
+            a.ruta_storage,
+            a.mime_type,
+            a.tamano_bytes,
+            ca.cirugia_evento_id
+
+        FROM cirugia_archivos ca
+
+        INNER JOIN archivos a
+            ON a.id = ca.archivo_id
+
+        INNER JOIN eventos_clinicos ec
+            ON ec.id = ca.cirugia_evento_id
+
+        INNER JOIN animales animal
+            ON animal.id = ec.animal_id
+
+        WHERE a.id = :archivo
+          AND animal.entorno_id = :entorno
+          AND animal.deleted_at IS NULL
+          AND a.deleted_at IS NULL
+          AND ec.anulado_at IS NULL
+
+        LIMIT 1
+        '
+        );
+
+        $stmt->execute([
+            'archivo' => $fileId,
+            'entorno' => $environmentId,
+        ]);
+
+        $file = $stmt->fetch();
+
+        return $file ?: null;
     }
 }

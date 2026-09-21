@@ -422,6 +422,7 @@ class SurgeryService
         int $environmentId,
         int $createdBy
     ): void {
+
         Database::transaction(
             function (PDO $db) use (
                 $eventId,
@@ -429,42 +430,41 @@ class SurgeryService
                 $environmentId,
                 $createdBy
             ): void {
+
                 $this->assertSurgeryEnvironment(
                     $db,
                     $eventId,
                     $environmentId
                 );
 
-                $userId =
-                    (int) ($data['usuario_id'] ?? 0);
-
-                $functionId =
-                    (int) ($data['funcion_id'] ?? 0);
-
-                if (!$userId || !$functionId) {
-                    throw new RuntimeException(
-                        'Usuario y función quirúrgica son obligatorios.'
-                    );
-                }
-
-                $stmt = $db->prepare(
-                    '
-                SELECT 1
-                FROM usuarios
-                WHERE id = :id
-                LIMIT 1
-                '
+                /*
+             * Tipo de profesional.
+             */
+                $type = strtoupper(
+                    trim(
+                        (string) (
+                            $data['tipo_profesional']
+                            ?? 'INTERNO'
+                        )
+                    )
                 );
 
-                $stmt->execute([
-                    'id' => $userId,
-                ]);
-
-                if (!$stmt->fetchColumn()) {
+                if (!in_array(
+                    $type,
+                    ['INTERNO', 'EXTERNO'],
+                    true
+                )) {
                     throw new RuntimeException(
-                        'Usuario no válido.'
+                        'Tipo de profesional no válido.'
                     );
                 }
+
+                /*
+             * Función quirúrgica.
+             */
+                $functionId = (int) (
+                    $data['funcion_id'] ?? 0
+                );
 
                 $stmt = $db->prepare(
                     '
@@ -486,42 +486,144 @@ class SurgeryService
                     );
                 }
 
-                $stmt = $db->prepare(
-                    '
-                SELECT 1
-                FROM cirugia_equipo
-                WHERE cirugia_evento_id = :cirugia
-                  AND usuario_id = :usuario
-                  AND funcion_id = :funcion
-                LIMIT 1
-                '
-                );
+                /*
+             * Datos según modalidad.
+             */
+                $userId = null;
+                $externalName = null;
+                $professionalRegistration = null;
+                $externalInstitution = null;
 
-                $stmt->execute([
-                    'cirugia' => $eventId,
-                    'usuario' => $userId,
-                    'funcion' => $functionId,
-                ]);
+                if ($type === 'INTERNO') {
 
-                if ($stmt->fetchColumn()) {
-                    throw new RuntimeException(
-                        'El integrante ya está registrado con esa función.'
+                    $userId = (int) (
+                        $data['usuario_id'] ?? 0
                     );
+
+                    if ($userId <= 0) {
+                        throw new RuntimeException(
+                            'Debes seleccionar un profesional.'
+                        );
+                    }
+
+                    $stmt = $db->prepare(
+                        '
+                    SELECT 1
+                    FROM usuarios
+                    WHERE id = :id
+                    LIMIT 1
+                    '
+                    );
+
+                    $stmt->execute([
+                        'id' => $userId,
+                    ]);
+
+                    if (!$stmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'Usuario no válido.'
+                        );
+                    }
+
+                    /*
+                 * Evitar duplicados internos.
+                 */
+                    $stmt = $db->prepare(
+                        '
+                    SELECT 1
+                    FROM cirugia_equipo
+                    WHERE cirugia_evento_id = :cirugia
+                      AND usuario_id = :usuario
+                      AND funcion_id = :funcion
+                    LIMIT 1
+                    '
+                    );
+
+                    $stmt->execute([
+                        'cirugia' => $eventId,
+                        'usuario' => $userId,
+                        'funcion' => $functionId,
+                    ]);
+
+                    if ($stmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'El integrante ya está registrado con esa función.'
+                        );
+                    }
+                } else {
+
+                    $externalName = trim(
+                        (string) (
+                            $data['nombre_externo'] ?? ''
+                        )
+                    );
+
+                    if (
+                        $externalName === ''
+                        || mb_strlen($externalName) > 200
+                    ) {
+                        throw new RuntimeException(
+                            'Ingresa un nombre válido para el profesional externo.'
+                        );
+                    }
+
+                    $professionalRegistration = trim(
+                        (string) (
+                            $data['registro_profesional'] ?? ''
+                        )
+                    ) ?: null;
+
+                    $externalInstitution = trim(
+                        (string) (
+                            $data['institucion_externa'] ?? ''
+                        )
+                    ) ?: null;
+
+                    if (
+                        $professionalRegistration !== null
+                        && mb_strlen($professionalRegistration) > 100
+                    ) {
+                        throw new RuntimeException(
+                            'El registro profesional es demasiado largo.'
+                        );
+                    }
+
+                    if (
+                        $externalInstitution !== null
+                        && mb_strlen($externalInstitution) > 200
+                    ) {
+                        throw new RuntimeException(
+                            'El nombre de la institución es demasiado largo.'
+                        );
+                    }
                 }
 
+                /*
+             * Registrar integrante.
+             */
                 $stmt = $db->prepare(
                     '
                 INSERT INTO cirugia_equipo
                 (
                     cirugia_evento_id,
                     usuario_id,
-                    funcion_id
+                    tipo_profesional,
+                    nombre_externo,
+                    registro_profesional,
+                    institucion_externa,
+                    funcion_id,
+                    registrado_por
                 )
                 VALUES
                 (
                     :cirugia,
                     :usuario,
-                    :funcion
+                    :tipo,
+                    :nombre,
+                    :registro,
+                    :institucion,
+                    :funcion,
+                    :registrado_por
                 )
                 '
                 );
@@ -529,19 +631,32 @@ class SurgeryService
                 $stmt->execute([
                     'cirugia' => $eventId,
                     'usuario' => $userId,
+                    'tipo' => $type,
+                    'nombre' => $externalName,
+                    'registro' => $professionalRegistration,
+                    'institucion' => $externalInstitution,
                     'funcion' => $functionId,
+                    'registrado_por' => $createdBy,
                 ]);
 
+                $teamMemberId = (int) $db->lastInsertId();
+
+                /*
+             * Auditoría.
+             */
                 (new AuditService())->log(
                     $createdBy,
                     $environmentId,
                     'CIRUGIAS',
                     'AGREGAR_EQUIPO',
                     'cirugia_equipo',
-                    $eventId,
+                    $teamMemberId,
                     null,
                     [
+                        'cirugia_evento_id' => $eventId,
+                        'tipo_profesional' => $type,
                         'usuario_id' => $userId,
+                        'nombre_externo' => $externalName,
                         'funcion_id' => $functionId,
                     ]
                 );
@@ -551,74 +666,79 @@ class SurgeryService
 
     public function removeTeamMember(
         int $eventId,
-        int $userId,
-        int $functionId,
+        int $teamMemberId,
         int $environmentId,
         int $deletedBy
     ): void {
+
         Database::transaction(
             function (PDO $db) use (
                 $eventId,
-                $userId,
-                $functionId,
+                $teamMemberId,
                 $environmentId,
                 $deletedBy
             ): void {
+
                 $this->assertSurgeryEnvironment(
                     $db,
                     $eventId,
                     $environmentId
                 );
 
+                /*
+             * Recuperar integrante.
+             */
                 $stmt = $db->prepare(
                     '
-                SELECT 1
+                SELECT *
                 FROM cirugia_equipo
-                WHERE cirugia_evento_id = :cirugia
-                  AND usuario_id = :usuario
-                  AND funcion_id = :funcion
+                WHERE id = :id
+                  AND cirugia_evento_id = :cirugia
                 LIMIT 1
+                FOR UPDATE
                 '
                 );
 
                 $stmt->execute([
+                    'id' => $teamMemberId,
                     'cirugia' => $eventId,
-                    'usuario' => $userId,
-                    'funcion' => $functionId,
                 ]);
 
-                if (!$stmt->fetchColumn()) {
+                $member = $stmt->fetch();
+
+                if (!$member) {
                     throw new RuntimeException(
                         'El integrante del equipo quirúrgico no existe.'
                     );
                 }
 
+                /*
+             * Eliminar integrante.
+             */
                 $stmt = $db->prepare(
                     '
                 DELETE FROM cirugia_equipo
-                WHERE cirugia_evento_id = :cirugia
-                  AND usuario_id = :usuario
-                  AND funcion_id = :funcion
+                WHERE id = :id
+                  AND cirugia_evento_id = :cirugia
                 '
                 );
 
                 $stmt->execute([
+                    'id' => $teamMemberId,
                     'cirugia' => $eventId,
-                    'usuario' => $userId,
-                    'funcion' => $functionId,
                 ]);
 
+                /*
+             * Auditoría.
+             */
                 (new AuditService())->log(
                     $deletedBy,
                     $environmentId,
                     'CIRUGIAS',
                     'ELIMINAR_EQUIPO',
                     'cirugia_equipo',
-                    $eventId,
-                    [
-                        'usuario_id' => $userId,
-                        'funcion_id' => $functionId,
-                    ]
+                    $teamMemberId,
+                    $member
                 );
             }
         );

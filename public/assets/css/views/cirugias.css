@@ -1,2 +1,72 @@
 /* Estilos específicos: cirugias. La base visual vive en global.css/components.css/layouts.css. */
-.cirugias-page{min-width:0}
+.cirugias-page {
+  min-width: 0;
+}
+
+/* ==========================================
+   VISOR DE DOCUMENTOS QUIRÚRGICOS
+========================================== */
+
+.surgery-document-viewer {
+  margin-top: 24px;
+  border: 1px solid #dce5e9;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.surgery-document-viewer[hidden] {
+  display: none !important;
+}
+
+.surgery-document-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.surgery-document-toolbar h3 {
+  margin: 0;
+}
+
+.surgery-document-toolbar p {
+  margin: 5px 0 0;
+}
+
+.surgery-document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#surgery-document-frame {
+  display: block;
+  width: 100%;
+  height: 80vh;
+  min-height: 650px;
+  border: 0;
+  background: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .surgery-document-toolbar {
+    align-items: stretch;
+  }
+
+  .surgery-document-actions {
+    width: 100%;
+  }
+
+  #surgery-document-frame {
+    height: 75vh;
+    min-height: 450px;
+  }
+}
+#surgery-internal-fields[hidden],
+#surgery-external-fields[hidden] {
+  display: none !important;
+}

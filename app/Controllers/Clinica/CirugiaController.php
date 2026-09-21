@@ -191,26 +191,32 @@ class CirugiaController extends Controller
         Request $request,
         string $id
     ): void {
+
         $this->handle(
             $request,
+
             function () use (
                 $request,
                 $id
             ): void {
+
                 (new SurgeryService())
                     ->removeTeamMember(
                         (int) $id,
+
                         (int) $request->input(
-                            'usuario_id'
+                            'integrante_id',
+                            0
                         ),
-                        (int) $request->input(
-                            'funcion_id'
-                        ),
+
                         active_environment_id(),
+
                         auth_id()
                     );
             },
+
             '/cirugias/' . (int) $id,
+
             'Integrante retirado del equipo quirúrgico.'
         );
     }
@@ -272,5 +278,172 @@ class CirugiaController extends Controller
         $this->redirect(
             $redirect
         );
+    }
+
+    public function viewFile(
+        Request $request
+    ): void {
+
+        /*
+     * Obtener identificador del archivo.
+     */
+        $fileId = (int) $request->input(
+            'id',
+            0
+        );
+
+        if ($fileId <= 0) {
+            http_response_code(400);
+            echo 'Identificador de archivo no válido.';
+            return;
+        }
+
+        /*
+     * Validar que el documento pertenece
+     * al entorno activo.
+     */
+        $file = (new Surgery())->findFile(
+            $fileId,
+            active_environment_id()
+        );
+
+        if (!$file) {
+            http_response_code(404);
+            echo 'Documento no encontrado.';
+            return;
+        }
+
+        /*
+     * Validar ruta relativa.
+     *
+     * FileService::store() genera nombres
+     * aleatorios de 36 caracteres hexadecimales.
+     */
+        $relativePath = str_replace(
+            '\\',
+            '/',
+            (string) $file['ruta_storage']
+        );
+
+        if (
+            !preg_match(
+                '~^[a-zA-Z0-9_-]+/[a-f0-9]{36}\.(pdf|jpg|png|webp)$~D',
+                $relativePath
+            )
+        ) {
+            http_response_code(403);
+            echo 'Ruta del documento no permitida.';
+            return;
+        }
+
+        /*
+     * Resolver ubicación física.
+     */
+        $uploadsRoot = realpath(
+            STORAGE_PATH . '/uploads'
+        );
+
+        if ($uploadsRoot === false) {
+            http_response_code(404);
+            echo 'Almacenamiento no disponible.';
+            return;
+        }
+
+        $physicalPath = realpath(
+            $uploadsRoot . '/' . $relativePath
+        );
+
+        $normalizedRoot = rtrim(
+            str_replace('\\', '/', $uploadsRoot),
+            '/'
+        );
+
+        $normalizedPath = $physicalPath !== false
+            ? str_replace('\\', '/', $physicalPath)
+            : '';
+
+        /*
+     * Impedir acceso fuera de uploads.
+     */
+        if (
+            $physicalPath === false
+            || !str_starts_with(
+                $normalizedPath,
+                $normalizedRoot . '/'
+            )
+            || !is_file($physicalPath)
+            || !is_readable($physicalPath)
+        ) {
+            http_response_code(404);
+            echo 'Archivo físico no encontrado.';
+            return;
+        }
+
+        /*
+     * Validar MIME registrado.
+     */
+        $allowedMimeTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ];
+
+        $mime = (string) $file['mime_type'];
+
+        if (!in_array($mime, $allowedMimeTypes, true)) {
+            http_response_code(415);
+            echo 'Tipo de documento no permitido.';
+            return;
+        }
+
+        /*
+     * Comprobar MIME real.
+     */
+        $realMime = (new \finfo(FILEINFO_MIME_TYPE))
+            ->file($physicalPath);
+
+        if ($realMime !== $mime) {
+            http_response_code(415);
+            echo 'El tipo del archivo no coincide.';
+            return;
+        }
+
+        /*
+     * Entregar documento al navegador.
+     */
+        $size = filesize($physicalPath);
+
+        if ($size === false) {
+            http_response_code(500);
+            echo 'No fue posible obtener el tamaño del archivo.';
+            return;
+        }
+
+        header('Content-Type: ' . $mime);
+
+        header(
+            'Content-Disposition: inline; filename="documento.' .
+                match ($mime) {
+                    'application/pdf' => 'pdf',
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/webp' => 'webp',
+                } . '"'
+        );
+
+        header('Content-Length: ' . $size);
+
+        header(
+            'Cache-Control: private, no-store, max-age=0'
+        );
+
+        header('X-Content-Type-Options: nosniff');
+
+        header('X-Frame-Options: SAMEORIGIN');
+
+        readfile($physicalPath);
+
+        exit;
     }
 }

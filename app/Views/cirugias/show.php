@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="<?= url('assets/css/views/cirugias.css') ?>">
 <?php
 $eventId = (int) $surgery['evento_clinico_id'];
 ?>
@@ -241,9 +242,39 @@ $eventId = (int) $surgery['evento_clinico_id'];
                 <?php foreach ($team as $member): ?>
                     <tr>
                         <td>
-                            <?= e(
-                                $member['integrante']
-                            ) ?>
+                            <strong>
+                                <?= e($member['integrante']) ?>
+                            </strong>
+
+                            <?php if (
+                                $member['tipo_profesional'] === 'EXTERNO'
+                            ): ?>
+
+                                <div>
+                                    <span class="badge">
+                                        Profesional externo
+                                    </span>
+                                </div>
+
+                                <?php if (
+                                    !empty($member['institucion_externa'])
+                                ): ?>
+                                    <small>
+                                        <?= e(
+                                            $member['institucion_externa']
+                                        ) ?>
+                                    </small>
+                                <?php endif; ?>
+
+                            <?php else: ?>
+
+                                <div>
+                                    <span class="badge">
+                                        Usuario del sistema
+                                    </span>
+                                </div>
+
+                            <?php endif; ?>
                         </td>
 
                         <td>
@@ -270,13 +301,8 @@ $eventId = (int) $surgery['evento_clinico_id'];
 
                                 <input
                                     type="hidden"
-                                    name="usuario_id"
-                                    value="<?= (int) $member['usuario_id'] ?>">
-
-                                <input
-                                    type="hidden"
-                                    name="funcion_id"
-                                    value="<?= (int) $member['funcion_id'] ?>">
+                                    name="integrante_id"
+                                    value="<?= (int) $member['id'] ?>">
 
                                 <button
                                     class="btn btn-secondary btn-sm"
@@ -369,6 +395,7 @@ $eventId = (int) $surgery['evento_clinico_id'];
                         <th>Tipo</th>
                         <th>Tamaño</th>
                         <th>Descripción</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
 
@@ -403,10 +430,69 @@ $eventId = (int) $surgery['evento_clinico_id'];
                                         ?? '—'
                                 ) ?>
                             </td>
+                            <td>
+                                <button
+                                    type="button"
+                                    class="btn btn-secondary btn-sm"
+                                    data-surgery-file-url="<?= e(
+                                                                url('/cirugias/archivo?id=' . (int) $file['id'])
+                                                            ) ?>"
+                                    data-surgery-file-name="<?= e($file['nombre_original']) ?>">
+                                    👁 Ver documento
+                                </button>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+
+        <!-- ==========================================
+     VISOR DE DOCUMENTOS QUIRÚRGICOS
+========================================== -->
+
+        <div
+            id="surgery-document-viewer"
+            class="surgery-document-viewer"
+            hidden>
+            <div class="surgery-document-toolbar">
+
+                <div>
+                    <h3 id="surgery-document-title">
+                        Documento quirúrgico
+                    </h3>
+
+                    <p class="text-muted">
+                        Visualización del documento adjunto.
+                    </p>
+                </div>
+
+                <div class="surgery-document-actions">
+
+                    <a
+                        id="surgery-document-new-tab"
+                        class="btn btn-secondary"
+                        href="#"
+                        target="_blank"
+                        rel="noopener noreferrer">
+                        ↗ Abrir en otra pestaña
+                    </a>
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="surgery-document-close">
+                        × Cerrar
+                    </button>
+
+                </div>
+
+            </div>
+
+            <iframe
+                id="surgery-document-frame"
+                title="Documento del procedimiento quirúrgico"></iframe>
+
         </div>
 
     <?php endif; ?>
@@ -433,78 +519,138 @@ $eventId = (int) $surgery['evento_clinico_id'];
         <form
             method="POST"
             action="<?= url(
-                        '/cirugias/'
-                            . $eventId
-                            . '/equipo'
+                        '/cirugias/' . $eventId . '/equipo'
                     ) ?>">
             <?= csrf_field() ?>
 
             <div class="modal-body form-grid">
-                <label>
+
+                <!-- Tipo de profesional -->
+                <label class="field-full">
+                    <span>Tipo de profesional</span>
+
+                    <select
+                        name="tipo_profesional"
+                        id="surgery-professional-type"
+                        required>
+                        <option value="INTERNO">
+                            Usuario registrado en el sistema
+                        </option>
+
+                        <option value="EXTERNO">
+                            Profesional externo / invitado
+                        </option>
+                    </select>
+                </label>
+
+                <!-- Profesional interno -->
+                <label
+                    class="field-full"
+                    id="surgery-internal-fields">
                     <span>Profesional</span>
 
                     <select
                         name="usuario_id"
+                        id="surgery-user-id"
                         required>
                         <option value="">
-                            Seleccionar
+                            Seleccionar profesional
                         </option>
 
                         <?php foreach ($users as $user): ?>
+
                             <option
                                 value="<?= (int) $user['id'] ?>">
                                 <?= e(
                                     trim(
-                                        (
-                                            $user['nombres']
-                                            ?? ''
-                                        )
+                                        ($user['nombres'] ?? '')
                                             . ' '
-                                            . (
-                                                $user['apellidos']
-                                                ?? ''
-                                            )
+                                            . ($user['apellidos'] ?? '')
                                     )
                                 ) ?>
                             </option>
+
                         <?php endforeach; ?>
                     </select>
                 </label>
 
-                <label>
-                    <span>
-                        Función
-                    </span>
+                <!-- Profesional externo -->
+                <div
+                    class="field-full"
+                    id="surgery-external-fields"
+                    hidden>
+
+                    <div class="form-grid">
+
+                        <label class="field-full">
+                            <span>Nombre completo *</span>
+
+                            <input
+                                type="text"
+                                name="nombre_externo"
+                                id="surgery-external-name"
+                                maxlength="200"
+                                placeholder="Ej. Dr. Juan Pérez">
+                        </label>
+
+                        <label>
+                            <span>Registro profesional</span>
+
+                            <input
+                                type="text"
+                                name="registro_profesional"
+                                maxlength="100">
+                        </label>
+
+                        <label>
+                            <span>Institución de procedencia</span>
+
+                            <input
+                                type="text"
+                                name="institucion_externa"
+                                maxlength="200">
+                        </label>
+
+                    </div>
+                </div>
+
+                <!-- Función -->
+                <label class="field-full">
+                    <span>Función quirúrgica</span>
 
                     <select
                         name="funcion_id"
                         required>
                         <option value="">
-                            Seleccionar
+                            Seleccionar función
                         </option>
 
                         <?php foreach (
-                            $teamFunctions
-                            as $function
+                            $teamFunctions as $function
                         ): ?>
+
                             <option
                                 value="<?= (int) $function['id'] ?>">
-                                <?= e(
-                                    $function['nombre']
-                                ) ?>
+                                <?= e($function['nombre']) ?>
                             </option>
+
                         <?php endforeach; ?>
+
                     </select>
                 </label>
+
             </div>
 
             <div class="modal-footer">
+
                 <button
                     class="btn btn-primary"
                     type="submit">
-                    Agregar
+                    Agregar integrante
                 </button>
+
             </div>
+
         </form>
     </div>
 </div>
@@ -573,3 +719,4 @@ $eventId = (int) $surgery['evento_clinico_id'];
         </form>
     </div>
 </div>
+<script src="<?= url('assets/js/views/cirugias.js') ?>" defer></script>
