@@ -14,43 +14,83 @@ class InventarioController extends Controller
 {
     public function index(Request $r): void
     {
-        (new InventoryService())
-            ->ensureDefault(active_environment_id());
-        $m = new Inventory();
-        $this->view('inventario/index', ['title' => 'Inventario', 'inventories' => $m->inventories(active_environment_id()), 'stock' => $m->stock(active_environment_id()), 'movements' => $m->movements(active_environment_id()), 'products' => $m->products(), 'movementTypes' => (new Catalog())->inventoryMovementTypes(), 'productCategories' => (new Catalog())->productCategories(), 'units' => (new Catalog())->measurementUnits(), 'success' => Session::pullFlash('success'), 'error' => Session::pullFlash('error')]);
+        $environmentId = active_environment_id();
+
+        (new InventoryService())->ensureDefault($environmentId);
+
+        $inventory = new Inventory();
+        $catalog = new Catalog();
+
+        $this->view('inventario/index', [
+            'title' => 'Inventario',
+
+            'inventories' => $inventory->inventories($environmentId),
+            'stock' => $inventory->stock($environmentId),
+            'movements' => $inventory->movements($environmentId),
+            'products' => $inventory->products(),
+            'lots' => $inventory->lots($environmentId),
+
+            'movementTypes' => $catalog->inventoryMovementTypes(),
+            'productCategories' => $catalog->productCategories(),
+            'units' => $catalog->measurementUnits(),
+
+            'success' => Session::pullFlash('success'),
+            'error' => Session::pullFlash('error'),
+        ]);
     }
 
     public function product(Request $r): void
     {
-        if (
-            !Session::validateCsrf(
-                $r->input('_token')
-            )
-        ) {
+        if (!Session::validateCsrf($r->input('_token'))) {
             http_response_code(419);
             return;
         }
 
         try {
-            (new InventoryService())
-                ->createProduct(
-                    $r->all(),
-                    active_environment_id(),
-                    auth_id()
-                );
+            (new InventoryService())->createProduct(
+                $r->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash('success', 'Producto creado.');
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        $this->redirect('/inventario?tab=productos');
+    }
+
+    /**
+     * Registrar un lote de producto.
+     */
+    public function lot(Request $r): void
+    {
+        if (!Session::validateCsrf($r->input('_token'))) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            $lotId = (new InventoryService())->createLot(
+                $r->all(),
+                active_environment_id(),
+                auth_id()
+            );
 
             Session::flash(
                 'success',
-                'Producto creado.'
+                'Lote registrado correctamente. ID: ' . $lotId
             );
         } catch (Throwable $e) {
+
             Session::flash(
                 'error',
                 $e->getMessage()
             );
         }
 
-        $this->redirect('/inventario');
+        $this->redirect('/inventario?tab=productos');
     }
 
     public function movement(Request $r): void
@@ -59,12 +99,19 @@ class InventarioController extends Controller
             http_response_code(419);
             return;
         }
+
         try {
-            (new InventoryService())->movement($r->all(), active_environment_id(), auth_id());
+            (new InventoryService())->movement(
+                $r->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
             Session::flash('success', 'Movimiento registrado.');
         } catch (Throwable $e) {
             Session::flash('error', $e->getMessage());
         }
-        $this->redirect('/inventario');
+
+        $this->redirect('/inventario?tab=movimientos');
     }
 }

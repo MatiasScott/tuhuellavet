@@ -63,10 +63,36 @@ $router->post('/propietarios', [PropietarioController::class, 'store'], ['auth',
 $router->put('/propietarios/{id}', [PropietarioController::class, 'update'], ['auth', 'environment', 'permission:propietarios.editar']);
 $router->delete('/propietarios/{id}', [PropietarioController::class, 'destroy'], ['auth', 'environment', 'permission:propietarios.eliminar']);
 $router->get('/consultas', [ConsultaController::class, 'index'], ['auth', 'environment', 'permission:consultas.ver']);
+$router->put(
+    '/consultas/{id}',
+    [ConsultaController::class, 'update'],
+    [
+        'auth',
+        'environment',
+        'permission:consultas.editar'
+    ]
+);
 $router->post('/consultas', [ConsultaController::class, 'store'], ['auth', 'environment', 'permission:consultas.crear']);
 $router->get('/consultas/{id}', [ConsultaController::class, 'show'], ['auth', 'environment', 'permission:consultas.ver']);
 $router->post('/consultas/{id}/tratamientos', [TratamientoController::class, 'store'], ['auth', 'environment', 'permission:tratamientos.crear']);
 $router->post('/consultas/{id}/tratamientos/medicamentos/{medicationId}/aplicar', [TratamientoController::class, 'applyMedication'], ['auth', 'environment', 'permission:tratamientos.editar']);
+$router->put(
+    '/consultas/{id}',
+    [ConsultaController::class, 'update'],
+    ['auth', 'environment', 'permission:consultas.editar']
+);
+
+$router->put(
+    '/consultas/{id}/examen',
+    [ConsultaController::class, 'updateExam'],
+    ['auth', 'environment', 'permission:consultas.editar']
+);
+
+$router->post(
+    '/consultas/{id}/diagnosticos',
+    [ConsultaController::class, 'addDiagnosis'],
+    ['auth', 'environment', 'permission:consultas.editar']
+);
 $router->get('/formulas/version/{id}/variables', [FormulaController::class, 'variables'], ['auth', 'environment', 'permission:formulas.calcular']);
 $router->post('/formulas/calcular', [FormulaController::class, 'calculate'], ['auth', 'environment', 'permission:formulas.calcular']);
 $router->get('/vacunas', [VacunacionController::class, 'index'], ['auth', 'environment', 'permission:vacunas.ver']);
@@ -143,8 +169,29 @@ $router->post(
         'permission:cirugias.editar'
     ]
 );
-$router->get('/inventario', [InventarioController::class, 'index'], ['auth', 'environment', 'permission:inventario.ver']);
-$router->post('/inventario/movimientos', [InventarioController::class, 'movement'], ['auth', 'environment', 'permission:inventario.crear']);
+$router->get(
+    '/inventario',
+    [InventarioController::class, 'index'],
+    ['auth', 'environment', 'permission:inventario.ver']
+);
+
+$router->post(
+    '/inventario/productos',
+    [InventarioController::class, 'product'],
+    ['auth', 'environment', 'permission:inventario.crear']
+);
+
+$router->post(
+    '/inventario/lotes',
+    [InventarioController::class, 'lot'],
+    ['auth', 'environment', 'permission:inventario.crear']
+);
+
+$router->post(
+    '/inventario/movimientos',
+    [InventarioController::class, 'movement'],
+    ['auth', 'environment', 'permission:inventario.crear']
+);
 $router->get('/citas', [CitaController::class, 'index'], ['auth', 'environment', 'permission:citas.ver']);
 $router->post('/citas', [CitaController::class, 'store'], ['auth', 'environment', 'permission:citas.crear']);
 $router->get('/formulas', [FormulaAdminController::class, 'index'], ['auth', 'environment', 'permission:formulas.ver']);
@@ -157,7 +204,7 @@ $router->post('/facturacion/{id}/emitir', [FacturacionController::class, 'invoic
 $router->get('/reportes', [ReporteController::class, 'index'], ['auth', 'environment', 'permission:reportes.ver']);
 $router->get('/reportes/pacientes.csv', [ReporteController::class, 'csv'], ['auth', 'environment', 'permission:reportes.exportar']);
 
-$router->post('/inventario/productos', [InventarioController::class, 'product'], ['auth', 'environment', 'permission:inventario.crear']);
+
 $router->get('/notificaciones', [NotificacionController::class, 'index'], ['auth', 'environment', 'permission:notificaciones.ver']);
 $router->post('/notificaciones/procesar', [NotificacionController::class, 'process'], ['auth', 'environment', 'permission:notificaciones.editar']);
 $router->get('/reportes/pacientes.xlsx', [ReporteController::class, 'xlsx'], ['auth', 'environment', 'permission:reportes.exportar']);

@@ -88,11 +88,11 @@ class Consultation extends Model
     ): array {
         $sql = '
             SELECT
-                ec.id,
+                ec.id AS evento_id,
                 ec.fecha_evento,
 
                 a.id AS animal_id,
-                a.nombre AS paciente,
+                a.nombre AS paciente_nombre,
 
                 e.nombre_comun AS especie,
                 r.nombre AS raza,
@@ -103,7 +103,7 @@ class Consultation extends Model
                     u.nombres,
                     " ",
                     u.apellidos
-                ) AS responsable
+                ) AS responsable_nombre
 
             FROM eventos_clinicos ec
 

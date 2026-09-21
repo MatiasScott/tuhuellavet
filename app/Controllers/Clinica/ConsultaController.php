@@ -204,4 +204,84 @@ class ConsultaController extends Controller
             ]
         );
     }
+
+    public function update(Request $request, string $id): void
+    {
+        if (!Session::validateCsrf($request->input('_token'))) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new ConsultationService())->update(
+                (int) $id,
+                $request->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Sección actualizada correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        $this->redirect('/consultas/' . (int) $id);
+    }
+
+
+    public function updateExam(Request $request, string $id): void
+    {
+        if (!Session::validateCsrf($request->input('_token'))) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new ConsultationService())->updateClinicalExam(
+                (int) $id,
+                $request->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Examen clínico actualizado correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        $this->redirect('/consultas/' . (int) $id);
+    }
+
+
+    public function addDiagnosis(Request $request, string $id): void
+    {
+        if (!Session::validateCsrf($request->input('_token'))) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new ConsultationService())->addDiagnosis(
+                (int) $id,
+                $request->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Diagnóstico registrado correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash('error', $e->getMessage());
+        }
+
+        $this->redirect('/consultas/' . (int) $id);
+    }
 }

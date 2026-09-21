@@ -122,6 +122,167 @@ class InventoryService
                     ? 1
                     : 0;
 
+                /*
+                * DATOS DEL LOTE Y EXISTENCIAS INICIALES
+                */
+                $lotNumber = trim(
+                    (string) ($data['numero_lote'] ?? '')
+                );
+
+                $manufactureDate = $this->dateOnly(
+                    $data['fecha_fabricacion'] ?? null
+                );
+
+                $expirationDate = $this->dateOnly(
+                    $data['fecha_vencimiento'] ?? null
+                );
+
+                $initialQuantityRaw = trim(
+                    (string) ($data['cantidad_inicial'] ?? '0')
+                );
+
+                if ($initialQuantityRaw === '') {
+                    $initialQuantityRaw = '0';
+                }
+
+                if (
+                    !preg_match(
+                        '/^\d{1,14}(?:\.\d{1,4})?$/',
+                        $initialQuantityRaw
+                    )
+                ) {
+                    throw new RuntimeException(
+                        'La cantidad inicial debe ser un número válido con hasta cuatro decimales.'
+                    );
+                }
+
+                $initialQuantity = (float) $initialQuantityRaw;
+
+                if (
+                    !is_finite($initialQuantity)
+                    || $initialQuantity < 0
+                ) {
+                    throw new RuntimeException(
+                        'La cantidad inicial no es válida.'
+                    );
+                }
+
+                if (
+                    $controlsLot === 0
+                    && (
+                        $lotNumber !== ''
+                        || $manufactureDate !== null
+                        || $expirationDate !== null
+                    )
+                ) {
+                    throw new RuntimeException(
+                        'Activa el control de lotes para registrar datos de un lote.'
+                    );
+                }
+
+                if (
+                    $controlsLot === 1
+                    && $lotNumber === ''
+                ) {
+                    throw new RuntimeException(
+                        'El número de lote es obligatorio para este producto.'
+                    );
+                }
+
+                if (
+                    $controlsExpiration === 1
+                    && $expirationDate === null
+                ) {
+                    throw new RuntimeException(
+                        'La fecha de vencimiento es obligatoria.'
+                    );
+                }
+
+                if (
+                    $manufactureDate !== null
+                    && $expirationDate !== null
+                    && $expirationDate < $manufactureDate
+                ) {
+                    throw new RuntimeException(
+                        'El vencimiento no puede ser anterior a la fabricación.'
+                    );
+                }
+
+                /*
+                * ==========================================
+                * VALIDAR STOCK MÍNIMO Y MÁXIMO
+                * ==========================================
+                */
+
+                $parseStockLimit = static function (
+                    mixed $value,
+                    string $field
+                ): ?string {
+
+                    if ($value === null || trim((string) $value) === '') {
+                        return null;
+                    }
+
+                    $value = trim((string) $value);
+
+                    /*
+                    * DECIMAL(18,4):
+                    * Hasta 14 dígitos enteros y 4 decimales.
+                    */
+                    if (
+                        !preg_match(
+                            '/^\d{1,14}(?:\.\d{1,4})?$/',
+                            $value
+                        )
+                    ) {
+                        throw new RuntimeException(
+                            "El campo {$field} debe ser un número positivo válido con hasta cuatro decimales."
+                        );
+                    }
+
+                    return $value;
+                };
+
+                $minimumStock = $parseStockLimit(
+                    $data['stock_minimo'] ?? null,
+                    'stock mínimo'
+                );
+
+                $unlimitedMaximum = !empty($data['stock_maximo_sin_limite']);
+
+                $maximumStock = $unlimitedMaximum
+                    ? null
+                    : $parseStockLimit(
+                        $data['stock_maximo'] ?? null,
+                        'stock máximo'
+                    );
+
+                /*
+                * Si el usuario desactiva "Sin límite",
+                * debe indicar un stock máximo.
+                */
+                if (
+                    !$unlimitedMaximum
+                    && $maximumStock === null
+                ) {
+                    throw new RuntimeException(
+                        'Debes indicar el stock máximo o seleccionar "Sin límite".'
+                    );
+                }
+
+                /*
+                * Comparar valores numéricos.
+                */
+                if (
+                    $minimumStock !== null
+                    && $maximumStock !== null
+                    && (float) $maximumStock < (float) $minimumStock
+                ) {
+                    throw new RuntimeException(
+                        'El stock máximo no puede ser menor que el mínimo.'
+                    );
+                }
+
                 if ($code === '') {
                     throw new RuntimeException(
                         'El código del producto es obligatorio.'
@@ -356,6 +517,256 @@ class InventoryService
 
                 $productId =
                     (int) $db->lastInsertId();
+
+                /*
+                * ==========================================
+                * ASOCIAR PRODUCTO AL INVENTARIO DEL ENTORNO
+                * ==========================================
+                *
+                * El producto ya fue creado en productos.
+                * Ahora lo asociamos a un inventario activo
+                * del entorno actual, sin generar movimientos
+                * ni alterar cantidades.
+                */
+
+                $requestedInventoryId = (int) (
+                    $data['inventario_id'] ?? 0
+                );
+
+                if ($requestedInventoryId > 0) {
+
+                    // Si el formulario especifica un inventario,
+                    // comprobamos que pertenezca al entorno activo.
+
+                    $stmt = $db->prepare(
+                        '
+                        SELECT id
+                        FROM inventarios
+                        WHERE id = :inventario
+                        AND entorno_id = :entorno
+                        AND activo = 1
+                        LIMIT 1
+                        '
+                    );
+
+                    $stmt->execute([
+                        'inventario' => $requestedInventoryId,
+                        'entorno' => $environmentId,
+                    ]);
+                } else {
+
+                    // Compatibilidad con el formulario actual:
+                    // utiliza el primer inventario activo del entorno.
+
+                    $stmt = $db->prepare(
+                        '
+                        SELECT id
+                        FROM inventarios
+                        WHERE entorno_id = :entorno
+                        AND activo = 1
+                        ORDER BY id
+                        LIMIT 1
+                        '
+                    );
+
+                    $stmt->execute([
+                        'entorno' => $environmentId,
+                    ]);
+                }
+
+                $inventoryId = (int) $stmt->fetchColumn();
+
+                if ($inventoryId <= 0) {
+                    throw new RuntimeException(
+                        'No existe un inventario activo válido para asociar el producto.'
+                    );
+                }
+
+                /*
+ * Asociar el producto al inventario
+ * y guardar sus límites de existencias.
+ */
+                $stmt = $db->prepare(
+                    '
+                    INSERT INTO inventario_productos
+                    (
+                        inventario_id,
+                        producto_id,
+                        stock_minimo,
+                        stock_maximo,
+                        activo
+                    )
+                    VALUES
+                    (
+                        :inventario,
+                        :producto,
+                        :stock_minimo,
+                        :stock_maximo,
+                        1
+                    )
+                    '
+                );
+
+                $stmt->execute([
+                    'inventario'   => $inventoryId,
+                    'producto'     => $productId,
+                    'stock_minimo' => $minimumStock,
+                    'stock_maximo' => $maximumStock,
+                ]);
+
+                /*
+ * ==========================================
+ * CREAR LOTE INICIAL
+ * ==========================================
+ */
+
+                $lotId = null;
+
+                if ($controlsLot === 1) {
+
+                    $stmt = $db->prepare(
+                        '
+        INSERT INTO lotes_producto
+        (
+            producto_id,
+            numero_lote,
+            fecha_fabricacion,
+            fecha_vencimiento
+        )
+        VALUES
+        (
+            :producto,
+            :numero_lote,
+            :fabricacion,
+            :vencimiento
+        )
+        '
+                    );
+
+                    $stmt->execute([
+                        'producto'    => $productId,
+                        'numero_lote' => $lotNumber,
+                        'fabricacion' => $manufactureDate,
+                        'vencimiento' => $expirationDate,
+                    ]);
+
+                    $lotId = (int) $db->lastInsertId();
+
+                    (new AuditService())->log(
+                        $createdBy,
+                        $environmentId,
+                        'INVENTARIO',
+                        'CREAR_LOTE',
+                        'lotes_producto',
+                        $lotId,
+                        null,
+                        [
+                            'producto_id' => $productId,
+                            'numero_lote' => $lotNumber,
+                            'fecha_fabricacion' => $manufactureDate,
+                            'fecha_vencimiento' => $expirationDate,
+                        ]
+                    );
+                }
+
+                /*
+ * ==========================================
+ * REGISTRAR EXISTENCIAS INICIALES
+ * ==========================================
+ */
+
+                if ($initialQuantity > 0) {
+
+                    /*
+     * Validar el tipo de movimiento.
+     * ID 1 = Entrada.
+     */
+                    $entryType = $this->movementType($db, 1);
+
+                    if (
+                        (int) $entryType['factor'] !== 1
+                        || mb_strtoupper(
+                            trim((string) $entryType['nombre'])
+                        ) !== 'ENTRADA'
+                    ) {
+                        throw new RuntimeException(
+                            'El tipo de movimiento inicial no corresponde a una entrada.'
+                        );
+                    }
+
+                    /*
+     * Registrar la entrada sin modificar
+     * directamente el stock.
+     */
+                    $stmt = $db->prepare(
+                        '
+        INSERT INTO movimientos_inventario
+        (
+            inventario_id,
+            producto_id,
+            lote_id,
+            tipo_movimiento_id,
+            cantidad,
+            costo_unitario,
+            realizado_por,
+            fecha_movimiento,
+            referencia_tipo,
+            referencia_id,
+            observaciones
+        )
+        VALUES
+        (
+            :inventario,
+            :producto,
+            :lote,
+            :tipo,
+            :cantidad,
+            :costo,
+            :usuario,
+            NOW(),
+            :referencia_tipo,
+            :referencia_id,
+            :observaciones
+        )
+        '
+                    );
+
+                    $stmt->execute([
+                        'inventario' => $inventoryId,
+                        'producto' => $productId,
+                        'lote' => $lotId,
+                        'tipo' => 1,
+                        'cantidad' => $initialQuantityRaw,
+                        'costo' => null,
+                        'usuario' => $createdBy,
+                        'referencia_tipo' => 'CREACION_PRODUCTO',
+                        'referencia_id' => $productId,
+                        'observaciones' =>
+                        'Existencias iniciales registradas al crear el producto.',
+                    ]);
+
+                    $movementId = (int) $db->lastInsertId();
+
+                    (new AuditService())->log(
+                        $createdBy,
+                        $environmentId,
+                        'INVENTARIO',
+                        'MOVIMIENTO',
+                        'movimientos_inventario',
+                        $movementId,
+                        null,
+                        [
+                            'inventario_id' => $inventoryId,
+                            'producto_id' => $productId,
+                            'lote_id' => $lotId,
+                            'tipo_movimiento_id' => 1,
+                            'cantidad' => $initialQuantityRaw,
+                            'referencia_tipo' => 'CREACION_PRODUCTO',
+                        ]
+                    );
+                }
+
+                // Eliminar la ejecución duplicada innecesaria.
 
                 (new AuditService())->log(
                     $createdBy,

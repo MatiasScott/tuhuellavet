@@ -8,7 +8,7 @@
     rel="stylesheet"
     href="<?= asset(
                 'css/views/tratamientos.css'
-            ) ?>"> 
+            ) ?>">
 
 <?php if (!empty($success)): ?>
 
@@ -90,6 +90,9 @@
                 <h2>
                     Motivo de consulta
                 </h2>
+                <?php if (can('consultas.editar')): ?>
+                    <button type="button" class="btn btn-secondary btn-sm" data-modal-open="consult-motivo">Editar</button>
+                <?php endif; ?>
 
             </div>
 
@@ -115,6 +118,9 @@
 
             <div>
                 <h2>Anamnesis</h2>
+                <?php if (can('consultas.editar')): ?>
+                    <button type="button" class="btn btn-secondary btn-sm" data-modal-open="consult-anamnesis">Editar</button>
+                <?php endif; ?>
             </div>
 
         </div>
@@ -134,6 +140,15 @@
 
 </div>
 
+<section class="card">
+    <div class="card-header">
+        <h2>Antecedentes</h2>
+        <?php if (can('consultas.editar')): ?>
+            <button type="button" class="btn btn-secondary btn-sm" data-modal-open="consult-antecedentes">Editar</button>
+        <?php endif; ?>
+    </div>
+    <div class="clinical-text"><?= nl2br(e($consultation['antecedentes'] ?: 'Sin información')) ?></div>
+</section>
 
 <section class="card">
 
@@ -144,6 +159,9 @@
             <h2>
                 Examen clínico general
             </h2>
+            <?php if (can('consultas.editar')): ?>
+                <button type="button" class="btn btn-secondary btn-sm" data-modal-open="consult-examen">Editar</button>
+            <?php endif; ?>
 
             <p>
                 Signos y evaluación
@@ -290,6 +308,9 @@
             <h2>
                 Diagnósticos
             </h2>
+            <?php if (can('consultas.editar')): ?>
+                <button type="button" class="btn btn-secondary btn-sm" data-modal-open="consult-diagnostico">Agregar diagnóstico</button>
+            <?php endif; ?>
 
         </div>
 
@@ -384,7 +405,7 @@
                 data-modal-open="
                     treatment-create
                 ">
-                ï¼‹ Agregar tratamiento
+                <span aria-hidden="true">+</span> Agregar tratamiento
             </button>
 
         <?php endif; ?>
@@ -432,7 +453,7 @@
                             <h3>
 
                                 <?= $treatment['tipo_codigo'] === 'CASA'
-                                    ? '💊  Tratamiento en casa'
+                                    ? '💊 Tratamiento en casa'
                                     : '🏥 Tratamiento clínico'
                                 ?>
 
@@ -709,6 +730,9 @@
 
         <div>
             <h2>Recomendaciones</h2>
+            <?php if (can('consultas.editar')): ?>
+                <button type="button" class="btn btn-secondary btn-sm" data-modal-open="consult-recomendaciones">Editar</button>
+            <?php endif; ?>
         </div>
 
     </div>
@@ -725,6 +749,149 @@
     </div>
 
 </section>
+
+
+
+
+<?php if (can('consultas.editar')): ?>
+    <div class="modal" id="consult-motivo">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <h2>Editar Motivo de consulta</h2><button type="button" class="modal-close" data-modal-close aria-label="Cerrar">×</button>
+            </div>
+            <form method="POST" action="<?= url('/consultas/' . (int) $consultation['evento_id'] . '') ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="_method" value="PUT">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label class="field-full"><span>Motivo de consulta</span><textarea name="motivo_consulta" rows="5"><?= e($consultation['motivo_consulta'] ?? '') ?></textarea></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="consult-anamnesis">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <h2>Editar Anamnesis</h2><button type="button" class="modal-close" data-modal-close aria-label="Cerrar">×</button>
+            </div>
+            <form method="POST" action="<?= url('/consultas/' . (int) $consultation['evento_id'] . '') ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="_method" value="PUT">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label class="field-full"><span>Anamnesis</span><textarea name="anamnesis" rows="5"><?= e($consultation['anamnesis'] ?? '') ?></textarea></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="consult-antecedentes">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <h2>Editar Antecedentes</h2><button type="button" class="modal-close" data-modal-close aria-label="Cerrar">×</button>
+            </div>
+            <form method="POST" action="<?= url('/consultas/' . (int) $consultation['evento_id'] . '') ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="_method" value="PUT">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label class="field-full"><span>Antecedentes</span><textarea name="antecedentes" rows="5"><?= e($consultation['antecedentes'] ?? '') ?></textarea></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="consult-recomendaciones">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <h2>Editar Recomendaciones</h2><button type="button" class="modal-close" data-modal-close aria-label="Cerrar">×</button>
+            </div>
+            <form method="POST" action="<?= url('/consultas/' . (int) $consultation['evento_id'] . '') ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="_method" value="PUT">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label class="field-full"><span>Recomendaciones</span><textarea name="recomendaciones" rows="5"><?= e($consultation['recomendaciones'] ?? '') ?></textarea></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="consult-examen">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <h2>Editar examen clínico</h2><button type="button" class="modal-close" data-modal-close aria-label="Cerrar">×</button>
+            </div>
+            <form method="POST" action="<?= url('/consultas/' . (int) $consultation['evento_id'] . '/examen') ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="_method" value="PUT">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label class="field-full"><span>Alimentación</span><textarea name="alimentacion" rows="2"><?= e($consultation['alimentacion'] ?? '') ?></textarea></label>
+                        <label class="field-full"><span>Historial reproductivo</span><textarea name="historial_reproductivo" rows="2"><?= e($consultation['historial_reproductivo'] ?? '') ?></textarea></label>
+                        <label class="field-full"><span>Ganglios linfáticos</span><textarea name="ganglios_linfaticos" rows="2"><?= e($consultation['ganglios_linfaticos'] ?? '') ?></textarea></label>
+                        <label class="field-full"><span>Condición corporal</span><textarea name="condicion_corporal" rows="2"><?= e($consultation['condicion_corporal'] ?? '') ?></textarea></label>
+                        <label class="field-full"><span>Observaciones del examen</span><textarea name="examen_observaciones" rows="2"><?= e($consultation['examen_observaciones'] ?? '') ?></textarea></label>
+                        <label><span>Frecuencia cardiaca</span><input type="number" name="frecuencia_cardiaca" step="any" min="0" value="<?= e($consultation['frecuencia_cardiaca'] ?? '') ?>"></label>
+                        <label><span>Frecuencia respiratoria</span><input type="number" name="frecuencia_respiratoria" step="any" min="0" value="<?= e($consultation['frecuencia_respiratoria'] ?? '') ?>"></label>
+                        <label><span>Temperatura °C</span><input type="number" name="temperatura_c" step="any" min="0" value="<?= e($consultation['temperatura_c'] ?? '') ?>"></label>
+                        <label><span>TLC (segundos)</span><input type="number" name="tiempo_llenado_capilar_seg" step="any" min="0" value="<?= e($consultation['tiempo_llenado_capilar_seg'] ?? '') ?>"></label>
+                        <label><span>Vómitos</span><select name="vomitos">
+                                <option value="0" <?= empty($consultation['vomitos']) ? 'selected' : '' ?>>No</option>
+                                <option value="1" <?= !empty($consultation['vomitos']) ? 'selected' : '' ?>>Sí</option>
+                            </select></label>
+                        <label><span>Diarrea</span><select name="diarrea">
+                                <option value="0" <?= empty($consultation['diarrea']) ? 'selected' : '' ?>>No</option>
+                                <option value="1" <?= !empty($consultation['diarrea']) ? 'selected' : '' ?>>Sí</option>
+                            </select></label>
+                        <label><span>Tos</span><select name="tos">
+                                <option value="0" <?= empty($consultation['tos']) ? 'selected' : '' ?>>No</option>
+                                <option value="1" <?= !empty($consultation['tos']) ? 'selected' : '' ?>>Sí</option>
+                            </select></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="consult-diagnostico">
+        <div class="modal-backdrop"></div>
+        <div class="modal-dialog modal-xl">
+            <div class="modal-header">
+                <h2>Agregar diagnóstico</h2><button type="button" class="modal-close" data-modal-close aria-label="Cerrar">×</button>
+            </div>
+            <form method="POST" action="<?= url('/consultas/' . (int) $consultation['evento_id'] . '/diagnosticos') ?>">
+                <?= csrf_field() ?>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label><span>Tipo de diagnóstico *</span><select name="tipo_codigo" required>
+                                <option value="">Seleccionar</option>
+                                <option value="DIFERENCIAL">Diferencial</option>
+                                <option value="PRESUNTIVO">Presuntivo</option>
+                                <option value="DEFINITIVO">Definitivo</option>
+                            </select></label><label class="field-full"><span>Descripción *</span><textarea name="descripcion" rows="4" required></textarea></label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button type="submit" class="btn btn-primary">Guardar</button></div>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
 
 <?php if (
     can('tratamientos.crear')
@@ -875,7 +1042,7 @@
                             id="
                             add-treatment-medication
                         ">
-                            ï¼‹ Medicamento
+                            + Medicamento
                         </button>
 
                     </div>

@@ -1,2 +1,224 @@
 /* Estilos específicos: inventario. La base visual vive en global.css/components.css/layouts.css. */
-.inventario-page{min-width:0}
+.inventario-page {
+  min-width: 0;
+}
+
+/* Acciones del encabezado de inventario */
+
+.page-heading .page-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .page-heading .page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* ==========================================
+   INVENTARIO - PESTAÑAS
+========================================== */
+
+.inventory-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.inventory-tab {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  width: 100%;
+  padding: 22px;
+
+  text-align: left;
+  cursor: pointer;
+
+  background: var(--surface, #fff);
+  color: inherit;
+
+  border: 1px solid #dfe7ea;
+  border-radius: 16px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.inventory-tab:hover {
+  transform: translateY(-2px);
+  border-color: #008b9e;
+}
+
+.inventory-tab.is-active {
+  border-color: #008b9e;
+  background: #f0fbfc;
+  box-shadow: 0 4px 16px rgba(0, 139, 158, 0.1);
+}
+
+.inventory-tab-icon {
+  display: grid;
+  place-items: center;
+
+  width: 48px;
+  height: 48px;
+
+  flex-shrink: 0;
+
+  background: #e3f5f6;
+  color: #008b9e;
+
+  border-radius: 12px;
+  font-size: 25px;
+}
+
+.inventory-tab strong,
+.inventory-tab small {
+  display: block;
+}
+
+.inventory-tab strong {
+  font-size: 16px;
+}
+
+.inventory-tab small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* ==========================================
+   CONTENIDO
+========================================== */
+
+.inventory-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.inventory-panel[hidden] {
+  display: none !important;
+}
+
+.inventory-section-heading h2 {
+  margin: 0 0 6px;
+}
+
+.inventory-section-heading p,
+.inventory-card-heading p {
+  margin: 0;
+  color: #64748b;
+}
+
+.inventory-form-card,
+.inventory-stock-section,
+.inventory-history-section {
+  padding: 24px;
+}
+
+.inventory-card-heading {
+  margin-bottom: 24px;
+}
+
+.inventory-card-heading h3 {
+  margin: 0 0 6px;
+}
+
+.inventory-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.inventory-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inventory-checkbox input {
+  width: auto;
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media (max-width: 768px) {
+  .inventory-tabs {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .inventory-tab {
+    padding: 16px;
+  }
+
+  .inventory-form-card,
+  .inventory-stock-section,
+  .inventory-history-section {
+    padding: 16px;
+  }
+
+  .inventory-form-actions .btn {
+    width: 100%;
+  }
+}
+
+/* ==========================================
+   LOTE INICIAL DEL PRODUCTO
+========================================== */
+
+.inventory-lot-fields {
+  grid-column: 1 / -1;
+
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 18px;
+
+  padding: 22px;
+
+  margin: 8px 0;
+
+  border: 1px solid #dce8e7;
+  border-radius: 14px;
+
+  background: #f5faf9;
+}
+
+/* Respetar el atributo hidden */
+.inventory-lot-fields[hidden] {
+  display: none !important;
+}
+
+.inventory-lot-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  min-width: 0;
+}
+
+.inventory-lot-fields input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Pantallas pequeñas */
+@media (max-width: 768px) {
+  .inventory-lot-fields {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+}
