@@ -355,6 +355,39 @@ $router->post(
     [FormulaAdminController::class, 'publish'],
     ['auth', 'environment', 'permission:formulas.publicar']
 );
+$router->post(
+    '/formulas/probar',
+    [
+        FormulaAdminController::class,
+        'test'
+    ],
+    [
+        'auth',
+        'environment',
+        'permission:formulas.calcular'
+    ]
+);
+$router->get(
+    '/formulas/versiones/{id}/prueba',
+    [
+        FormulaAdminController::class,
+        'testData'
+    ],
+    [
+        'auth',
+        'environment',
+        'permission:formulas.calcular'
+    ]
+);
+$router->post(
+    '/formulas/versiones/{id}/editar',
+    [FormulaAdminController::class, 'updateDraft'],
+    [
+        'auth',
+        'environment',
+        'permission:formulas.editar'
+    ]
+);
 
 /*
 |--------------------------------------------------------------------------

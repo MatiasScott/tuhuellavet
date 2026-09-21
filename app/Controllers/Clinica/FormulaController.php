@@ -112,8 +112,8 @@ class FormulaController extends Controller
                     auth_id(),
 
                     !empty($request->input(
-                            'simulacion'
-                        )),
+                        'simulacion'
+                    )),
 
                     strtoupper(
                         trim(
