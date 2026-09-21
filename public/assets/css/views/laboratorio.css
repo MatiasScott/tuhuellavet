@@ -1,2 +1,64 @@
 /* Estilos específicos: laboratorio. La base visual vive en global.css/components.css/layouts.css. */
-.laboratorio-page{min-width:0}
+.laboratorio-page {
+  min-width: 0;
+}
+
+/* ==========================================
+   DOCUMENTOS DE LABORATORIO
+========================================== */
+
+.lab-document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lab-pdf-dialog {
+  width: min(95vw, 1200px);
+  max-width: 1200px;
+}
+
+.lab-pdf-body {
+  padding: 0;
+  height: 75vh;
+  min-height: 400px;
+  overflow: hidden;
+}
+
+#lab-pdf-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .lab-pdf-dialog {
+    width: 98vw;
+  }
+
+  .lab-pdf-body {
+    height: 70vh;
+    min-height: 300px;
+  }
+}
+
+/* Acciones del listado de laboratorio */
+
+.lab-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.lab-row-actions .btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .lab-row-actions {
+    min-width: 0;
+  }
+}
