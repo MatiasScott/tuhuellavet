@@ -1,1 +1,93 @@
-<div class="page-heading"><div><span class="eyebrow">Prevención</span><h1>Desparasitación</h1><p>Control antiparasitario y próximas dosis.</p></div><button class="btn btn-primary" data-modal-open="dew-create">＋ Desparasitación</button></div><?php if($success):?><div class="alert alert-success"><?=e($success)?></div><?php endif;?><?php if($error):?><div class="alert alert-danger"><?=e($error)?></div><?php endif;?><section class="card"><div class="table-wrap"><table class="modern-table"><thead><tr><th>Fecha</th><th>Paciente</th><th>Fármaco</th><th>Dosis</th><th>Próxima</th></tr></thead><tbody><?php foreach($dewormings as $v):?><tr><td><?=e(date('d/m/Y',strtotime($v['fecha_evento'])))?></td><td><?=e($v['paciente'])?></td><td><?=e($v['farmaco'])?></td><td><?=e($v['dosis']??'—')?> <?=e($v['unidad']??'')?></td><td><?=e($v['proxima_desparasitacion']??'—')?></td></tr><?php endforeach;?></tbody></table></div></section><div class="modal" id="dew-create"><div class="modal-backdrop"></div><div class="modal-dialog modal-lg"><div class="modal-header"><h2>Registrar desparasitación</h2><button class="modal-close" data-modal-close>×</button></div><form method="POST" action="<?=url('/desparasitaciones')?>"><?=csrf_field()?><div class="modal-body form-grid"><label class="field-full"><span>Paciente</span><select name="animal_id" required><?php foreach($patients as $p):?><option value="<?=$p['id']?>"><?=e($p['nombre'])?></option><?php endforeach;?></select></label><label><span>Fármaco</span><select name="farmaco_id" required><?php foreach($drugs as $x):?><option value="<?=$x['id']?>"><?=e($x['nombre'])?></option><?php endforeach;?></select></label><label><span>Dosis</span><input type="number" step="any" name="dosis"></label><label><span>Unidad</span><select name="unidad_dosis_id"><option value="">—</option><?php foreach($units as $u):?><option value="<?=$u['id']?>"><?=e($u['simbolo'])?></option><?php endforeach;?></select></label><label><span>Próxima desparasitación</span><input type="date" name="proxima_desparasitacion"></label><label><span>Peso kg</span><input type="number" step=".001" name="peso_kg"></label><label class="field-full"><span>Observaciones</span><textarea name="observaciones"></textarea></label></div><div class="modal-footer"><button class="btn btn-primary">Guardar</button></div></form></div></div>
+<div class="page-heading">
+    <div><span class="eyebrow">Prevención</span>
+        <h1>Desparasitación</h1>
+        <p>Control antiparasitario y próximas dosis.</p>
+    </div>
+    <button class="btn btn-primary" data-modal-open="dew-create">＋ Desparasitación</button>
+</div>
+<?php if ($success): ?>
+    <div class="alert alert-success"><?= e($success) ?></div>
+<?php endif; ?>
+<?php if ($error): ?>
+    <div class="alert alert-danger"><?= e($error) ?></div>
+<?php endif; ?>
+<section class="card">
+    <div class="table-wrap">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Paciente</th>
+                    <th>Fármaco</th>
+                    <th>Dosis</th>
+                    <th>Próxima</th>
+                </tr>
+            </thead>
+            <tbody><?php foreach ($dewormings as $v): ?><tr>
+                        <td><?= e(date('d/m/Y', strtotime($v['fecha_evento']))) ?></td>
+                        <td><?= e($v['paciente']) ?></td>
+                        <td><?= e($v['farmaco']) ?></td>
+                        <td><?= e($v['dosis'] ?? '—') ?> <?= e($v['unidad'] ?? '') ?></td>
+                        <td><?= e($v['proxima_desparasitacion'] ?? '—') ?></td>
+                    </tr><?php endforeach; ?></tbody>
+        </table>
+    </div>
+</section>
+<div class="modal" id="dew-create">
+    <div class="modal-backdrop"></div>
+    <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+            <h2>Registrar desparasitación</h2>
+            <button class="modal-close" data-modal-close>×</button>
+        </div>
+        <form method="POST" action="<?= url('/desparasitaciones') ?>">
+            <?= csrf_field() ?>
+            <div class="modal-body form-grid">
+                <label class="field-full">
+                    <span>Paciente</span>
+                    <select name="animal_id" required>
+                        <?php foreach ($patients as $p): ?>
+                            <option value="<?= $p['id'] ?>"><?= e($p['nombre']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>
+                    <span>Fármaco</span>
+                    <select name="farmaco_id" required>
+                        <?php foreach ($drugs as $x): ?>
+                            <option value="<?= $x['id'] ?>"><?= e($x['nombre']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>
+                    <span>Dosis</span>
+                    <input type="number" step="any" name="dosis">
+                </label>
+                <label>
+                    <span>Unidad</span>
+                    <select name="unidad_dosis_id">
+                        <option value="">—</option>
+                        <?php foreach ($units as $u): ?>
+                            <option value="<?= $u['id'] ?>"><?= e($u['simbolo']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>
+                    <span>Próxima desparasitación</span>
+                    <input type="date" name="proxima_desparasitacion">
+                </label>
+                <label>
+                    <span>Peso kg</span>
+                    <input type="number" step=".001" name="peso_kg">
+                </label>
+                <label class="field-full">
+                    <span>Observaciones</span>
+                    <textarea name="observaciones"></textarea>
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>

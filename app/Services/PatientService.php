@@ -116,7 +116,7 @@ class PatientService
             if (
                 isset($files['foto'])
                 && ($files['foto']['error'] ?? UPLOAD_ERR_NO_FILE)
-                    === UPLOAD_ERR_OK
+                === UPLOAD_ERR_OK
             ) {
                 $file = $files['foto'];
 

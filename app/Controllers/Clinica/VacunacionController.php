@@ -21,10 +21,10 @@ class VacunacionController extends Controller
     ): void {
         $search = trim(
             (string)
-                $request->input(
-                    'q',
-                    ''
-                )
+            $request->input(
+                'q',
+                ''
+            )
         );
 
         $catalog = new Catalog();
@@ -33,47 +33,47 @@ class VacunacionController extends Controller
             'vacunas/index',
             [
                 'title'
-                    => 'Vacunación',
+                => 'Vacunación',
 
                 'vaccinations'
-                    => (new PreventiveCare())
-                        ->vaccinationsByEnvironment(
-                            active_environment_id(),
-                            $search
-                        ),
+                => (new PreventiveCare())
+                    ->vaccinationsByEnvironment(
+                        active_environment_id(),
+                        $search
+                    ),
 
                 'upcoming'
-                    => (new PreventiveCare())
-                        ->upcomingVaccinations(
-                            active_environment_id()
-                        ),
+                => (new PreventiveCare())
+                    ->upcomingVaccinations(
+                        active_environment_id()
+                    ),
 
                 'patients'
-                    => (new Patient())
-                        ->allByEnvironment(
-                            active_environment_id()
-                        ),
+                => (new Patient())
+                    ->allByEnvironment(
+                        active_environment_id()
+                    ),
 
                 'vaccines'
-                    => $catalog
-                        ->vaccines(),
+                => $catalog
+                    ->vaccines(),
 
                 'units'
-                    => $catalog
-                        ->measurementUnits(),
+                => $catalog
+                    ->measurementUnits(),
 
                 'search'
-                    => $search,
+                => $search,
 
                 'success'
-                    => Session::pullFlash(
-                        'success'
-                    ),
+                => Session::pullFlash(
+                    'success'
+                ),
 
                 'error'
-                    => Session::pullFlash(
-                        'error'
-                    ),
+                => Session::pullFlash(
+                    'error'
+                ),
             ]
         );
     }
@@ -94,11 +94,11 @@ class VacunacionController extends Controller
         try {
             $eventId
                 = (new PreventiveCareService())
-                    ->createVaccination(
-                        $request->all(),
-                        active_environment_id(),
-                        auth_id()
-                    );
+                ->createVaccination(
+                    $request->all(),
+                    active_environment_id(),
+                    auth_id()
+                );
 
             Session::flash(
                 'success',
@@ -107,13 +107,13 @@ class VacunacionController extends Controller
 
             $patientId
                 = (int)
-                    $request->input(
-                        'animal_id'
-                    );
+                $request->input(
+                    'animal_id'
+                );
 
             $this->redirect(
                 '/pacientes/'
-                . $patientId
+                    . $patientId
             );
         } catch (Throwable $e) {
             Session::flash(

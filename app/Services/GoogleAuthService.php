@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use Google\Client as GoogleClient;
@@ -20,12 +21,15 @@ class GoogleAuthService
         $client->setClientId($_ENV['GOOGLE_CLIENT_ID'] ?? '');
         $client->setClientSecret($_ENV['GOOGLE_CLIENT_SECRET'] ?? '');
         $client->setRedirectUri($_ENV['GOOGLE_REDIRECT_URI'] ?? '');
-        $client->setScopes(['openid','email','profile']);
+        $client->setScopes(['openid', 'email', 'profile']);
         $client->setPrompt('select_account');
         return $client;
     }
 
-    public function authorizationUrl(): string { return $this->client()->createAuthUrl(); }
+    public function authorizationUrl(): string
+    {
+        return $this->client()->createAuthUrl();
+    }
 
     public function authenticateCode(string $code): ?array
     {
@@ -42,11 +46,11 @@ class GoogleAuthService
         $user = (new User())->findByEmail($googleUser->email);
         if (!$user) return null;
 
-        $this->linkIdentity((int)$user['id'],(string)$googleUser->id,(string)$googleUser->email);
+        $this->linkIdentity((int)$user['id'], (string)$googleUser->id, (string)$googleUser->email);
         return $user;
     }
 
-    private function linkIdentity(int $userId,string $subject,string $email): void
+    private function linkIdentity(int $userId, string $subject, string $email): void
     {
         $db = Database::connection();
         $providerId = (int)$db->query("SELECT id FROM proveedores_autenticacion WHERE codigo='GOOGLE' LIMIT 1")->fetchColumn();
@@ -63,7 +67,10 @@ class GoogleAuthService
              activo=1"
         );
         $stmt->execute([
-            'usuario'=>$userId,'proveedor'=>$providerId,'subject'=>$subject,'email'=>$email
+            'usuario' => $userId,
+            'proveedor' => $providerId,
+            'subject' => $subject,
+            'email' => $email
         ]);
     }
 }

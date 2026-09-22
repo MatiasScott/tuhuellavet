@@ -1,11 +1,79 @@
 <?php
-namespace App\Services;use App\Core\Database;use PDO;use RuntimeException;
+
+namespace App\Services;
+
+use App\Core\Database;
+use PDO;
+use RuntimeException;
+
 class AdminService
 {
- public function createUser(array $d,int $env,int $by):array{return Database::transaction(function(PDO $db)use($d,$env,$by){$email=trim((string)($d['email']??''));if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Correo inválido.');$pass=(string)($d['password_temporal']??'');if(strlen($pass)<8)$pass='Vet#'.bin2hex(random_bytes(4));$db->prepare('INSERT INTO usuarios(nombres,apellidos,email,telefono,password_hash,requiere_cambio_password,activo) VALUES(:n,:a,:e,:t,:p,1,1)')->execute(['n'=>trim((string)$d['nombres']),'a'=>trim((string)$d['apellidos']),'e'=>$email,'t'=>trim((string)($d['telefono']??''))?:null,'p'=>password_hash($pass,PASSWORD_DEFAULT)]);$id=(int)$db->lastInsertId();$role=(int)($d['rol_id']??0);if($role && empty(auth_user()['is_super_admin'])){$rs=$db->prepare('SELECT codigo FROM roles WHERE id=:r');$rs->execute(['r'=>$role]);if($rs->fetchColumn()!=='CLIENTE')throw new RuntimeException('El Administrador solo puede crear usuarios con rol Cliente.');}if($role){$db->prepare('INSERT INTO usuarios_entornos(usuario_id,entorno_id,activo) VALUES(:u,:e,1)')->execute(['u'=>$id,'e'=>$env]);$db->prepare('INSERT INTO usuarios_entornos_roles(usuario_id,entorno_id,rol_id) VALUES(:u,:e,:r)')->execute(['u'=>$id,'e'=>$env,'r'=>$role]);}(new AuditService())->log($by,$env,'USUARIOS','CREAR','usuarios',$id);return['id'=>$id,'password'=>$pass];});}
- public function saveRolePermissions(int $role,array $permissionIds,int $env,int $by):void{Database::transaction(function(PDO $db)use($role,$permissionIds,$env,$by){$s=$db->prepare('SELECT protegido,codigo FROM roles WHERE id=:r');$s->execute(['r'=>$role]);$rr=$s->fetch();if(!$rr)throw new RuntimeException('Rol no encontrado.');if($rr['codigo']==='SUPER_ADMINISTRADOR')throw new RuntimeException('El Super Administrador no requiere matriz de permisos.');$db->prepare('DELETE FROM rol_permisos WHERE rol_id=:r')->execute(['r'=>$role]);$i=$db->prepare('INSERT INTO rol_permisos(rol_id,permiso_id) VALUES(:r,:p)');foreach(array_unique(array_map('intval',$permissionIds)) as $p)if($p>0)$i->execute(['r'=>$role,'p'=>$p]);(new AuditService())->log($by,$env,'PERMISOS','ASIGNAR','rol_permisos',$role);});}
- public function createCompany(array $d,int $by):int{$db=Database::connection();$db->prepare('INSERT INTO empresas(nombre,nombre_comercial,razon_social,identificacion_fiscal,email,telefono,direccion,activo) VALUES(:n,:nc,:r,:i,:e,:t,:d,1)')->execute(['n'=>trim((string)$d['nombre']),'nc'=>trim((string)($d['nombre_comercial']??''))?:null,'r'=>trim((string)($d['razon_social']??''))?:null,'i'=>trim((string)($d['identificacion_fiscal']??''))?:null,'e'=>trim((string)($d['email']??''))?:null,'t'=>trim((string)($d['telefono']??''))?:null,'d'=>trim((string)($d['direccion']??''))?:null]);$id=(int)$db->lastInsertId();(new AuditService())->log($by,null,'EMPRESAS','CREAR','empresas',$id);return$id;}
+    public function createUser(array $d, int $env, int $by): array
+    {
+        return Database::transaction(function (PDO $db) use ($d, $env, $by) {
+            $email = trim((string)($d['email'] ?? ''));
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new RuntimeException('Correo inválido.');
+            $pass = (string)($d['password_temporal'] ?? '');
+            if (strlen($pass) < 8) $pass = 'Vet#' . bin2hex(random_bytes(4));
+            $db->prepare('INSERT INTO usuarios(nombres,apellidos,email,telefono,password_hash,requiere_cambio_password,activo) VALUES(:n,:a,:e,:t,:p,1,1)')->execute(['n' => trim((string)$d['nombres']), 'a' => trim((string)$d['apellidos']), 'e' => $email, 't' => trim((string)($d['telefono'] ?? '')) ?: null, 'p' => password_hash($pass, PASSWORD_DEFAULT)]);
+            $id = (int)$db->lastInsertId();
+            $role = (int)($d['rol_id'] ?? 0);
+            if ($role && empty(auth_user()['is_super_admin'])) {
+                $rs = $db->prepare('SELECT codigo FROM roles WHERE id=:r');
+                $rs->execute(['r' => $role]);
+                if ($rs->fetchColumn() !== 'CLIENTE') throw new RuntimeException('El Administrador solo puede crear usuarios con rol Cliente.');
+            }
+            if ($role) {
+                $db->prepare('INSERT INTO usuarios_entornos(usuario_id,entorno_id,activo) VALUES(:u,:e,1)')->execute(['u' => $id, 'e' => $env]);
+                $db->prepare('INSERT INTO usuarios_entornos_roles(usuario_id,entorno_id,rol_id) VALUES(:u,:e,:r)')->execute(['u' => $id, 'e' => $env, 'r' => $role]);
+            }
+            (new AuditService())->log($by, $env, 'USUARIOS', 'CREAR', 'usuarios', $id);
+            return ['id' => $id, 'password' => $pass];
+        });
+    }
+    public function saveRolePermissions(int $role, array $permissionIds, int $env, int $by): void
+    {
+        Database::transaction(function (PDO $db) use ($role, $permissionIds, $env, $by) {
+            $s = $db->prepare('SELECT protegido,codigo FROM roles WHERE id=:r');
+            $s->execute(['r' => $role]);
+            $rr = $s->fetch();
+            if (!$rr) throw new RuntimeException('Rol no encontrado.');
+            if ($rr['codigo'] === 'SUPER_ADMINISTRADOR') throw new RuntimeException('El Super Administrador no requiere matriz de permisos.');
+            $db->prepare('DELETE FROM rol_permisos WHERE rol_id=:r')->execute(['r' => $role]);
+            $i = $db->prepare('INSERT INTO rol_permisos(rol_id,permiso_id) VALUES(:r,:p)');
+            foreach (array_unique(array_map('intval', $permissionIds)) as $p) if ($p > 0) $i->execute(['r' => $role, 'p' => $p]);
+            (new AuditService())->log($by, $env, 'PERMISOS', 'ASIGNAR', 'rol_permisos', $role);
+        });
+    }
+    public function createCompany(array $d, int $by): int
+    {
+        $db = Database::connection();
+        $db->prepare('INSERT INTO empresas(nombre,nombre_comercial,razon_social,identificacion_fiscal,email,telefono,direccion,activo) VALUES(:n,:nc,:r,:i,:e,:t,:d,1)')->execute(['n' => trim((string)$d['nombre']), 'nc' => trim((string)($d['nombre_comercial'] ?? '')) ?: null, 'r' => trim((string)($d['razon_social'] ?? '')) ?: null, 'i' => trim((string)($d['identificacion_fiscal'] ?? '')) ?: null, 'e' => trim((string)($d['email'] ?? '')) ?: null, 't' => trim((string)($d['telefono'] ?? '')) ?: null, 'd' => trim((string)($d['direccion'] ?? '')) ?: null]);
+        $id = (int)$db->lastInsertId();
+        (new AuditService())->log($by, null, 'EMPRESAS', 'CREAR', 'empresas', $id);
+        return $id;
+    }
 
- public function createRole(array $d,int $env,int $by):int{$db=Database::connection();$code=strtoupper(trim((string)($d['codigo']??'')));$name=trim((string)($d['nombre']??''));if(!$code||!$name)throw new RuntimeException('Código y nombre son obligatorios.');$db->prepare('INSERT INTO roles(codigo,nombre,descripcion,es_global,protegido,activo) VALUES(:c,:n,:d,0,0,1)')->execute(['c'=>$code,'n'=>$name,'d'=>trim((string)($d['descripcion']??''))?:null]);$id=(int)$db->lastInsertId();(new AuditService())->log($by,$env,'ROLES','CREAR','roles',$id);return$id;}
- public function createEnvironment(array $d,int $by):int{$db=Database::connection();$company=(int)($d['empresa_id']??0);$type=(int)($d['tipo_entorno_id']??0);if(!$company||!$type)throw new RuntimeException('Empresa y tipo son obligatorios.');$db->prepare('INSERT INTO entornos(empresa_id,tipo_entorno_id,nombre,codigo,descripcion,es_productivo,permite_facturacion_real,activo) VALUES(:e,:t,:n,:c,:d,:p,:f,1)')->execute(['e'=>$company,'t'=>$type,'n'=>trim((string)$d['nombre']),'c'=>strtoupper(trim((string)$d['codigo'])),'d'=>trim((string)($d['descripcion']??''))?:null,'p'=>!empty($d['es_productivo'])?1:0,'f'=>!empty($d['permite_facturacion_real'])?1:0]);$id=(int)$db->lastInsertId();(new AuditService())->log($by,null,'EMPRESAS','CREAR_ENTORNO','entornos',$id);return$id;}
+    public function createRole(array $d, int $env, int $by): int
+    {
+        $db = Database::connection();
+        $code = strtoupper(trim((string)($d['codigo'] ?? '')));
+        $name = trim((string)($d['nombre'] ?? ''));
+        if (!$code || !$name) throw new RuntimeException('Código y nombre son obligatorios.');
+        $db->prepare('INSERT INTO roles(codigo,nombre,descripcion,es_global,protegido,activo) VALUES(:c,:n,:d,0,0,1)')->execute(['c' => $code, 'n' => $name, 'd' => trim((string)($d['descripcion'] ?? '')) ?: null]);
+        $id = (int)$db->lastInsertId();
+        (new AuditService())->log($by, $env, 'ROLES', 'CREAR', 'roles', $id);
+        return $id;
+    }
+    public function createEnvironment(array $d, int $by): int
+    {
+        $db = Database::connection();
+        $company = (int)($d['empresa_id'] ?? 0);
+        $type = (int)($d['tipo_entorno_id'] ?? 0);
+        if (!$company || !$type) throw new RuntimeException('Empresa y tipo son obligatorios.');
+        $db->prepare('INSERT INTO entornos(empresa_id,tipo_entorno_id,nombre,codigo,descripcion,es_productivo,permite_facturacion_real,activo) VALUES(:e,:t,:n,:c,:d,:p,:f,1)')->execute(['e' => $company, 't' => $type, 'n' => trim((string)$d['nombre']), 'c' => strtoupper(trim((string)$d['codigo'])), 'd' => trim((string)($d['descripcion'] ?? '')) ?: null, 'p' => !empty($d['es_productivo']) ? 1 : 0, 'f' => !empty($d['permite_facturacion_real']) ? 1 : 0]);
+        $id = (int)$db->lastInsertId();
+        (new AuditService())->log($by, null, 'EMPRESAS', 'CREAR_ENTORNO', 'entornos', $id);
+        return $id;
+    }
 }

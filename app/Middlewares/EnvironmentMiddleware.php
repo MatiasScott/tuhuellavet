@@ -16,7 +16,7 @@ class EnvironmentMiddleware
         if ($environmentId === null) {
             header(
                 'Location: '
-                . url('/seleccionar-entorno')
+                    . url('/seleccionar-entorno')
             );
             exit;
         }

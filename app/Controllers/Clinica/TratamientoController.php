@@ -47,7 +47,7 @@ class TratamientoController extends Controller
 
         $this->redirect(
             '/consultas/'
-            . (int) $eventId
+                . (int) $eventId
         );
     }
 
@@ -72,25 +72,25 @@ class TratamientoController extends Controller
                     (int) $medicationId,
 
                     (float)
-                        $request->input(
-                            'cantidad_aplicada'
-                        ),
+                    $request->input(
+                        'cantidad_aplicada'
+                    ),
 
                     $request->input(
                         'unidad_id'
                     )
                         ? (int)
-                            $request->input(
-                                'unidad_id'
-                            )
+                        $request->input(
+                            'unidad_id'
+                        )
                         : null,
 
                     trim(
                         (string)
-                            $request->input(
-                                'observaciones',
-                                ''
-                            )
+                        $request->input(
+                            'observaciones',
+                            ''
+                        )
                     )
                         ?: null,
 
@@ -112,7 +112,7 @@ class TratamientoController extends Controller
 
         $this->redirect(
             '/consultas/'
-            . (int) $eventId
+                . (int) $eventId
         );
     }
 }

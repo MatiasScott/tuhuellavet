@@ -307,37 +307,24 @@ class FormulaTestService
                     'El resultado esperado no es válido.'
                 );
             }
-
             $difference = abs(
                 $result - $expected
             );
-
             $matches = $difference <= $tolerance;
         }
 
         return [
             'formula' => $version['nombre'],
-
             'version' => $version['numero_version'],
-
             'state' => $version['estado'],
-
             'expression' => $version['expresion'],
-
             'variables' => $resolved,
-
             'result' => $result,
-
             'unit' => $version['unidad'],
-
             'expected' => $expected,
-
             'difference' => $difference,
-
             'matches' => $matches,
-
             'tolerance' => $tolerance,
-
             'simulation' => true,
         ];
     }

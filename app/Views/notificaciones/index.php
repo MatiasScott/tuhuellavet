@@ -1,1 +1,38 @@
-<div class="page-heading"><div><span class="eyebrow">Comunicaciones</span><h1>Notificaciones</h1><p>Cola de email, WhatsApp e internas.</p></div><form method="POST" action="<?=url('/notificaciones/procesar')?>"><?=csrf_field()?><button class="btn btn-primary">Procesar cola</button></form></div><section class="card"><div class="table-wrap"><table class="modern-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Canal</th><th>Asunto</th><th>Estado</th><th>Intentos</th></tr></thead><tbody><?php foreach($notifications as $n):?><tr><td><?=e($n['created_at'])?></td><td><?=e($n['tipo'])?></td><td><?=e($n['canal'])?></td><td><?=e($n['asunto']??'—')?></td><td><?=e($n['estado'])?></td><td><?=e($n['intentos'])?></td></tr><?php endforeach;?></tbody></table></div></section>
+<div class="page-heading">
+    <div><span class="eyebrow">Comunicaciones</span>
+        <h1>Notificaciones</h1>
+        <p>Cola de email, WhatsApp e internas.</p>
+    </div>
+    <form method="POST" action="<?= url('/notificaciones/procesar') ?>">
+        <?= csrf_field() ?>
+        <button class="btn btn-primary">Procesar cola</button>
+    </form>
+</div>
+<section class="card">
+    <div class="table-wrap">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Tipo</th>
+                    <th>Canal</th>
+                    <th>Asunto</th>
+                    <th>Estado</th>
+                    <th>Intentos</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($notifications as $n): ?>
+                    <tr>
+                        <td><?= e($n['created_at']) ?></td>
+                        <td><?= e($n['tipo']) ?></td>
+                        <td><?= e($n['canal']) ?></td>
+                        <td><?= e($n['asunto'] ?? '—') ?></td>
+                        <td><?= e($n['estado']) ?></td>
+                        <td><?= e($n['intentos']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</section>

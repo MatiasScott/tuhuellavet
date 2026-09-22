@@ -53,7 +53,7 @@ class DashboardController extends Controller
                         INTERVAL 7 DAY
                     )
                 '
-                    );
+        );
 
         $s->execute([
             'e' => $e,

@@ -3,10 +3,20 @@
     <div><span class="eyebrow">Atención clínica</span>
         <h1>Consultas externas</h1>
         <p>Anamnesis, examen clínico, diagnóstico y tratamiento.</p>
-    </div><?php if (can('consultas.crear')): ?><button class="btn btn-primary" data-modal-open="consult-create">＋ Nueva consulta</button><?php endif; ?>
-</div><?php if ($success): ?><div class="alert alert-success"><?= e($success) ?></div><?php endif; ?><?php if ($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?><section class="card">
+    </div><?php if (can('consultas.crear')): ?>
+        <button class="btn btn-primary" data-modal-open="consult-create">＋ Nueva consulta</button>
+    <?php endif; ?>
+</div>
+<?php if ($success): ?>
+    <div class="alert alert-success"><?= e($success) ?></div>
+<?php endif; ?>
+<?php if ($error): ?>
+    <div class="alert alert-danger"><?= e($error) ?></div>
+<?php endif; ?>
+<section class="card">
     <form class="toolbar">
-        <div class="search-box">🔎<input name="q" value="<?= e($search) ?>" placeholder="Buscar..."></div><button class="btn btn-secondary">Buscar</button>
+        <div class="search-box">🔎<input name="q" value="<?= e($search) ?>" placeholder="Buscar..."></div>
+        <button class="btn btn-secondary">Buscar</button>
     </form>
     <div class="table-wrap">
         <table class="modern-table">
@@ -43,9 +53,12 @@
     <div class="modal-backdrop"></div>
     <div class="modal-dialog modal-xl">
         <div class="modal-header">
-            <h2>Nueva consulta</h2><button class="modal-close" data-modal-close>×</button>
+            <h2>Nueva consulta</h2>
+            <button class="modal-close" data-modal-close>×</button>
         </div>
-        <form method="POST" action="<?= url('/consultas') ?>"><?= csrf_field() ?><div class="modal-body">
+        <form method="POST" action="<?= url('/consultas') ?>">
+            <?= csrf_field() ?>
+            <div class="modal-body">
                 <div class="form-grid">
                     <label class="field-full">
                         <span>Paciente *</span>

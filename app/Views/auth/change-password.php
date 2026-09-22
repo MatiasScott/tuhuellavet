@@ -1,1 +1,20 @@
-<div class="auth-card"><div class="auth-logo">🔐</div><h1>Cambiar contraseña</h1><p>Define una contraseña segura para continuar.</p><?php if(!empty($error)):?><div class="alert alert-danger"><?=e($error)?></div><?php endif;?><form class="form-stack" method="POST" action="<?=url('/cambiar-password')?>"><?=csrf_field()?><label><span>Nueva contraseña</span><input type="password" name="password" minlength="8" required></label><label><span>Confirmar contraseña</span><input type="password" name="password_confirmation" minlength="8" required></label><button class="btn btn-primary btn-block">Guardar contraseña</button></form></div>
+<div class="auth-card">
+    <div class="auth-logo">🔐</div>
+    <h1>Cambiar contraseña</h1>
+    <p>Define una contraseña segura para continuar.</p>
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-danger"><?= e($error) ?></div>
+    <?php endif; ?>
+    <form class="form-stack" method="POST" action="<?= url('/cambiar-password') ?>">
+        <?= csrf_field() ?>
+        <label>
+            <span>Nueva contraseña</span>
+            <input type="password" name="password" minlength="8" required>
+        </label>
+        <label>
+            <span>Confirmar contraseña</span>
+            <input type="password" name="password_confirmation" minlength="8" required>
+        </label>
+        <button class="btn btn-primary btn-block">Guardar contraseña</button>
+    </form>
+</div>

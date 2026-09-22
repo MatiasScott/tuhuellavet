@@ -140,32 +140,32 @@ class ContificoService
 
         $options = [
             CURLOPT_URL
-                => $url,
+            => $url,
 
             CURLOPT_RETURNTRANSFER
-                => true,
+            => true,
 
             CURLOPT_CUSTOMREQUEST
-                => strtoupper($method),
+            => strtoupper($method),
 
             CURLOPT_HTTPHEADER
-                => $headers,
+            => $headers,
 
             CURLOPT_CONNECTTIMEOUT
-                => 10,
+            => 10,
 
             CURLOPT_TIMEOUT
-                => $this->timeout,
+            => $this->timeout,
 
             CURLOPT_FOLLOWLOCATION
-                => false,
+            => false,
         ];
 
         if ($payload !== null) {
             $json = json_encode(
                 $payload,
                 JSON_UNESCAPED_UNICODE
-                | JSON_UNESCAPED_SLASHES
+                    | JSON_UNESCAPED_SLASHES
             );
 
             if ($json === false) {
@@ -174,9 +174,7 @@ class ContificoService
                 );
             }
 
-            $options[
-                CURLOPT_POSTFIELDS
-            ] = $json;
+            $options[CURLOPT_POSTFIELDS] = $json;
         }
 
         curl_setopt_array(
@@ -199,15 +197,15 @@ class ContificoService
 
             throw new RuntimeException(
                 'Error de conexión con Contífico: '
-                . $error
+                    . $error
             );
         }
 
         $statusCode = (int)
-            curl_getinfo(
-                $curl,
-                CURLINFO_HTTP_CODE
-            );
+        curl_getinfo(
+            $curl,
+            CURLINFO_HTTP_CODE
+        );
 
         curl_close(
             $curl
@@ -230,7 +228,7 @@ class ContificoService
             $response !== ''
             && $decoded === null
             && json_last_error()
-                !== JSON_ERROR_NONE
+            !== JSON_ERROR_NONE
         ) {
             $decoded = [
                 'raw' => $response,
@@ -303,7 +301,7 @@ class ContificoService
             $json = json_encode(
                 $response,
                 JSON_UNESCAPED_UNICODE
-                | JSON_UNESCAPED_SLASHES
+                    | JSON_UNESCAPED_SLASHES
             );
 
             if ($json !== false) {
@@ -385,7 +383,7 @@ class ContificoService
             'persona/',
             [
                 'pos'
-                    => $this->posToken,
+                => $this->posToken,
             ],
             $data
         );
@@ -423,10 +421,10 @@ class ContificoService
             'producto/',
             [
                 'page'
-                    => max(
-                        1,
-                        $page
-                    ),
+                => max(
+                    1,
+                    $page
+                ),
             ]
         );
     }
@@ -454,7 +452,7 @@ class ContificoService
             'producto/',
             [
                 'pos'
-                    => $this->posToken,
+                => $this->posToken,
             ],
             $data
         );
@@ -492,10 +490,10 @@ class ContificoService
             'documento/',
             [
                 'page'
-                    => max(
-                        1,
-                        $page
-                    ),
+                => max(
+                    1,
+                    $page
+                ),
             ]
         );
     }
@@ -641,7 +639,6 @@ class ContificoService
                 throw new RuntimeException(
                     'Documento pendiente de construir y validar antes de emisión.'
                 );
-
             } catch (Throwable $e) {
                 $update = $db->prepare(
                     '
@@ -660,10 +657,10 @@ class ContificoService
 
                 $update->execute([
                     'error'
-                        => $e->getMessage(),
+                    => $e->getMessage(),
 
                     'id'
-                        => $row['id'],
+                    => $row['id'],
                 ]);
 
                 $failed++;
@@ -672,13 +669,13 @@ class ContificoService
 
         return [
             'processed'
-                => count($rows),
+            => count($rows),
 
             'sent'
-                => $sent,
+            => $sent,
 
             'failed'
-                => $failed,
+            => $failed,
         ];
     }
 }

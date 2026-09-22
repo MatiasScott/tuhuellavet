@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Core;
 
 class Request
@@ -18,7 +19,7 @@ class Request
 
         if ($method === 'POST' && isset($_POST['_method'])) {
             $override = strtoupper((string)$_POST['_method']);
-            if (in_array($override, ['PUT','PATCH','DELETE'], true)) {
+            if (in_array($override, ['PUT', 'PATCH', 'DELETE'], true)) {
                 $method = $override;
             }
         }
@@ -36,10 +37,28 @@ class Request
         return new self($method, $requestPath, $_GET, $_POST, $_FILES, $_SERVER);
     }
 
-    public function method(): string { return $this->method; }
-    public function uri(): string { return $this->uri === '//' ? '/' : $this->uri; }
-    public function input(string $key, mixed $default = null): mixed { return $this->body[$key] ?? $this->query[$key] ?? $default; }
-    public function all(): array { return array_merge($this->query, $this->body); }
-    public function files(): array { return $this->files; }
-    public function server(string $key, mixed $default = null): mixed { return $this->server[$key] ?? $default; }
+    public function method(): string
+    {
+        return $this->method;
+    }
+    public function uri(): string
+    {
+        return $this->uri === '//' ? '/' : $this->uri;
+    }
+    public function input(string $key, mixed $default = null): mixed
+    {
+        return $this->body[$key] ?? $this->query[$key] ?? $default;
+    }
+    public function all(): array
+    {
+        return array_merge($this->query, $this->body);
+    }
+    public function files(): array
+    {
+        return $this->files;
+    }
+    public function server(string $key, mixed $default = null): mixed
+    {
+        return $this->server[$key] ?? $default;
+    }
 }

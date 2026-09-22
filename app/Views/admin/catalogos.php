@@ -1,1 +1,68 @@
-<div class="page-heading"><div><span class="eyebrow">Configuración clínica</span><h1>Catálogos</h1><p>Especies, razas, vacunas, fármacos, laboratorio y procedimientos.</p></div></div><?php if($success):?><div class="alert alert-success"><?=e($success)?></div><?php endif;?><?php if($error):?><div class="alert alert-danger"><?=e($error)?></div><?php endif;?><div class="cards-grid"><?php foreach([['Especies','especie'],['Razas','raza'],['Vacunas','vacuna'],['Fármacos','farmaco'],['Tipos de examen','laboratorio'],['Procedimientos quirúrgicos','cirugia']] as [$title,$type]):?><section class="card"><div class="card-header"><h2><?=e($title)?></h2></div><form method="POST" action="<?=url('/admin/catalogos/'.$type)?>" class="form-stack"><?=csrf_field()?><?php if($type==='especie'):?><label><span>Categoría</span><select name="categoria_id"><?php foreach($categories as $x):?><option value="<?=$x['id']?>"><?=e($x['nombre'])?></option><?php endforeach;?></select></label><label><span>Código</span><input name="codigo" required></label><label><span>Nombre</span><input name="nombre" required></label><label><span>Nombre científico</span><input name="nombre_cientifico"></label><?php elseif($type==='raza'):?><label><span>Especie</span><select name="especie_id"><?php foreach($species as $x):?><option value="<?=$x['id']?>"><?=e($x['nombre_comun'])?></option><?php endforeach;?></select></label><label><span>Nombre</span><input name="nombre" required></label><?php else:?><label><span>Nombre</span><input name="nombre" required></label><label><span>Descripción</span><textarea name="descripcion"></textarea></label><?php endif;?><button class="btn btn-primary">Agregar</button></form></section><?php endforeach;?></div>
+<div class="page-heading">
+    <div><span class="eyebrow">Configuración clínica</span>
+        <h1>Catálogos</h1>
+        <p>Especies, razas, vacunas, fármacos, laboratorio y procedimientos.</p>
+    </div>
+</div>
+<?php if ($success): ?>
+    <div class="alert alert-success"><?= e($success) ?></div>
+<?php endif; ?>
+<?php if ($error): ?>
+    <div class="alert alert-danger"><?= e($error) ?></div>
+<?php endif; ?>
+<div class="cards-grid">
+    <?php foreach ([['Especies', 'especie'], ['Razas', 'raza'], ['Vacunas', 'vacuna'], ['Fármacos', 'farmaco'], ['Tipos de examen', 'laboratorio'], ['Procedimientos quirúrgicos', 'cirugia']] as [$title, $type]): ?>
+        <section class="card">
+            <div class="card-header">
+                <h2><?= e($title) ?></h2>
+            </div>
+            <form method="POST" action="<?= url('/admin/catalogos/' . $type) ?>" class="form-stack">
+                <?= csrf_field() ?>
+                <?php if ($type === 'especie'): ?>
+                    <label>
+                        <span>Categoría</span>
+                        <select name="categoria_id">
+                            <?php foreach ($categories as $x): ?>
+                                <option value="<?= $x['id'] ?>"><?= e($x['nombre']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Código</span>
+                        <input name="codigo" required>
+                    </label>
+                    <label>
+                        <span>Nombre</span>
+                        <input name="nombre" required>
+                    </label>
+                    <label>
+                        <span>Nombre científico</span>
+                        <input name="nombre_cientifico">
+                    </label>
+                <?php elseif ($type === 'raza'): ?>
+                    <label>
+                        <span>Especie</span>
+                        <select name="especie_id">
+                            <?php foreach ($species as $x): ?>
+                                <option value="<?= $x['id'] ?>"><?= e($x['nombre_comun']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <label>
+                        <span>Nombre</span>
+                        <input name="nombre" required>
+                    </label>
+                <?php else: ?>
+                    <label>
+                        <span>Nombre</span>
+                        <input name="nombre" required>
+                    </label>
+                    <label>
+                        <span>Descripción</span>
+                        <textarea name="descripcion"></textarea>
+                    </label>
+                <?php endif; ?>
+                <button class="btn btn-primary">Agregar</button>
+            </form>
+        </section><?php endforeach; ?>
+</div>

@@ -10,12 +10,12 @@
     <div class="environment-grid">
         <?php foreach ($environments as $environment): ?>
             <?php
-                $icon = match ($environment['tipo_codigo'] ?? '') {
-                    'VETERINARIA' => '🐶',
-                    'HACIENDA' => '🐄',
-                    'ACADEMICO' => '🎓',
-                    default => '🐾',
-                };
+            $icon = match ($environment['tipo_codigo'] ?? '') {
+                'VETERINARIA' => '🐶',
+                'HACIENDA' => '🐄',
+                'ACADEMICO' => '🎓',
+                default => '🐾',
+            };
             ?>
             <form action="<?= url('/seleccionar-entorno') ?>" method="POST">
                 <?= csrf_field() ?>

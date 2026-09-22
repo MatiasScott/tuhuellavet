@@ -283,7 +283,7 @@ class PreventiveCare extends Model
 
         $stmt->execute([
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         return $stmt->fetchAll();
@@ -352,7 +352,7 @@ class PreventiveCare extends Model
 
         $stmt->execute([
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         return $stmt->fetchAll();

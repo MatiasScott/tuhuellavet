@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\User;
@@ -12,13 +13,13 @@ class AuthService
         $users = new User();
         $user = $users->findByEmail($email);
 
-        if (!$user || empty($user['password_hash']) || !password_verify($password,$user['password_hash'])) {
+        if (!$user || empty($user['password_hash']) || !password_verify($password, $user['password_hash'])) {
             return false;
         }
 
         $this->establishSession($user);
         $users->touchLastLogin((int)$user['id']);
-        (new AuditService())->log((int)$user['id'],null,'AUTH','LOGIN_LOCAL');
+        (new AuditService())->log((int)$user['id'], null, 'AUTH', 'LOGIN_LOCAL');
         return true;
     }
 
@@ -28,15 +29,15 @@ class AuthService
         $permissionService = new PermissionService();
         $isSuperAdmin = $permissionService->hasGlobalSuperAdmin((int)$user['id']);
 
-        Session::put('auth_user',[
-            'id'=>(int)$user['id'],
-            'name'=>trim($user['nombres'].' '.$user['apellidos']),
-            'email'=>$user['email'],
-            'photo'=>$user['foto_path'],
-            'requires_password_change'=>(bool)$user['requiere_cambio_password'],
-            'is_super_admin'=>$isSuperAdmin,
-            'roles'=>[],
-            'permissions'=>[],
+        Session::put('auth_user', [
+            'id' => (int)$user['id'],
+            'name' => trim($user['nombres'] . ' ' . $user['apellidos']),
+            'email' => $user['email'],
+            'photo' => $user['foto_path'],
+            'requires_password_change' => (bool)$user['requiere_cambio_password'],
+            'is_super_admin' => $isSuperAdmin,
+            'roles' => [],
+            'permissions' => [],
         ]);
 
         Session::forget('active_environment_id');
@@ -51,22 +52,22 @@ class AuthService
         $envModel = new Environment();
         $environment = !empty($user['is_super_admin'])
             ? $this->findAnyEnvironment($environmentId)
-            : $envModel->findForUser((int)$user['id'],$environmentId);
+            : $envModel->findForUser((int)$user['id'], $environmentId);
 
         if (!$environment) return false;
 
         $permissions = new PermissionService();
         $user['roles'] = !empty($user['is_super_admin'])
             ? ['SUPER_ADMINISTRADOR']
-            : $permissions->rolesForEnvironment((int)$user['id'],$environmentId);
+            : $permissions->rolesForEnvironment((int)$user['id'], $environmentId);
 
-        $user['permissions'] = $permissions->permissionsForEnvironment((int)$user['id'],$environmentId);
+        $user['permissions'] = $permissions->permissionsForEnvironment((int)$user['id'], $environmentId);
 
-        Session::put('auth_user',$user);
-        Session::put('active_environment_id',$environmentId);
-        Session::put('active_environment',$environment);
+        Session::put('auth_user', $user);
+        Session::put('active_environment_id', $environmentId);
+        Session::put('active_environment', $environment);
 
-        (new AuditService())->log((int)$user['id'],$environmentId,'AUTH','CAMBIAR_ENTORNO');
+        (new AuditService())->log((int)$user['id'], $environmentId, 'AUTH', 'CAMBIAR_ENTORNO');
         return true;
     }
 
@@ -80,7 +81,7 @@ class AuthService
 
     public function logout(): void
     {
-        if (auth_id()) (new AuditService())->log(auth_id(),active_environment_id(),'AUTH','LOGOUT');
+        if (auth_id()) (new AuditService())->log(auth_id(), active_environment_id(), 'AUTH', 'LOGOUT');
         Session::flush();
     }
 }

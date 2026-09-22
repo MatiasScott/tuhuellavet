@@ -71,42 +71,38 @@ class ConsultationService
 
                 $stmt->execute([
                     'animal'
-                        => $patientId,
+                    => $patientId,
 
                     'tipo'
-                        => $eventTypeId,
+                    => $eventTypeId,
 
                     'responsable'
-                        => $createdBy,
+                    => $createdBy,
 
                     'fecha'
-                        => !empty(
-                            $data['fecha_evento']
-                        )
-                            ? $data['fecha_evento']
-                            : date(
-                                'Y-m-d H:i:s'
-                            ),
+                    => !empty($data['fecha_evento'])
+                        ? $data['fecha_evento']
+                        : date(
+                            'Y-m-d H:i:s'
+                        ),
 
                     'titulo'
-                        => trim(
-                            $data['titulo']
+                    => trim(
+                        $data['titulo']
                             ?? ''
-                        )
-                            ?: 'Consulta externa',
+                    )
+                        ?: 'Consulta externa',
 
                     'observaciones'
-                        => trim(
-                            $data[
-                                'observaciones_evento'
-                            ]
+                    => trim(
+                        $data['observaciones_evento']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
                 ]);
 
                 $eventId = (int)
-                    $db->lastInsertId();
+                $db->lastInsertId();
 
                 /*
                  * Consulta.
@@ -134,43 +130,35 @@ class ConsultationService
 
                 $stmt->execute([
                     'evento'
-                        => $eventId,
+                    => $eventId,
 
                     'motivo'
-                        => trim(
-                            $data[
-                                'motivo_consulta'
-                            ]
+                    => trim(
+                        $data['motivo_consulta']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
 
                     'anamnesis'
-                        => trim(
-                            $data[
-                                'anamnesis'
-                            ]
+                    => trim(
+                        $data['anamnesis']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
 
                     'antecedentes'
-                        => trim(
-                            $data[
-                                'antecedentes'
-                            ]
+                    => trim(
+                        $data['antecedentes']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
 
                     'recomendaciones'
-                        => trim(
-                            $data[
-                                'recomendaciones'
-                            ]
+                    => trim(
+                        $data['recomendaciones']
                             ?? ''
-                        )
-                            ?: null,
+                    )
+                        ?: null,
                 ]);
 
                 /*
@@ -203,7 +191,7 @@ class ConsultationService
                     && $data['peso_kg'] !== ''
                 ) {
                     $weight = (float)
-                        $data['peso_kg'];
+                    $data['peso_kg'];
 
                     if ($weight <= 0) {
                         throw new RuntimeException(
@@ -236,16 +224,16 @@ class ConsultationService
 
                     $stmt->execute([
                         'animal'
-                            => $patientId,
+                        => $patientId,
 
                         'peso'
-                            => $weight,
+                        => $weight,
 
                         'usuario'
-                            => $createdBy,
+                        => $createdBy,
 
                         'observacion'
-                            => 'Peso registrado durante consulta externa.',
+                        => 'Peso registrado durante consulta externa.',
                     ]);
                 }
 
@@ -260,12 +248,10 @@ class ConsultationService
                         null,
                         [
                             'animal_id'
-                                => $patientId,
+                            => $patientId,
 
                             'motivo_consulta'
-                                => $data[
-                                    'motivo_consulta'
-                                ]
+                            => $data['motivo_consulta']
                                 ?? null,
                         ]
                     );
@@ -320,103 +306,81 @@ class ConsultationService
 
         $stmt->execute([
             'evento'
-                => $eventId,
+            => $eventId,
 
             'alimentacion'
-                => trim(
-                    $data['alimentacion']
+            => trim(
+                $data['alimentacion']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'historial_reproductivo'
-                => trim(
-                    $data[
-                        'historial_reproductivo'
-                    ]
+            => trim(
+                $data['historial_reproductivo']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'fc'
-                => $this->decimalOrNull(
-                    $data[
-                        'frecuencia_cardiaca'
-                    ]
+            => $this->decimalOrNull(
+                $data['frecuencia_cardiaca']
                     ?? null
-                ),
+            ),
 
             'fr'
-                => $this->decimalOrNull(
-                    $data[
-                        'frecuencia_respiratoria'
-                    ]
+            => $this->decimalOrNull(
+                $data['frecuencia_respiratoria']
                     ?? null
-                ),
+            ),
 
             'temperatura'
-                => $this->decimalOrNull(
-                    $data[
-                        'temperatura_c'
-                    ]
+            => $this->decimalOrNull(
+                $data['temperatura_c']
                     ?? null
-                ),
+            ),
 
             'tlc'
-                => $this->decimalOrNull(
-                    $data[
-                        'tiempo_llenado_capilar_seg'
-                    ]
+            => $this->decimalOrNull(
+                $data['tiempo_llenado_capilar_seg']
                     ?? null
-                ),
+            ),
 
             'ganglios'
-                => trim(
-                    $data[
-                        'ganglios_linfaticos'
-                    ]
+            => trim(
+                $data['ganglios_linfaticos']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'condicion'
-                => trim(
-                    $data[
-                        'condicion_corporal'
-                    ]
+            => trim(
+                $data['condicion_corporal']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
 
             'vomitos'
-                => !empty(
-                    $data['vomitos']
-                )
-                    ? 1
-                    : 0,
+            => !empty($data['vomitos'])
+                ? 1
+                : 0,
 
             'diarrea'
-                => !empty(
-                    $data['diarrea']
-                )
-                    ? 1
-                    : 0,
+            => !empty($data['diarrea'])
+                ? 1
+                : 0,
 
             'tos'
-                => !empty(
-                    $data['tos']
-                )
-                    ? 1
-                    : 0,
+            => !empty($data['tos'])
+                ? 1
+                : 0,
 
             'observaciones'
-                => trim(
-                    $data[
-                        'examen_observaciones'
-                    ]
+            => trim(
+                $data['examen_observaciones']
                     ?? ''
-                )
-                    ?: null,
+            )
+                ?: null,
         ]);
     }
 
@@ -429,13 +393,13 @@ class ConsultationService
     ): void {
         $map = [
             'diagnostico_diferencial'
-                => 'DIFERENCIAL',
+            => 'DIFERENCIAL',
 
             'diagnostico_presuntivo'
-                => 'PRESUNTIVO',
+            => 'PRESUNTIVO',
 
             'diagnostico_definitivo'
-                => 'DEFINITIVO',
+            => 'DEFINITIVO',
         ];
 
         foreach (
@@ -480,16 +444,16 @@ class ConsultationService
 
             $stmt->execute([
                 'evento'
-                    => $eventId,
+                => $eventId,
 
                 'tipo'
-                    => $typeId,
+                => $typeId,
 
                 'descripcion'
-                    => $value,
+                => $value,
 
                 'usuario'
-                    => $createdBy,
+                => $createdBy,
             ]);
         }
     }
@@ -515,15 +479,15 @@ class ConsultationService
 
         $stmt->execute([
             'animal'
-                => $patientId,
+            => $patientId,
 
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         if (
             (int)
-                $stmt->fetchColumn()
+            $stmt->fetchColumn()
             === 0
         ) {
             throw new RuntimeException(

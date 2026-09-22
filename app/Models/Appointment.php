@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use App\Core\Model;
@@ -15,9 +16,9 @@ class Appointment extends Model
         return (int)$stmt->fetchColumn();
     }
 
-    public function nextToday(int $environmentId, int $limit=6): array
+    public function nextToday(int $environmentId, int $limit = 6): array
     {
-        $limit = max(1,min($limit,20));
+        $limit = max(1, min($limit, 20));
         $stmt = $this->db->prepare(
             "SELECT c.id,c.fecha_inicio,c.motivo,a.id AS animal_id,a.nombre AS animal,
                     e.nombre_comun AS especie,r.nombre AS raza,ec.nombre AS estado

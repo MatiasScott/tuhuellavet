@@ -21,10 +21,10 @@ class DesparasitacionController extends Controller
     ): void {
         $search = trim(
             (string)
-                $request->input(
-                    'q',
-                    ''
-                )
+            $request->input(
+                'q',
+                ''
+            )
         );
 
         $catalog = new Catalog();
@@ -33,47 +33,47 @@ class DesparasitacionController extends Controller
             'desparasitaciones/index',
             [
                 'title'
-                    => 'Desparasitación',
+                => 'Desparasitación',
 
                 'dewormings'
-                    => (new PreventiveCare())
-                        ->dewormingsByEnvironment(
-                            active_environment_id(),
-                            $search
-                        ),
+                => (new PreventiveCare())
+                    ->dewormingsByEnvironment(
+                        active_environment_id(),
+                        $search
+                    ),
 
                 'upcoming'
-                    => (new PreventiveCare())
-                        ->upcomingDewormings(
-                            active_environment_id()
-                        ),
+                => (new PreventiveCare())
+                    ->upcomingDewormings(
+                        active_environment_id()
+                    ),
 
                 'patients'
-                    => (new Patient())
-                        ->allByEnvironment(
-                            active_environment_id()
-                        ),
+                => (new Patient())
+                    ->allByEnvironment(
+                        active_environment_id()
+                    ),
 
                 'drugs'
-                    => $catalog
-                        ->drugs(),
+                => $catalog
+                    ->drugs(),
 
                 'units'
-                    => $catalog
-                        ->measurementUnits(),
+                => $catalog
+                    ->measurementUnits(),
 
                 'search'
-                    => $search,
+                => $search,
 
                 'success'
-                    => Session::pullFlash(
-                        'success'
-                    ),
+                => Session::pullFlash(
+                    'success'
+                ),
 
                 'error'
-                    => Session::pullFlash(
-                        'error'
-                    ),
+                => Session::pullFlash(
+                    'error'
+                ),
             ]
         );
     }
@@ -106,7 +106,7 @@ class DesparasitacionController extends Controller
 
             $this->redirect(
                 '/pacientes/'
-                . (int)
+                    . (int)
                     $request->input(
                         'animal_id'
                     )

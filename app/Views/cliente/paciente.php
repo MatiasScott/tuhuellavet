@@ -1,2 +1,39 @@
-<div class="page-heading"><div><span class="eyebrow">Mi animal</span><h1>🐾 <?=e($patient['nombre'])?></h1><p><?=e($patient['especie'])?><?=!empty($patient['raza'])?' · '.e($patient['raza']):''?></p></div><a class="btn btn-secondary" href="<?=url('/cliente')?>">← Mis animales</a></div><section class="card"><div class="card-header"><h2>Historial clínico</h2></div><div class="stack"><?php foreach($timeline as $e):?><div class="soft-panel"><strong><?=e($e['tipo_nombre']??$e['titulo']??'Evento')?></strong><span class="text-muted"> · <?=e(date('d/m/Y H:i',strtotime($e['fecha_evento'])))?></span><p><?=e($e['titulo']??'')?></p></div><?php endforeach;?></div></section>
-<?php if(!empty($success)):?><div class="alert alert-success"><?=e($success)?></div><?php endif;?><?php if(!empty($error)):?><div class="alert alert-danger"><?=e($error)?></div><?php endif;?><section class="card mt-1"><div class="card-header"><div><h2>Foto del paciente</h2><p>Puedes actualizar la foto de tu animal.</p></div></div><form method="POST" enctype="multipart/form-data" action="<?=url('/cliente/pacientes/'.$patient['id'].'/foto')?>" class="inline-actions"><?=csrf_field()?><input type="file" name="foto" accept="image/*" required><button class="btn btn-primary">Actualizar foto</button></form></section>
+<div class="page-heading">
+    <div>
+        <span class="eyebrow">Mi animal</span>
+        <h1>🐾 <?= e($patient['nombre']) ?></h1>
+        <p><?= e($patient['especie']) ?><?= !empty($patient['raza']) ? ' · ' . e($patient['raza']) : '' ?></p>
+    </div>
+    <a class="btn btn-secondary" href="<?= url('/cliente') ?>">← Mis animales</a>
+</div>
+<section class="card">
+    <div class="card-header">
+        <h2>Historial clínico</h2>
+    </div>
+    <div class="stack"><?php foreach ($timeline as $e): ?>
+            <div class="soft-panel">
+                <strong><?= e($e['tipo_nombre'] ?? $e['titulo'] ?? 'Evento') ?></strong>
+                <span class="text-muted"> · <?= e(date('d/m/Y H:i', strtotime($e['fecha_evento']))) ?></span>
+                <p><?= e($e['titulo'] ?? '') ?></p>
+            </div><?php endforeach; ?>
+    </div>
+</section>
+<?php if (!empty($success)): ?>
+    <div class="alert alert-success"><?= e($success) ?></div>
+<?php endif; ?>
+<?php if (!empty($error)): ?>
+    <div class="alert alert-danger"><?= e($error) ?></div>
+<?php endif; ?>
+<section class="card mt-1">
+    <div class="card-header">
+        <div>
+            <h2>Foto del paciente</h2>
+            <p>Puedes actualizar la foto de tu animal.</p>
+        </div>
+    </div>
+    <form method="POST" enctype="multipart/form-data" action="<?= url('/cliente/pacientes/' . $patient['id'] . '/foto') ?>" class="inline-actions">
+        <?= csrf_field() ?>
+        <input type="file" name="foto" accept="image/*" required>
+        <button class="btn btn-primary">Actualizar foto</button>
+    </form>
+</section>

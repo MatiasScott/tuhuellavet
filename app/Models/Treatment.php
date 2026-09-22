@@ -19,43 +19,32 @@ class Treatment extends Model
                 t.fecha_fin,
                 t.instrucciones_generales,
                 t.observaciones,
-
                 tt.codigo
                     AS tipo_codigo,
-
                 tt.nombre
                     AS tipo_nombre,
-
                 CONCAT(
                     u.nombres,
                     " ",
                     u.apellidos
                 ) AS indicado_por_nombre
-
             FROM tratamientos t
-
             INNER JOIN tipos_tratamiento tt
                 ON tt.id =
                    t.tipo_tratamiento_id
-
             INNER JOIN usuarios u
                 ON u.id =
                    t.indicado_por
-
             INNER JOIN eventos_clinicos ec
                 ON ec.id =
                    t.evento_clinico_id
-
             INNER JOIN animales a
                 ON a.id =
                    ec.animal_id
-
             WHERE t.evento_clinico_id
                 = :evento
-
               AND a.entorno_id
                 = :entorno
-
             ORDER BY
                 t.fecha_inicio,
                 t.id

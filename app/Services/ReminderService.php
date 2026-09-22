@@ -113,28 +113,16 @@ class ReminderService
          * no creamos recordatorios externos.
          */
         $ownerId
-            = !empty(
-                $patient[
-                    'propietario_id'
-                ]
-            )
-                ? (int)
-                    $patient[
-                        'propietario_id'
-                    ]
-                : null;
+            = !empty($patient['propietario_id'])
+            ? (int)
+            $patient['propietario_id']
+            : null;
 
         $userId
-            = !empty(
-                $patient[
-                    'propietario_usuario_id'
-                ]
-            )
-                ? (int)
-                    $patient[
-                        'propietario_usuario_id'
-                    ]
-                : null;
+            = !empty($patient['propietario_usuario_id'])
+            ? (int)
+            $patient['propietario_usuario_id']
+            : null;
 
         if (
             !$ownerId
@@ -170,11 +158,7 @@ class ReminderService
          * tiene email.
          */
         if (
-            !empty(
-                $patient[
-                    'propietario_email'
-                ]
-            )
+            !empty($patient['propietario_email'])
         ) {
             $this->insertNotification(
                 $db,
@@ -199,11 +183,7 @@ class ReminderService
          * WhatsApp si existe celular.
          */
         if (
-            !empty(
-                $patient[
-                    'propietario_celular'
-                ]
-            )
+            !empty($patient['propietario_celular'])
         ) {
             $this->insertNotification(
                 $db,
@@ -273,16 +253,16 @@ class ReminderService
 
         $check->execute([
             'tipo'
-                => $typeId,
+            => $typeId,
 
             'canal'
-                => $channelId,
+            => $channelId,
 
             'referencia_tipo'
-                => $referenceType,
+            => $referenceType,
 
             'referencia_id'
-                => $referenceId,
+            => $referenceId,
         ]);
 
         if (
@@ -328,36 +308,36 @@ class ReminderService
 
         $stmt->execute([
             'entorno'
-                => $environmentId,
+            => $environmentId,
 
             'tipo'
-                => $typeId,
+            => $typeId,
 
             'canal'
-                => $channelId,
+            => $channelId,
 
             'usuario'
-                => $userId,
+            => $userId,
 
             'propietario'
-                => $ownerId,
+            => $ownerId,
 
             'asunto'
-                => $subject,
+            => $subject,
 
             'mensaje'
-                => $message,
+            => $message,
 
             'fecha'
-                => $date->format(
-                    'Y-m-d H:i:s'
-                ),
+            => $date->format(
+                'Y-m-d H:i:s'
+            ),
 
             'referencia_tipo'
-                => $referenceType,
+            => $referenceType,
 
             'referencia_id'
-                => $referenceId,
+            => $referenceId,
         ]);
     }
 
@@ -402,7 +382,7 @@ class ReminderService
 
         $stmt->execute([
             'codigo'
-                => $code,
+            => $code,
         ]);
 
         $id = $stmt->fetchColumn();
@@ -410,7 +390,7 @@ class ReminderService
         if (!$id) {
             throw new \RuntimeException(
                 'No existe el Catálogo requerido: '
-                . $code
+                    . $code
             );
         }
 

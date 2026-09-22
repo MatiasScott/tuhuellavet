@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Core;
 
 abstract class Controller
@@ -11,7 +12,7 @@ abstract class Controller
             $env = active_environment();
             if (in_array('CLIENTE', $roles, true)) {
                 $layout = 'layouts/cliente';
-            } elseif (($env['tipo_codigo'] ?? '') === 'ACADEMICO' && (in_array('DOCENTE',$roles,true) || in_array('ESTUDIANTE',$roles,true))) {
+            } elseif (($env['tipo_codigo'] ?? '') === 'ACADEMICO' && (in_array('DOCENTE', $roles, true) || in_array('ESTUDIANTE', $roles, true))) {
                 $layout = 'layouts/academico';
             }
         }

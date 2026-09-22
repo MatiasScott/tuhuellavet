@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Controllers\Auth;
 
 use App\Core\Controller;
@@ -21,20 +22,22 @@ class EnvironmentController extends Controller
             $this->redirect('/dashboard');
         }
 
-        $this->view('auth/select-environment',[
-            'environments'=>$environments,
-            'error'=>Session::pullFlash('error'),
-        ],'layouts/auth');
+        $this->view('auth/select-environment', [
+            'environments' => $environments,
+            'error' => Session::pullFlash('error'),
+        ], 'layouts/auth');
     }
 
     public function select(Request $request): void
     {
         if (!Session::validateCsrf($request->input('_token'))) {
-            http_response_code(419); echo 'Sesión expirada.'; return;
+            http_response_code(419);
+            echo 'Sesión expirada.';
+            return;
         }
 
         if (!(new AuthService())->selectEnvironment((int)$request->input('entorno_id'))) {
-            Session::flash('error','No tienes acceso al entorno seleccionado.');
+            Session::flash('error', 'No tienes acceso al entorno seleccionado.');
             $this->redirect('/seleccionar-entorno');
         }
 

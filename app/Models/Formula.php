@@ -120,7 +120,7 @@ class Formula extends Model
         foreach ($rows as $row) {
             $formulaId
                 = (int)
-                    $row['formula_id'];
+                $row['formula_id'];
 
             if (
                 isset(
@@ -190,10 +190,10 @@ class Formula extends Model
 
         $stmt->execute([
             'version'
-                => $versionId,
+            => $versionId,
 
             'entorno'
-                => $environmentId,
+            => $environmentId,
         ]);
 
         return $stmt->fetch()
@@ -257,7 +257,7 @@ class Formula extends Model
 
         $stmt->execute([
             'version'
-                => $versionId,
+            => $versionId,
         ]);
 
         return $stmt->fetchAll();
