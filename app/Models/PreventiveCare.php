@@ -14,8 +14,11 @@ class PreventiveCare extends Model
             SELECT
                 vac.id,
                 vac.evento_clinico_id,
+                vac.vacuna_id,
                 vac.dosis,
+                vac.unidad_dosis_id,
                 vac.lote,
+                vac.casa_comercial,
                 vac.fecha_revacunacion,
                 vac.observaciones,
                 vac.created_at,
@@ -85,6 +88,7 @@ class PreventiveCare extends Model
                     a.nombre LIKE :q
                     OR v.nombre LIKE :q
                     OR vac.lote LIKE :q
+                    OR vac.casa_comercial LIKE :q
                     OR p.nombres LIKE :q
                     OR p.apellidos LIKE :q
                 )

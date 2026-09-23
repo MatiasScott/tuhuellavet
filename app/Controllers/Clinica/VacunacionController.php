@@ -126,4 +126,81 @@ class VacunacionController extends Controller
             );
         }
     }
+
+    public function update(
+        Request $request,
+        string $id
+    ): void {
+        if (
+            !Session::validateCsrf(
+                $request->input('_token')
+            )
+        ) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new PreventiveCareService())
+                ->updateVaccination(
+                    (int)$id,
+                    $request->all(),
+                    active_environment_id(),
+                    auth_id()
+                );
+
+            Session::flash(
+                'success',
+                'Vacunación actualizada correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect('/vacunas');
+    }
+
+    public function cancel(
+        Request $request,
+        string $id
+    ): void {
+        if (
+            !Session::validateCsrf(
+                $request->input('_token')
+            )
+        ) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new PreventiveCareService())
+                ->cancelVaccination(
+                    (int)$id,
+                    trim(
+                        (string)$request->input(
+                            'motivo_anulacion',
+                            ''
+                        )
+                    ),
+                    active_environment_id(),
+                    auth_id()
+                );
+
+            Session::flash(
+                'success',
+                'Vacunación anulada correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect('/vacunas');
+    }
 }

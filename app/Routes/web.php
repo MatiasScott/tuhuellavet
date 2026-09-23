@@ -193,6 +193,17 @@ $router->post(
     [VacunacionController::class, 'store'],
     ['auth', 'environment', 'permission:vacunas.crear']
 );
+$router->post(
+    '/vacunas/{id}/actualizar',
+    [VacunacionController::class, 'update'],
+    ['auth', 'environment', 'permission:vacunas.editar']
+);
+
+$router->post(
+    '/vacunas/{id}/anular',
+    [VacunacionController::class, 'cancel'],
+    ['auth', 'environment', 'permission:vacunas.eliminar']
+);
 
 // Desparasitación
 $router->get(

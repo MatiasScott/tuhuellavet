@@ -145,6 +145,7 @@ class PreventiveCareService
                         dosis,
                         unidad_dosis_id,
                         lote,
+                        casa_comercial,
                         fecha_revacunacion,
                         observaciones,
                         aplicada_por
@@ -156,6 +157,7 @@ class PreventiveCareService
                         :dosis,
                         :unidad,
                         :lote,
+                        :casa_comercial,
                         :revacunacion,
                         :observaciones,
                         :usuario
@@ -186,6 +188,13 @@ class PreventiveCareService
                     'lote'
                     => trim(
                         $data['lote']
+                            ?? ''
+                    )
+                        ?: null,
+
+                    'casa_comercial'
+                    => trim(
+                        $data['casa_comercial']
                             ?? ''
                     )
                         ?: null,
@@ -1052,6 +1061,354 @@ class PreventiveCareService
         }
 
         return $value;
+    }
+
+    public function updateVaccination(
+        int $vaccinationId,
+        array $data,
+        int $environmentId,
+        int $updatedBy
+    ): void {
+        Database::transaction(
+            function (PDO $db) use (
+                $vaccinationId,
+                $data,
+                $environmentId,
+                $updatedBy
+            ): void {
+                if ($vaccinationId <= 0) {
+                    throw new RuntimeException(
+                        'La vacunación es obligatoria.'
+                    );
+                }
+
+                $vaccineId = (int) (
+                    $data['vacuna_id']
+                    ?? 0
+                );
+
+                if ($vaccineId <= 0) {
+                    throw new RuntimeException(
+                        'Debes seleccionar una vacuna.'
+                    );
+                }
+
+                /*
+             * Validamos que la vacuna seleccionada
+             * continúe disponible.
+             */
+                $this->validateVaccine(
+                    $db,
+                    $vaccineId
+                );
+
+                /*
+             * Recuperamos y bloqueamos el registro.
+             */
+                $stmt = $db->prepare(
+                    '
+                SELECT
+                    vac.id,
+                    vac.evento_clinico_id,
+                    vac.vacuna_id,
+                    vac.dosis,
+                    vac.unidad_dosis_id,
+                    vac.lote,
+                    vac.casa_comercial,
+                    vac.fecha_revacunacion,
+                    vac.observaciones,
+
+                    ec.fecha_evento,
+                    ec.anulado_at,
+
+                    a.id AS animal_id,
+                    a.entorno_id
+
+                FROM vacunaciones vac
+
+                INNER JOIN eventos_clinicos ec
+                    ON ec.id =
+                       vac.evento_clinico_id
+
+                INNER JOIN animales a
+                    ON a.id =
+                       ec.animal_id
+
+                WHERE vac.id = :vacunacion
+
+                LIMIT 1
+
+                FOR UPDATE
+                '
+                );
+
+                $stmt->execute([
+                    'vacunacion'
+                    => $vaccinationId,
+                ]);
+
+                $current = $stmt->fetch();
+
+                if (!$current) {
+                    throw new RuntimeException(
+                        'Vacunación no encontrada.'
+                    );
+                }
+
+                if (
+                    (int)$current['entorno_id']
+                    !== $environmentId
+                ) {
+                    throw new RuntimeException(
+                        'La vacunación no pertenece al entorno actual.'
+                    );
+                }
+
+                if (!empty($current['anulado_at'])) {
+                    throw new RuntimeException(
+                        'No puedes editar una vacunación anulada.'
+                    );
+                }
+
+                /*
+             * Unidad opcional.
+             */
+                $unitId = !empty($data['unidad_dosis_id'])
+                    ? (int)$data['unidad_dosis_id']
+                    : null;
+
+                /*
+             * Datos normalizados.
+             */
+                $dose = $this->positiveNumberOrNull(
+                    $data['dosis']
+                        ?? null,
+                    'La dosis'
+                );
+
+                $lot = trim(
+                    (string)($data['lote'] ?? '')
+                );
+
+                $commercialHouse = trim(
+                    (string)($data['casa_comercial'] ?? '')
+                );
+
+                $observations = trim(
+                    (string)($data['observaciones'] ?? '')
+                );
+
+                $revaccinationDate =
+                    $this->dateOrNull(
+                        $data['fecha_revacunacion']
+                            ?? null
+                    );
+
+                /*
+             * Actualizamos vacunación.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE vacunaciones
+
+                SET
+                    vacuna_id = :vacuna,
+                    dosis = :dosis,
+                    unidad_dosis_id = :unidad,
+                    lote = :lote,
+                    casa_comercial = :casa_comercial,
+                    fecha_revacunacion = :revacunacion,
+                    observaciones = :observaciones
+
+                WHERE id = :id
+                '
+                );
+
+                $stmt->execute([
+                    'vacuna'
+                    => $vaccineId,
+
+                    'dosis'
+                    => $dose,
+
+                    'unidad'
+                    => $unitId,
+
+                    'lote'
+                    => $lot !== ''
+                        ? $lot
+                        : null,
+
+                    'casa_comercial'
+                    => $commercialHouse !== ''
+                        ? $commercialHouse
+                        : null,
+
+                    'revacunacion'
+                    => $revaccinationDate,
+
+                    'observaciones'
+                    => $observations !== ''
+                        ? $observations
+                        : null,
+
+                    'id'
+                    => $vaccinationId,
+                ]);
+
+                /*
+             * La fecha del evento también puede
+             * modificarse desde el formulario.
+             */
+                if (
+                    isset($data['fecha_evento'])
+                    && trim(
+                        (string)$data['fecha_evento']
+                    ) !== ''
+                ) {
+                    $stmt = $db->prepare(
+                        '
+                    UPDATE eventos_clinicos
+                    SET fecha_evento = :fecha
+                    WHERE id = :id
+                      AND anulado_at IS NULL
+                    '
+                    );
+
+                    $stmt->execute([
+                        'fecha'
+                        => $this->dateTimeOrNow(
+                            $data['fecha_evento']
+                        ),
+
+                        'id'
+                        => (int)$current['evento_clinico_id'],
+                    ]);
+                }
+
+                /*
+             * Cancelamos recordatorios pendientes
+             * anteriores.
+             *
+             * Los enviados/fallidos se conservan
+             * como histórico.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE notificaciones
+
+                SET estado = "CANCELADA"
+
+                WHERE referencia_tipo =
+                      "VACUNACION"
+
+                  AND referencia_id =
+                      :vacunacion
+
+                  AND entorno_id =
+                      :entorno
+
+                  AND estado IN (
+                      "PENDIENTE",
+                      "PROGRAMADA"
+                  )
+                '
+                );
+
+                $stmt->execute([
+                    'vacunacion'
+                    => $vaccinationId,
+
+                    'entorno'
+                    => $environmentId,
+                ]);
+
+                /*
+             * Si existe nueva fecha,
+             * reconstruimos el recordatorio.
+             */
+                if ($revaccinationDate !== null) {
+                    $patient = $this->validatePatient(
+                        $db,
+                        (int)$current['animal_id'],
+                        $environmentId
+                    );
+
+                    (new ReminderService())
+                        ->scheduleVaccinationReminder(
+                            $db,
+                            $environmentId,
+                            $patient,
+                            $vaccinationId,
+                            $revaccinationDate,
+                            $updatedBy
+                        );
+                }
+
+                /*
+             * Auditoría.
+             */
+                (new AuditService())
+                    ->log(
+                        $updatedBy,
+                        $environmentId,
+                        'VACUNAS',
+                        'EDITAR',
+                        'vacunaciones',
+                        $vaccinationId,
+                        [
+                            'vacuna_id'
+                            => (int)$current['vacuna_id'],
+
+                            'dosis'
+                            => $current['dosis'],
+
+                            'unidad_dosis_id'
+                            => $current['unidad_dosis_id'],
+
+                            'lote'
+                            => $current['lote'],
+
+                            'casa_comercial'
+                            => $current['casa_comercial'],
+
+                            'fecha_revacunacion'
+                            => $current['fecha_revacunacion'],
+
+                            'observaciones'
+                            => $current['observaciones'],
+                        ],
+                        [
+                            'vacuna_id'
+                            => $vaccineId,
+
+                            'dosis'
+                            => $dose,
+
+                            'unidad_dosis_id'
+                            => $unitId,
+
+                            'lote'
+                            => $lot !== ''
+                                ? $lot
+                                : null,
+
+                            'casa_comercial'
+                            => $commercialHouse !== ''
+                                ? $commercialHouse
+                                : null,
+
+                            'fecha_revacunacion'
+                            => $revaccinationDate,
+
+                            'observaciones'
+                            => $observations !== ''
+                                ? $observations
+                                : null,
+                        ]
+                    );
+            }
+        );
     }
 
     public function cancelVaccination(
