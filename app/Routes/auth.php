@@ -5,6 +5,10 @@ use App\Controllers\Auth\EnvironmentController;
 use App\Controllers\Auth\PasswordController;
 
 /** @var \App\Core\Router $router */
+
+// ==========================================
+// 1. INICIO DE SESIÓN Y OAUTH (GUEST)
+// ==========================================
 $router->get(
     '/login',
     [LoginController::class, 'show'],
@@ -25,6 +29,34 @@ $router->get(
     [LoginController::class, 'googleCallback'],
     ['guest']
 );
+
+// ==========================================
+// 2. RECUPERACIÓN DE CONTRASEÑA (GUEST)
+// ==========================================
+$router->get(
+    '/olvide-password',
+    [PasswordController::class, 'forgot'],
+    ['guest']
+);
+$router->post(
+    '/olvide-password',
+    [PasswordController::class, 'sendReset'],
+    ['guest']
+);
+$router->get(
+    '/restablecer-password',
+    [PasswordController::class, 'reset'],
+    ['guest']
+);
+$router->post(
+    '/restablecer-password',
+    [PasswordController::class, 'performReset'],
+    ['guest']
+);
+
+// ==========================================
+// 3. SESIÓN ACTIVA Y CONFIGURACIÓN (AUTH)
+// ==========================================
 $router->get(
     '/seleccionar-entorno',
     [EnvironmentController::class, 'index'],
@@ -49,24 +81,4 @@ $router->post(
     '/logout',
     [LoginController::class, 'logout'],
     ['auth']
-);
-$router->get(
-    '/olvide-password',
-    [PasswordController::class, 'forgot'],
-    ['guest']
-);
-$router->post(
-    '/olvide-password',
-    [PasswordController::class, 'sendReset'],
-    ['guest']
-);
-$router->get(
-    '/restablecer-password',
-    [PasswordController::class, 'reset'],
-    ['guest']
-);
-$router->post(
-    '/restablecer-password',
-    [PasswordController::class, 'performReset'],
-    ['guest']
 );
