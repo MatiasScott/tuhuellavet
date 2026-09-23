@@ -192,4 +192,113 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     });
+
+  /*
+|--------------------------------------------------------------------------
+| DESPARASITACIÓN - EDITAR
+|--------------------------------------------------------------------------
+*/
+
+  document.querySelectorAll("[data-deworming-edit]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const form = document.getElementById("dew-edit-form");
+
+      const patient = document.getElementById("dew-edit-patient");
+
+      const date = document.getElementById("dew-edit-date");
+
+      const drug = document.getElementById("dew-edit-drug");
+
+      const dose = document.getElementById("dew-edit-dose");
+
+      const unit = document.getElementById("dew-edit-unit");
+
+      const nextDate = document.getElementById("dew-edit-next-date");
+
+      const observations = document.getElementById("dew-edit-observations");
+
+      if (!form || !drug) {
+        return;
+      }
+
+      /*
+       * URL generada desde PHP.
+       */
+      form.action = button.dataset.updateUrl || "";
+
+      if (patient) {
+        patient.textContent = button.dataset.patient
+          ? "Paciente: " + button.dataset.patient
+          : "";
+      }
+
+      if (date) {
+        date.value = button.dataset.eventDate || "";
+      }
+
+      drug.value = button.dataset.drugId || "";
+
+      if (dose) {
+        dose.value = button.dataset.dose || "";
+      }
+
+      if (unit) {
+        unit.value = button.dataset.unitId || "";
+      }
+
+      if (nextDate) {
+        nextDate.value = button.dataset.nextDate || "";
+      }
+
+      if (observations) {
+        observations.value = button.dataset.observations || "";
+      }
+
+      openModal("dew-edit");
+    });
+  });
+
+  /*
+|--------------------------------------------------------------------------
+| DESPARASITACIÓN - ANULAR
+|--------------------------------------------------------------------------
+*/
+
+  document.querySelectorAll("[data-deworming-cancel]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const form = document.getElementById("dew-cancel-form");
+
+      const description = document.getElementById("dew-cancel-description");
+
+      const reason = document.getElementById("dew-cancel-reason");
+
+      if (!form) {
+        return;
+      }
+
+      form.action = button.dataset.cancelUrl || "";
+
+      if (description) {
+        const patient = button.dataset.patient || "";
+
+        const drug = button.dataset.drug || "";
+
+        description.textContent =
+          patient && drug ? patient + " · " + drug : patient || drug;
+      }
+
+      /*
+       * Limpiamos el motivo anterior.
+       */
+      if (reason) {
+        reason.value = "";
+      }
+
+      openModal("dew-cancel");
+
+      if (reason) {
+        setTimeout(() => reason.focus(), 100);
+      }
+    });
+  });
 });

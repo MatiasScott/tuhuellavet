@@ -122,4 +122,86 @@ class DesparasitacionController extends Controller
             );
         }
     }
+
+    public function update(
+        Request $request,
+        string $id
+    ): void {
+        if (
+            !Session::validateCsrf(
+                $request->input('_token')
+            )
+        ) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new PreventiveCareService())
+                ->updateDeworming(
+                    (int)$id,
+                    $request->all(),
+                    active_environment_id(),
+                    auth_id()
+                );
+
+            Session::flash(
+                'success',
+                'Desparasitación actualizada correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect(
+            '/desparasitaciones'
+        );
+    }
+
+
+    public function cancel(
+        Request $request,
+        string $id
+    ): void {
+        if (
+            !Session::validateCsrf(
+                $request->input('_token')
+            )
+        ) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new PreventiveCareService())
+                ->cancelDeworming(
+                    (int)$id,
+                    trim(
+                        (string)$request->input(
+                            'motivo_anulacion',
+                            ''
+                        )
+                    ),
+                    active_environment_id(),
+                    auth_id()
+                );
+
+            Session::flash(
+                'success',
+                'Desparasitación anulada correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect(
+            '/desparasitaciones'
+        );
+    }
 }

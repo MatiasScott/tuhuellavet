@@ -1411,6 +1411,495 @@ class PreventiveCareService
         );
     }
 
+    public function updateDeworming(
+        int $dewormingId,
+        array $data,
+        int $environmentId,
+        int $updatedBy
+    ): void {
+        Database::transaction(
+            function (PDO $db) use (
+                $dewormingId,
+                $data,
+                $environmentId,
+                $updatedBy
+            ): void {
+                if ($dewormingId <= 0) {
+                    throw new RuntimeException(
+                        'La desparasitación es obligatoria.'
+                    );
+                }
+
+                $drugId = (int) (
+                    $data['farmaco_id']
+                    ?? 0
+                );
+
+                if ($drugId <= 0) {
+                    throw new RuntimeException(
+                        'Debes seleccionar el fármaco.'
+                    );
+                }
+
+                $this->validateDrug(
+                    $db,
+                    $drugId
+                );
+
+                /*
+             * Recuperamos y bloqueamos
+             * el registro actual.
+             */
+                $stmt = $db->prepare(
+                    '
+                SELECT
+                    d.id,
+                    d.evento_clinico_id,
+                    d.farmaco_id,
+                    d.dosis,
+                    d.unidad_dosis_id,
+                    d.proxima_desparasitacion,
+                    d.observaciones,
+
+                    ec.fecha_evento,
+                    ec.anulado_at,
+
+                    a.id AS animal_id,
+                    a.entorno_id
+
+                FROM desparasitaciones d
+
+                INNER JOIN eventos_clinicos ec
+                    ON ec.id =
+                       d.evento_clinico_id
+
+                INNER JOIN animales a
+                    ON a.id =
+                       ec.animal_id
+
+                WHERE d.id = :desparasitacion
+
+                LIMIT 1
+
+                FOR UPDATE
+                '
+                );
+
+                $stmt->execute([
+                    'desparasitacion'
+                    => $dewormingId,
+                ]);
+
+                $current = $stmt->fetch();
+
+                if (!$current) {
+                    throw new RuntimeException(
+                        'Desparasitación no encontrada.'
+                    );
+                }
+
+                if (
+                    (int)$current['entorno_id']
+                    !== $environmentId
+                ) {
+                    throw new RuntimeException(
+                        'La desparasitación no pertenece al entorno actual.'
+                    );
+                }
+
+                if (!empty($current['anulado_at'])) {
+                    throw new RuntimeException(
+                        'No puedes editar una desparasitación anulada.'
+                    );
+                }
+
+                $unitId = !empty($data['unidad_dosis_id'])
+                    ? (int)$data['unidad_dosis_id']
+                    : null;
+
+                $dose = $this->positiveNumberOrNull(
+                    $data['dosis']
+                        ?? null,
+                    'La dosis'
+                );
+
+                $nextDate = $this->dateOrNull(
+                    $data['proxima_desparasitacion']
+                        ?? null
+                );
+
+                $observations = trim(
+                    (string) (
+                        $data['observaciones']
+                        ?? ''
+                    )
+                );
+
+                /*
+             * Actualizamos el registro.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE desparasitaciones
+
+                SET
+                    farmaco_id = :farmaco,
+                    dosis = :dosis,
+                    unidad_dosis_id = :unidad,
+                    proxima_desparasitacion = :proxima,
+                    observaciones = :observaciones
+
+                WHERE id = :id
+                '
+                );
+
+                $stmt->execute([
+                    'farmaco'
+                    => $drugId,
+
+                    'dosis'
+                    => $dose,
+
+                    'unidad'
+                    => $unitId,
+
+                    'proxima'
+                    => $nextDate,
+
+                    'observaciones'
+                    => $observations !== ''
+                        ? $observations
+                        : null,
+
+                    'id'
+                    => $dewormingId,
+                ]);
+
+                /*
+             * Fecha del evento.
+             */
+                if (
+                    isset($data['fecha_evento'])
+                    && trim(
+                        (string)$data['fecha_evento']
+                    ) !== ''
+                ) {
+                    $stmt = $db->prepare(
+                        '
+                    UPDATE eventos_clinicos
+
+                    SET fecha_evento = :fecha
+
+                    WHERE id = :id
+                      AND anulado_at IS NULL
+                    '
+                    );
+
+                    $stmt->execute([
+                        'fecha'
+                        => $this->dateTimeOrNow(
+                            $data['fecha_evento']
+                        ),
+
+                        'id'
+                        => (int)$current['evento_clinico_id'],
+                    ]);
+                }
+
+                /*
+             * Cancelamos recordatorios pendientes
+             * anteriores.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE notificaciones
+
+                SET estado = "CANCELADA"
+
+                WHERE referencia_tipo =
+                      "DESPARASITACION"
+
+                  AND referencia_id =
+                      :desparasitacion
+
+                  AND entorno_id =
+                      :entorno
+
+                  AND estado IN (
+                      "PENDIENTE",
+                      "PROGRAMADA"
+                  )
+                '
+                );
+
+                $stmt->execute([
+                    'desparasitacion'
+                    => $dewormingId,
+
+                    'entorno'
+                    => $environmentId,
+                ]);
+
+                /*
+             * Creamos el nuevo recordatorio
+             * solamente si hay próxima fecha.
+             */
+                if ($nextDate !== null) {
+                    $patient = $this->validatePatient(
+                        $db,
+                        (int)$current['animal_id'],
+                        $environmentId
+                    );
+
+                    (new ReminderService())
+                        ->scheduleDewormingReminder(
+                            $db,
+                            $environmentId,
+                            $patient,
+                            $dewormingId,
+                            $nextDate,
+                            $updatedBy
+                        );
+                }
+
+                /*
+             * Auditoría.
+             */
+                (new AuditService())
+                    ->log(
+                        $updatedBy,
+                        $environmentId,
+                        'DESPARASITACION',
+                        'EDITAR',
+                        'desparasitaciones',
+                        $dewormingId,
+                        [
+                            'farmaco_id'
+                            => (int)$current['farmaco_id'],
+
+                            'dosis'
+                            => $current['dosis'],
+
+                            'unidad_dosis_id'
+                            => $current['unidad_dosis_id'],
+
+                            'proxima_desparasitacion'
+                            => $current['proxima_desparasitacion'],
+
+                            'observaciones'
+                            => $current['observaciones'],
+                        ],
+                        [
+                            'farmaco_id'
+                            => $drugId,
+
+                            'dosis'
+                            => $dose,
+
+                            'unidad_dosis_id'
+                            => $unitId,
+
+                            'proxima_desparasitacion'
+                            => $nextDate,
+
+                            'observaciones'
+                            => $observations !== ''
+                                ? $observations
+                                : null,
+                        ]
+                    );
+            }
+        );
+    }
+
+    public function cancelDeworming(
+        int $dewormingId,
+        string $reason,
+        int $environmentId,
+        int $cancelledBy
+    ): void {
+        Database::transaction(
+            function (PDO $db) use (
+                $dewormingId,
+                $reason,
+                $environmentId,
+                $cancelledBy
+            ): void {
+                $reason = trim($reason);
+
+                if ($dewormingId <= 0) {
+                    throw new RuntimeException(
+                        'La desparasitación es obligatoria.'
+                    );
+                }
+
+                if ($reason === '') {
+                    throw new RuntimeException(
+                        'El motivo de anulación es obligatorio.'
+                    );
+                }
+
+                /*
+             * Recuperamos y bloqueamos.
+             */
+                $stmt = $db->prepare(
+                    '
+                SELECT
+                    d.id AS desparasitacion_id,
+                    d.evento_clinico_id,
+
+                    ec.anulado_at,
+                    ec.anulado_por,
+                    ec.motivo_anulacion,
+
+                    a.entorno_id
+
+                FROM desparasitaciones d
+
+                INNER JOIN eventos_clinicos ec
+                    ON ec.id =
+                       d.evento_clinico_id
+
+                INNER JOIN animales a
+                    ON a.id =
+                       ec.animal_id
+
+                WHERE d.id =
+                      :desparasitacion
+
+                LIMIT 1
+
+                FOR UPDATE
+                '
+                );
+
+                $stmt->execute([
+                    'desparasitacion'
+                    => $dewormingId,
+                ]);
+
+                $deworming = $stmt->fetch();
+
+                if (!$deworming) {
+                    throw new RuntimeException(
+                        'Desparasitación no encontrada.'
+                    );
+                }
+
+                if (
+                    (int)$deworming['entorno_id']
+                    !== $environmentId
+                ) {
+                    throw new RuntimeException(
+                        'La desparasitación no pertenece al entorno actual.'
+                    );
+                }
+
+                if (!empty($deworming['anulado_at'])) {
+                    throw new RuntimeException(
+                        'La desparasitación ya fue anulada.'
+                    );
+                }
+
+                /*
+                * Cancelamos exclusivamente
+                * notificaciones pendientes.
+                */
+                $stmt = $db->prepare(
+                    '
+                UPDATE notificaciones
+
+                SET estado = "CANCELADA"
+
+                WHERE referencia_tipo =
+                      "DESPARASITACION"
+
+                  AND referencia_id =
+                      :desparasitacion
+
+                  AND entorno_id =
+                      :entorno
+
+                  AND estado IN (
+                      "PENDIENTE",
+                      "PROGRAMADA"
+                  )
+                '
+                );
+
+                $stmt->execute([
+                    'desparasitacion'
+                    => $dewormingId,
+
+                    'entorno'
+                    => $environmentId,
+                ]);
+
+                $cancelledNotifications =
+                    $stmt->rowCount();
+
+                /*
+             * No borramos físicamente.
+             * Anulamos el evento clínico padre.
+             */
+                $stmt = $db->prepare(
+                    '
+                UPDATE eventos_clinicos
+
+                SET
+                    anulado_at = NOW(),
+                    anulado_por = :usuario,
+                    motivo_anulacion = :motivo
+
+                WHERE id = :evento
+                  AND anulado_at IS NULL
+                '
+                );
+
+                $stmt->execute([
+                    'usuario'
+                    => $cancelledBy,
+
+                    'motivo'
+                    => $reason,
+
+                    'evento'
+                    => (int)$deworming['evento_clinico_id'],
+                ]);
+
+                if ($stmt->rowCount() !== 1) {
+                    throw new RuntimeException(
+                        'No fue posible anular la desparasitación.'
+                    );
+                }
+
+                /*
+             * Auditoría.
+             */
+                (new AuditService())
+                    ->log(
+                        $cancelledBy,
+                        $environmentId,
+                        'DESPARASITACION',
+                        'ANULAR',
+                        'desparasitaciones',
+                        $dewormingId,
+                        null,
+                        [
+                            'evento_clinico_id'
+                            => (int)$deworming['evento_clinico_id'],
+
+                            'motivo_anulacion'
+                            => $reason,
+
+                            'notificaciones_canceladas'
+                            => $cancelledNotifications,
+                        ]
+                    );
+            }
+        );
+    }
+
     public function cancelVaccination(
         int $vaccinationId,
         string $reason,

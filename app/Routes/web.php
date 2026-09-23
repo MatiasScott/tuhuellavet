@@ -216,6 +216,17 @@ $router->post(
     [DesparasitacionController::class, 'store'],
     ['auth', 'environment', 'permission:desparasitacion.crear']
 );
+$router->post(
+    '/desparasitaciones/{id}/actualizar',
+    [DesparasitacionController::class, 'update'],
+    ['auth', 'environment', 'permission:desparasitacion.editar']
+);
+
+$router->post(
+    '/desparasitaciones/{id}/anular',
+    [DesparasitacionController::class, 'cancel'],
+    ['auth', 'environment', 'permission:desparasitacion.eliminar']
+);
 
 // Hospitalización
 $router->get(

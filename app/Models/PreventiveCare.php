@@ -126,7 +126,9 @@ class PreventiveCare extends Model
             SELECT
                 d.id,
                 d.evento_clinico_id,
+                d.farmaco_id,
                 d.dosis,
+                d.unidad_dosis_id,
                 d.proxima_desparasitacion,
                 d.observaciones,
                 d.created_at,
