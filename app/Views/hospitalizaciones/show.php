@@ -115,11 +115,194 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
             <strong><?= e($t['tipo_nombre']) ?></strong>
             <p><?= e($t['instrucciones_generales'] ?? '') ?></p>
             <?php foreach ($t['medications'] as $m): ?>
-                <div class="inline-actions">
-                    <span><?= e($m['farmaco']) ?> · <?= e($m['dosis_cantidad'] ?? '—') ?> <?= e($m['dosis_unidad'] ?? '') ?></span>
-                    <?php if ($active): ?>
-                        <button type="button" class="btn btn-secondary btn-sm" data-apply-med="<?= $m['id'] ?>">Aplicar</button>
+                <?php
+                $applications = $m['applications'] ?? [];
+                ?>
+
+                <div class="treatment-medication-item">
+
+                    <div class="treatment-medication-main">
+
+                        <div class="treatment-medication-info">
+                            <strong>
+                                💊 <?= e($m['farmaco_nombre']) ?>
+                            </strong>
+
+                            <div>
+                                <?php if ($m['dosis_cantidad'] !== null): ?>
+                                    <span>
+                                        Dosis:
+                                        <strong>
+                                            <?= e($m['dosis_cantidad']) ?>
+                                            <?= e($m['dosis_unidad'] ?? '') ?>
+                                        </strong>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (!empty($m['instrucciones'])): ?>
+                                <small>
+                                    <?= e($m['instrucciones']) ?>
+                                </small>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if ($active): ?>
+                            <button
+                                type="button"
+                                class="btn btn-secondary btn-sm
+                                data-modal-open=" h-apply-medication""
+                                data-apply-med="<?= (int)$m['id'] ?>"
+                                data-med-name="<?= e($m['farmaco_nombre']) ?>"
+                                data-med-dose="<?= e($m['dosis_cantidad'] ?? '') ?>"
+                                data-med-unit-id="<?= (int)($m['dosis_unidad_id'] ?? 0) ?>"
+                                data-med-unit="<?= e($m['dosis_unidad'] ?? '') ?>">
+                                Aplicar
+                            </button>
+                        <?php endif; ?>
+
+                    </div>
+
+                    <?php if (!empty($applications)): ?>
+
+                        <div class="medication-applications">
+
+                            <strong class="medication-applications-title">
+                                Aplicaciones
+                            </strong>
+
+                            <?php foreach ($applications as $application): ?>
+                                <?php
+                                $isCancelled =
+                                    (int)($application['esta_anulado'] ?? 0) === 1;
+
+                                $quantity = $application['cantidad_aplicada'];
+
+                                if ($quantity !== null) {
+                                    $quantity = rtrim(
+                                        rtrim(
+                                            number_format(
+                                                (float)$quantity,
+                                                6,
+                                                '.',
+                                                ''
+                                            ),
+                                            '0'
+                                        ),
+                                        '.'
+                                    );
+                                }
+                                ?>
+
+                                <div
+                                    class="medication-application-item <?= $isCancelled
+                                                                            ? 'is-cancelled'
+                                                                            : '' ?>">
+
+                                    <div class="medication-application-header">
+
+                                        <div>
+                                            <strong>
+                                                <?= e($quantity ?? '—') ?>
+
+                                                <?php if (!empty($application['unidad'])): ?>
+                                                    <?= e($application['unidad']) ?>
+                                                <?php endif; ?>
+                                            </strong>
+
+                                            <?php if (!empty($application['fecha_hora'])): ?>
+                                                <span class="text-muted">
+                                                    ·
+                                                    <?= e(
+                                                        date(
+                                                            'd/m/Y H:i',
+                                                            strtotime(
+                                                                $application['fecha_hora']
+                                                            )
+                                                        )
+                                                    ) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if ($active && !$isCancelled): ?>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-sm"
+                                                data-modal-open="h-cancel-application"
+                                                data-cancel-application="<?= (int)$application['id'] ?>"
+                                                data-cancel-medication="<?= e($m['farmaco_nombre']) ?>"
+                                                data-cancel-quantity="<?= e($quantity ?? '') ?>"
+                                                data-cancel-unit="<?= e($application['unidad'] ?? '') ?>">
+                                                Anular
+                                            </button>
+
+                                        <?php endif; ?>
+
+                                    </div>
+
+                                    <?php if (!empty($application['aplicado_por_nombre'])): ?>
+                                        <small>
+                                            Aplicado por:
+                                            <?= e($application['aplicado_por_nombre']) ?>
+                                        </small>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($application['observaciones'])): ?>
+                                        <small>
+                                            Observación:
+                                            <?= e($application['observaciones']) ?>
+                                        </small>
+                                    <?php endif; ?>
+
+                                    <?php if ($isCancelled): ?>
+
+                                        <div class="medication-application-cancelled">
+
+                                            <small>
+                                                <strong>
+                                                    Aplicación anulada
+                                                </strong>
+
+                                                <?php if (!empty($application['anulado_at'])): ?>
+                                                    ·
+                                                    <?= e(
+                                                        date(
+                                                            'd/m/Y H:i',
+                                                            strtotime(
+                                                                $application['anulado_at']
+                                                            )
+                                                        )
+                                                    ) ?>
+                                                <?php endif; ?>
+                                            </small>
+
+                                            <?php if (!empty($application['anulado_por_nombre'])): ?>
+                                                <small>
+                                                    Anulada por:
+                                                    <?= e($application['anulado_por_nombre']) ?>
+                                                </small>
+                                            <?php endif; ?>
+
+                                            <?php if (!empty($application['motivo_anulacion'])): ?>
+                                                <small>
+                                                    Motivo:
+                                                    <?= e($application['motivo_anulacion']) ?>
+                                                </small>
+                                            <?php endif; ?>
+
+                                        </div>
+
+                                    <?php endif; ?>
+
+                                </div>
+
+                            <?php endforeach; ?>
+
+                        </div>
+
                     <?php endif; ?>
+
                 </div>
             <?php endforeach; ?>
         </div>
@@ -293,53 +476,333 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
     </div>
     <div class="modal" id="h-treatment">
         <div class="modal-backdrop"></div>
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-header">
-                <h2>Tratamiento hospitalario</h2><button class="modal-close" data-modal-close>×</button>
+                <div>
+                    <h2>Tratamiento hospitalario</h2>
+                    <p class="text-muted">
+                        Agrega uno o varios medicamentos
+                        al tratamiento.
+                    </p>
+                </div>
+                <button type="button" class="modal-close" data-modal-close>
+                    ×
+                </button>
             </div>
             <form method="POST" action="<?= url('/hospitalizaciones/' . $eventId . '/tratamientos') ?>">
                 <?= csrf_field() ?>
-                <div class="modal-body form-grid">
-                    <label>
-                        <span>Tipo</span>
-                        <select name="tipo_tratamiento_id" required>
-                            <?php foreach ($treatmentTypes as $t): ?>
-                                <option value="<?= $t['id'] ?>"><?= e($t['nombre']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Fármaco</span>
-                        <select name="medicamentos[0][farmaco_id]">
-                            <option value="">—</option>
-                            <?php foreach ($drugs as $d): ?>
-                                <option value="<?= $d['id'] ?>"><?= e($d['nombre']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label>
-                        <span>Dosis</span>
-                        <input type="number" step="any" name="medicamentos[0][dosis_cantidad]">
-                    </label>
-                    <label>
-                        <span>Unidad</span>
-                        <select name="medicamentos[0][dosis_unidad_id]">
-                            <option value="">—</option>
-                            <?php foreach ($units as $u): ?>
-                                <option value="<?= $u['id'] ?>"><?= e($u['simbolo']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                    <label class="field-full">
-                        <span>Instrucciones</span>
-                        <textarea name="instrucciones_generales"></textarea>
-                    </label>
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <label>
+                            <span>Tipo</span>
+                            <select name="tipo_tratamiento_id" required>
+                                <?php foreach (
+                                    $treatmentTypes as $t
+                                ): ?>
+                                    <option
+                                        value="<?= (int)$t['id'] ?>">
+                                        <?= e($t['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="field-full">
+                            <span>
+                                Instrucciones generales
+                            </span>
+                            <textarea
+                                name="instrucciones_generales"
+                                placeholder="Indicaciones generales del tratamiento..."></textarea>
+                        </label>
+                    </div>
+                    <div class="hospital-medications-header">
+                        <div>
+                            <h3>
+                                💊 Medicamentos
+                            </h3>
+                            <p class="text-muted">
+                                Registra cada medicamento
+                                con su dosis y unidad.
+                            </p>
+                        </div>
+                        <button type="button" class="btn btn-secondary" id="hospital-add-medication">
+                            ＋ Agregar medicamento
+                        </button>
+                    </div>
+                    <div id="hospital-medications-container" class="hospital-medications-list">
+                        <div class="hospital-medication-row" data-medication-row>
+                            <div class="form-grid">
+                                <label>
+                                    <span>Fármaco</span>
+                                    <select name="medicamentos[0][farmaco_id]" data-medication-field="farmaco_id" required>
+                                        <option value="">
+                                            Seleccionar
+                                        </option>
+                                        <?php foreach (
+                                            $drugs as $d
+                                        ): ?>
+                                            <option
+                                                value="<?= (int)$d['id'] ?>">
+                                                <?= e($d['nombre']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Dosis</span>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        min="0"
+                                        name="medicamentos[0][dosis_cantidad]"
+                                        data-medication-field="dosis_cantidad"
+                                        required>
+                                </label>
+                                <label>
+                                    <span>Unidad</span>
+                                    <select name="medicamentos[0][dosis_unidad_id]" data-medication-field="dosis_unidad_id" required>
+                                        <option value="">
+                                            Seleccionar
+                                        </option>
+                                        <?php foreach (
+                                            $units as $u
+                                        ): ?>
+                                            <option
+                                                value="<?= (int)$u['id'] ?>">
+                                                <?= e(
+                                                    $u['simbolo']
+                                                ) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                                <div class="hospital-medication-actions">
+                                    <button
+                                        type="button"
+                                        class="btn btn-danger btn-sm"
+                                        data-remove-medication
+                                        hidden>
+                                        Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-modal-close>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        Guardar tratamiento
+                    </button>
                 </div>
             </form>
         </div>
+    </div>
+    <div class="modal" id="h-apply-medication">
+        <div class="modal-backdrop"></div>
+
+        <div class="modal-dialog">
+
+            <div class="modal-header">
+                <div>
+                    <h2>Aplicar medicamento</h2>
+
+                    <p
+                        class="text-muted"
+                        id="apply-medication-name">
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    data-modal-close>
+                    ×
+                </button>
+            </div>
+
+            <form
+                method="POST"
+                id="apply-medication-form"
+                action="">
+
+                <?= csrf_field() ?>
+
+                <div class="modal-body form-grid">
+
+                    <div class="field-full soft-panel">
+
+                        <span class="text-muted">
+                            Dosis prescrita
+                        </span>
+
+                        <strong
+                            id="apply-medication-prescribed-dose">
+                            —
+                        </strong>
+
+                    </div>
+
+                    <label>
+                        <span>
+                            Cantidad aplicada
+                        </span>
+
+                        <input
+                            type="number"
+                            step="any"
+                            min="0.000001"
+                            name="cantidad_aplicada"
+                            id="apply-medication-quantity"
+                            required>
+                    </label>
+
+                    <label>
+                        <span>
+                            Unidad
+                        </span>
+
+                        <select
+                            name="unidad_id"
+                            id="apply-medication-unit"
+                            required>
+
+                            <option value="">
+                                Seleccionar
+                            </option>
+
+                            <?php foreach ($units as $u): ?>
+                                <option
+                                    value="<?= (int)$u['id'] ?>">
+                                    <?= e($u['simbolo']) ?>
+                                </option>
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+                    <label class="field-full">
+                        <span>
+                            Observaciones
+                        </span>
+
+                        <textarea
+                            name="observaciones"
+                            rows="3"
+                            placeholder="Observaciones de la aplicación..."></textarea>
+                    </label>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-modal-close>
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary">
+                        Registrar aplicación
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+    <div class="modal" id="h-cancel-application">
+
+        <div class="modal-backdrop"></div>
+
+        <div class="modal-dialog">
+
+            <div class="modal-header">
+
+                <div>
+                    <h2>Anular aplicación</h2>
+
+                    <p class="text-muted">
+                        Esta acción quedará registrada
+                        en el historial clínico.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    data-modal-close>
+                    ×
+                </button>
+
+            </div>
+
+            <form
+                method="POST"
+                id="cancel-application-form"
+                action="">
+
+                <?= csrf_field() ?>
+
+                <div class="modal-body form-grid">
+
+                    <div class="field-full soft-panel">
+
+                        <strong id="cancel-application-medication">
+                            Medicamento
+                        </strong>
+
+                        <div
+                            class="text-muted"
+                            id="cancel-application-dose">
+                        </div>
+
+                    </div>
+
+                    <label class="field-full">
+
+                        <span>
+                            Motivo de anulación *
+                        </span>
+
+                        <textarea
+                            name="motivo"
+                            id="cancel-application-reason"
+                            rows="4"
+                            required
+                            placeholder="Indica por qué se anula esta aplicación..."></textarea>
+
+                    </label>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-modal-close>
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger">
+                        Confirmar anulación
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
     </div>
     <div class="modal" id="h-close">
         <div class="modal-backdrop"></div>
@@ -385,4 +848,4 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                                         'applicationUrlBase' => url('/hospitalizaciones/' . $eventId . '/medicamentos'),
                                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 </script>
-<script src="<?= asset('js/views/hospitalizaciones.js') ?>"></script>
+<script src="<?= url('assets/js/views/hospitalizaciones.js') ?>"></script>

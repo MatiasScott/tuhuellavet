@@ -3387,7 +3387,6 @@ class InventoryService
                     strtoupper(
                         trim($referenceType)
                     );
-
                 if (
                     !in_array(
                         $referenceType,
@@ -3402,59 +3401,38 @@ class InventoryService
                         'Tipo de referencia clínica no válido.'
                     );
                 }
-
                 if ($referenceId <= 0) {
                     throw new RuntimeException(
                         'La referencia clínica es obligatoria.'
                     );
                 }
-
-                /*
-             * Buscamos exclusivamente consumos clínicos
-             * pertenecientes al entorno actual.
-             *
-             * Puede devolver cero movimientos:
-             * eso permite anular registros históricos
-             * anteriores a la integración con inventario.
-             */
                 $stmt = $db->prepare(
                     '
                 SELECT
                     mi.id
-
                 FROM movimientos_inventario mi
-
                 INNER JOIN inventarios i
                     ON i.id =
                        mi.inventario_id
-
                 INNER JOIN tipos_movimiento_inventario tm
                     ON tm.id =
                        mi.tipo_movimiento_id
-
                 WHERE mi.referencia_tipo =
                       :referencia_tipo
-
                   AND mi.referencia_id =
                       :referencia_id
-
                   AND tm.codigo =
                       "CONSUMO_CLINICO"
-
                   AND i.entorno_id =
                       :entorno
-
                 ORDER BY mi.id
                 '
                 );
-
                 $stmt->execute([
                     'referencia_tipo' =>
                     $referenceType,
-
                     'referencia_id' =>
                     $referenceId,
-
                     'entorno' =>
                     $environmentId,
                 ]);
@@ -3466,37 +3444,26 @@ class InventoryService
                             PDO::FETCH_COLUMN
                         )
                     );
-
                 $reversalIds = [];
-
                 foreach ($movementIds as $movementId) {
-                    /*
-                 * Puede haber sido compensado previamente
-                 * mediante el motor de reversos.
-                 *
-                 * No debemos devolver stock dos veces.
-                 */
                     $check = $db->prepare(
                         '
-                    SELECT id
-                    FROM movimientos_inventario
-                    WHERE referencia_tipo =
-                          "REVERSO_INVENTARIO"
-                      AND referencia_id =
-                          :movimiento
-                    LIMIT 1
-                    '
+                        SELECT id
+                        FROM movimientos_inventario
+                        WHERE referencia_tipo =
+                            "REVERSO_INVENTARIO"
+                        AND referencia_id =
+                            :movimiento
+                        LIMIT 1
+                        '
                     );
-
                     $check->execute([
                         'movimiento' =>
                         $movementId,
                     ]);
-
                     if ($check->fetchColumn()) {
                         continue;
                     }
-
                     $reversalIds[] =
                         $this->reverseMovement(
                             $movementId,
@@ -3505,7 +3472,6 @@ class InventoryService
                             $reason
                         );
                 }
-
                 return $reversalIds;
             }
         );

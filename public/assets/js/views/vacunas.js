@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelectorAll("[data-modal-open]").forEach((button) => {
     button.addEventListener("click", () => {
-      openModal(button.dataset.modalOpen);
+      openModal("h-apply-medication");
     });
   });
 

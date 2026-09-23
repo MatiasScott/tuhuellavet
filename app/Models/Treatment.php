@@ -62,16 +62,26 @@ class Treatment extends Model
         $treatments
             = $stmt->fetchAll();
 
-        foreach (
-            $treatments
-            as &$treatment
-        ) {
-            $treatment['medications'] = $this
-                ->medications(
-                    (int)
-                    $treatment['id']
-                );
+        foreach ($treatments as &$treatment) {
+
+            $medications = $this->medications(
+                (int)$treatment['id']
+            );
+
+            foreach ($medications as &$medication) {
+                $medication['applications'] =
+                    $this->applications(
+                        (int)$medication['id']
+                    );
+            }
+
+            unset($medication);
+
+            $treatment['medications'] =
+                $medications;
         }
+
+        unset($treatment);
 
         return $treatments;
     }

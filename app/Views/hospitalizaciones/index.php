@@ -63,10 +63,6 @@
                     <textarea name="motivo_ingreso"></textarea>
                 </label>
                 <label class="field-full">
-                    <span>Impresión clínica</span>
-                    <textarea name="impresion_clinica_ingreso"></textarea>
-                </label>
-                <label class="field-full">
                     <span>Indicaciones generales</span>
                     <textarea name="indicaciones_generales"></textarea>
                 </label>

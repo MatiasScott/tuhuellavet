@@ -274,6 +274,11 @@ $router->post(
     [HospitalizacionController::class, 'close'],
     ['auth', 'environment', 'permission:hospitalizacion.editar']
 );
+$router->post(
+    '/hospitalizaciones/{id}/aplicaciones/{application}/anular',
+    [HospitalizacionController::class, 'cancelApplication'],
+    ['auth', 'environment', 'permission:tratamientos.editar']
+);
 
 // Cirugía
 $router->get(
