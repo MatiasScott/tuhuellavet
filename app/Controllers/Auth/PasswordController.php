@@ -43,20 +43,51 @@ class PasswordController extends Controller
             http_response_code(419);
             return;
         }
-        $email = trim((string)$r->input('email'));
+
+        $email = trim((string) $r->input('email'));
+
+        $genericMessage =
+            'Si existe una cuenta activa asociada al correo, '
+            . 'recibirás un enlace de recuperación.';
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Session::flash('success', $genericMessage);
+            $this->redirect('/olvide-password');
+            return;
+        }
+
         $db = Database::connection();
-        $s = $db->prepare('SELECT id FROM usuarios WHERE email=:e AND activo=1 AND deleted_at IS NULL');
-        $s->execute(['e' => $email]);
-        $uid = $s->fetchColumn();
-        if ($uid) {
-            $token = bin2hex(random_bytes(32));
-            $db->prepare('INSERT INTO password_reset_tokens(usuario_id,token_hash,expires_at) VALUES(:u,:t,DATE_ADD(NOW(),INTERVAL 60 MINUTE))')->execute(['u' => $uid, 't' => hash('sha256', $token)]);
-            $link = url('/restablecer-password?token=' . $token);
-            $from = $_ENV['MAIL_FROM_ADDRESS'] ?? 'noreply@localhost';
-            @mail($email, 'Restablecer contraseña - Tu Huella Vet', "Usa este enlace durante los próximos 60 minutos:\n{$link}", 'From: ' . $from);
-            if (($_ENV['APP_ENV'] ?? 'production') === 'local') Session::flash('success', 'Enlace de desarrollo: ' . $link);
-            else Session::flash('success', 'Si el correo existe, se envió un enlace de recuperación.');
-        } else Session::flash('success', 'Si el correo existe, se envió un enlace de recuperación.');
+
+        $stmt = $db->prepare(
+            'SELECT id
+         FROM usuarios
+         WHERE email = :email
+           AND activo = 1
+           AND deleted_at IS NULL
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'email' => $email
+        ]);
+
+        $userId = (int) $stmt->fetchColumn();
+
+        if ($userId > 0) {
+            try {
+                (new \App\Services\UserInvitationService())
+                    ->send($userId);
+            } catch (\Throwable $e) {
+                error_log(
+                    'Error al solicitar recuperación de contraseña '
+                        . 'para usuario ID ' . $userId . ': '
+                        . $e->getMessage()
+                );
+            }
+        }
+
+        Session::flash('success', $genericMessage);
+
         $this->redirect('/olvide-password');
     }
     public function reset(Request $r): void
@@ -70,25 +101,158 @@ class PasswordController extends Controller
             http_response_code(419);
             return;
         }
-        $token = (string)$r->input('token');
-        $p = (string)$r->input('password');
-        if (strlen($p) < 8 || $p !== (string)$r->input('password_confirmation')) {
-            Session::flash('error', 'Las contraseñas no coinciden o son demasiado cortas.');
-            $this->redirect('/restablecer-password?token=' . urlencode($token));
+
+        $token = trim((string) $r->input('token'));
+        $password = (string) $r->input('password');
+        $confirmation = (string) $r->input('password_confirmation');
+
+        if (
+            strlen($token) !== 64 ||
+            !ctype_xdigit($token)
+        ) {
+            Session::flash(
+                'error',
+                'El enlace de recuperación no es válido.'
+            );
+
+            $this->redirect('/olvide-password');
+            return;
         }
-        $db = Database::connection();
-        $s = $db->prepare('SELECT * FROM password_reset_tokens WHERE token_hash=:t AND usado_at IS NULL AND expires_at>NOW() ORDER BY id DESC LIMIT 1');
-        $s->execute(['t' => hash('sha256', $token)]);
-        $row = $s->fetch();
-        if (!$row) {
-            Session::flash('error', 'El enlace es inválido o expiró.');
-            $this->redirect('/restablecer-password?token=' . urlencode($token));
+
+        if (
+            strlen($password) < 8 ||
+            $password !== $confirmation
+        ) {
+            Session::flash(
+                'error',
+                'La contraseña debe tener al menos 8 caracteres '
+                    . 'y coincidir con su confirmación.'
+            );
+
+            $this->redirect(
+                '/restablecer-password?token=' . urlencode($token)
+            );
+
+            return;
         }
-        Database::transaction(function ($db) use ($row, $p) {
-            $db->prepare('UPDATE usuarios SET password_hash=:h,requiere_cambio_password=0,password_changed_at=NOW() WHERE id=:u')->execute(['h' => password_hash($p, PASSWORD_DEFAULT), 'u' => $row['usuario_id']]);
-            $db->prepare('UPDATE password_reset_tokens SET usado_at=NOW() WHERE id=:id')->execute(['id' => $row['id']]);
-        });
-        Session::flash('success', 'Contraseña actualizada. Ya puedes iniciar sesión.');
-        $this->redirect('/login');
+
+        try {
+
+            Database::transaction(function (\PDO $db) use (
+                $token,
+                $password
+            ) {
+
+                $tokenHash = hash('sha256', $token);
+
+                $stmt = $db->prepare(
+                    'SELECT
+                    prt.id,
+                    prt.usuario_id
+                 FROM password_reset_tokens prt
+                 INNER JOIN usuarios u
+                    ON u.id = prt.usuario_id
+                 WHERE prt.token_hash = :token_hash
+                   AND prt.usado_at IS NULL
+                   AND prt.expires_at > NOW()
+                   AND u.activo = 1
+                   AND u.deleted_at IS NULL
+                 LIMIT 1
+                 FOR UPDATE'
+                );
+
+                $stmt->execute([
+                    'token_hash' => $tokenHash
+                ]);
+
+                $reset = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                if (!$reset) {
+                    throw new \RuntimeException(
+                        'El enlace es inválido, expiró o ya fue utilizado.'
+                    );
+                }
+
+                $userId = (int) $reset['usuario_id'];
+
+                $stmt = $db->prepare(
+                    'UPDATE usuarios
+                 SET
+                    password_hash = :password_hash,
+                    requiere_cambio_password = 0,
+                    password_changed_at = NOW()
+                 WHERE id = :user_id
+                   AND activo = 1
+                   AND deleted_at IS NULL'
+                );
+
+                $stmt->execute([
+                    'password_hash' => password_hash(
+                        $password,
+                        PASSWORD_DEFAULT
+                    ),
+                    'user_id' => $userId
+                ]);
+
+                if ($stmt->rowCount() !== 1) {
+                    throw new \RuntimeException(
+                        'No se pudo actualizar la contraseña.'
+                    );
+                }
+
+                $stmt = $db->prepare(
+                    'UPDATE password_reset_tokens
+                 SET usado_at = NOW()
+                 WHERE usuario_id = :user_id
+                   AND usado_at IS NULL'
+                );
+
+                $stmt->execute([
+                    'user_id' => $userId
+                ]);
+
+                (new \App\Services\AuditService())->log(
+                    $userId,
+                    null,
+                    'AUTH',
+                    'RESTABLECER_PASSWORD',
+                    'usuarios',
+                    $userId
+                );
+            });
+
+            Session::flash(
+                'success',
+                'Contraseña actualizada correctamente. '
+                    . 'Ya puedes iniciar sesión.'
+            );
+
+            $this->redirect('/login');
+            return;
+        } catch (\RuntimeException $e) {
+
+            Session::flash(
+                'error',
+                'El enlace es inválido, expiró o ya fue utilizado.'
+            );
+
+            $this->redirect('/olvide-password');
+            return;
+        } catch (\Throwable $e) {
+
+            error_log(
+                'Error al restablecer contraseña: ' .
+                    $e->getMessage()
+            );
+
+            Session::flash(
+                'error',
+                'No se pudo restablecer la contraseña. '
+                    . 'Inténtalo nuevamente.'
+            );
+
+            $this->redirect('/olvide-password');
+            return;
+        }
     }
 }

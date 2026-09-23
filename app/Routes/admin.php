@@ -59,3 +59,26 @@ $router->post(
     [AdministracionController::class, 'storeEnvironment'],
     ['auth', 'environment', 'permission:empresas.crear']
 );
+$router->get(
+    '/admin/usuarios/{id}/editar',
+    [AdministracionController::class, 'editUser'],
+    ['auth', 'environment', 'permission:usuarios.editar']
+);
+
+$router->post(
+    '/admin/usuarios/{id}/editar',
+    [AdministracionController::class, 'updateUser'],
+    ['auth', 'environment', 'permission:usuarios.editar']
+);
+$router->post(
+    '/admin/usuarios/{id}/reenviar-invitacion',
+    [
+        AdministracionController::class,
+        'resendUserInvitation'
+    ],
+    [
+        'auth',
+        'environment',
+        'permission:usuarios.editar'
+    ]
+);

@@ -11,6 +11,12 @@ class OwnerService
 {
     /**
      * Crear propietario.
+     *
+     * Puede:
+     * - crear solamente la ficha del propietario;
+     * - crear una cuenta CLIENTE nueva;
+     * - vincular una cuenta existente y agregarle CLIENTE
+     *   sin eliminar sus demás roles.
      */
     public function create(
         array $d,
@@ -23,7 +29,9 @@ class OwnerService
             // 1. NORMALIZAR DATOS
             // =====================================================
 
-            $names = $this->nullableString($d['nombres'] ?? null);
+            $names = $this->nullableString(
+                $d['nombres'] ?? null
+            );
 
             if ($names === null) {
                 throw new RuntimeException(
@@ -59,8 +67,24 @@ class OwnerService
                 ? (int) $d['tipo_identificacion_id']
                 : null;
 
+            /*
+         * Modos:
+         *
+         * create = crear/vincular acceso Cliente.
+         * none   = registrar propietario sin acceso.
+         */
+            $accessMode = (string) (
+                $d['modo_acceso'] ?? 'create'
+            );
+
+            if (!in_array($accessMode, ['create', 'none'], true)) {
+                throw new RuntimeException(
+                    'El modo de acceso seleccionado no es válido.'
+                );
+            }
+
             // =====================================================
-            // 2. VALIDAR CORREO
+            // 2. VALIDACIONES GENERALES
             // =====================================================
 
             if (
@@ -72,9 +96,12 @@ class OwnerService
                 );
             }
 
-            // =====================================================
-            // 3. VALIDAR DUPLICADOS
-            // =====================================================
+            if ($accessMode === 'create' && $email === null) {
+                throw new RuntimeException(
+                    'El correo electrónico es obligatorio para crear '
+                        . 'o vincular el acceso al portal.'
+                );
+            }
 
             $this->validateUnique(
                 $db,
@@ -84,211 +111,288 @@ class OwnerService
             );
 
             // =====================================================
-            // 4. CREAR O VINCULAR USUARIO
+            // 3. DATOS DE LA CUENTA
             // =====================================================
 
             $userId = null;
-            $temporaryPassword = null;
+            $userCreated = false;
+            $userLinked = false;
 
-            $createAccess = !empty($d['crear_acceso']);
+            // =====================================================
+            // 4. CREAR O VINCULAR ACCESO
+            // =====================================================
 
-            if ($createAccess) {
+            if ($accessMode === 'create') {
 
-                if ($email === null) {
-                    throw new RuntimeException(
-                        'El correo electrónico es obligatorio para crear acceso.'
-                    );
-                }
-
-                // Buscar usuario existente por correo.
+                /*
+             * Bloqueamos la cuenta encontrada durante la
+             * transacción para evitar vinculaciones concurrentes.
+             */
                 $stmt = $db->prepare(
-                    'SELECT id
-                     FROM usuarios
-                     WHERE email = :email
-                       AND deleted_at IS NULL
-                     LIMIT 1'
+                    'SELECT
+                    u.id,
+                    u.nombres,
+                    u.apellidos,
+                    u.email,
+                    u.activo,
+                    u.deleted_at
+                 FROM usuarios u
+                 WHERE u.email = :email
+                 LIMIT 1
+                 FOR UPDATE'
                 );
 
                 $stmt->execute([
                     'email' => $email,
                 ]);
 
-                $existingUserId = $stmt->fetchColumn();
+                $existingUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
-                if ($existingUserId) {
+                // -------------------------------------------------
+                // 4A. USUARIO EXISTENTE
+                // -------------------------------------------------
 
-                    $userId = (int) $existingUserId;
-                } else {
+                if ($existingUser) {
 
-                    // Generar contraseña temporal si no se proporciona
-                    // una contraseña válida.
-                    $temporaryPassword = (string) (
-                        $d['password_temporal'] ?? ''
-                    );
-
-                    if (strlen($temporaryPassword) < 8) {
-                        $temporaryPassword = 'Vet#'
-                            . bin2hex(random_bytes(4));
+                    if (!empty($existingUser['deleted_at'])) {
+                        throw new RuntimeException(
+                            'Existe una cuenta dada de baja con este correo. '
+                                . 'Debe ser revisada desde Administración antes '
+                                . 'de poder vincularla como propietario.'
+                        );
                     }
 
+                    if ((int) $existingUser['activo'] !== 1) {
+                        throw new RuntimeException(
+                            'Existe una cuenta inactiva con este correo. '
+                                . 'Debe activarse desde Administración antes '
+                                . 'de vincularla como propietario.'
+                        );
+                    }
+
+                    $userId = (int) $existingUser['id'];
+
+                    /*
+                 * Un usuario solamente puede corresponder a una
+                 * ficha de propietario.
+                 */
                     $stmt = $db->prepare(
-                        'INSERT INTO usuarios (
-                            nombres,
-                            apellidos,
-                            email,
-                            telefono,
-                            password_hash,
-                            requiere_cambio_password,
-                            activo
-                        ) VALUES (
-                            :names,
-                            :last_names,
-                            :email,
-                            :phone,
-                            :password,
-                            1,
-                            1
-                        )'
+                        'SELECT id
+                     FROM propietarios
+                     WHERE usuario_id = :user_id
+                     LIMIT 1
+                     FOR UPDATE'
                     );
 
                     $stmt->execute([
-                        'names'      => $names,
-                        'last_names' => $lastNames,
-                        'email'      => $email,
-                        'phone'      => $mobile ?? $phone,
-                        'password'   => password_hash(
-                            $temporaryPassword,
+                        'user_id' => $userId,
+                    ]);
+
+                    $existingOwnerId = $stmt->fetchColumn();
+
+                    if ($existingOwnerId) {
+                        throw new RuntimeException(
+                            'Esta cuenta ya está vinculada a una ficha '
+                                . 'de propietario.'
+                        );
+                    }
+
+                    $userLinked = true;
+                }
+
+                // -------------------------------------------------
+                // 4B. USUARIO NUEVO
+                // -------------------------------------------------
+
+                else {
+
+                    /*
+                 * No mostramos ni enviamos una contraseña temporal.
+                 * El usuario establecerá su contraseña mediante
+                 * la invitación.
+                 */
+                    $initialSecret = bin2hex(random_bytes(32));
+
+                    $stmt = $db->prepare(
+                        'INSERT INTO usuarios (
+                        nombres,
+                        apellidos,
+                        email,
+                        telefono,
+                        password_hash,
+                        requiere_cambio_password,
+                        activo
+                    ) VALUES (
+                        :names,
+                        :last_names,
+                        :email,
+                        :phone,
+                        :password,
+                        1,
+                        1
+                    )'
+                    );
+
+                    $stmt->execute([
+                        'names' => $names,
+                        'last_names' => $lastNames ?? '',
+                        'email' => $email,
+                        'phone' => $mobile ?? $phone,
+                        'password' => password_hash(
+                            $initialSecret,
                             PASSWORD_DEFAULT
                         ),
                     ]);
 
                     $userId = (int) $db->lastInsertId();
+                    $userCreated = true;
                 }
 
                 // =================================================
-                // 5. ASIGNAR ACCESO AL ENTORNO
+                // 5. OBTENER ROL CLIENTE
                 // =================================================
 
-                $roleStmt = $db->prepare(
+                $stmt = $db->prepare(
                     "SELECT id
-                     FROM roles
-                     WHERE codigo = 'CLIENTE'
-                     LIMIT 1"
+                 FROM roles
+                 WHERE codigo = 'CLIENTE'
+                   AND activo = 1
+                   AND es_global = 0
+                 LIMIT 1"
                 );
 
-                $roleStmt->execute();
+                $stmt->execute();
 
-                $roleId = (int) $roleStmt->fetchColumn();
+                $roleId = (int) $stmt->fetchColumn();
 
                 if ($roleId <= 0) {
                     throw new RuntimeException(
-                        'No existe el rol CLIENTE.'
+                        'No existe un rol CLIENTE activo para entornos.'
                     );
                 }
 
+                // =================================================
+                // 6. GARANTIZAR ACCESO AL ENTORNO
+                // =================================================
+
+                /*
+             * Si ya existe, lo reactivamos.
+             * Si no existe, lo creamos.
+             *
+             * No modificamos es_predeterminado de una cuenta
+             * existente.
+             */
                 $stmt = $db->prepare(
-                    'INSERT IGNORE INTO usuarios_entornos (
-                        usuario_id,
-                        entorno_id,
-                        activo
-                    ) VALUES (
-                        :user_id,
-                        :environment_id,
-                        1
-                    )'
+                    'INSERT INTO usuarios_entornos (
+                    usuario_id,
+                    entorno_id,
+                    activo
+                 ) VALUES (
+                    :user_id,
+                    :environment_id,
+                    1
+                 )
+                 ON DUPLICATE KEY UPDATE
+                    activo = 1'
                 );
 
                 $stmt->execute([
-                    'user_id'        => $userId,
+                    'user_id' => $userId,
                     'environment_id' => $env,
                 ]);
 
+                // =================================================
+                // 7. AGREGAR CLIENTE SIN QUITAR OTROS ROLES
+                // =================================================
+
                 $stmt = $db->prepare(
-                    'INSERT IGNORE INTO usuarios_entornos_roles (
-                        usuario_id,
-                        entorno_id,
-                        rol_id
-                    ) VALUES (
-                        :user_id,
-                        :environment_id,
-                        :role_id
-                    )'
+                    'INSERT INTO usuarios_entornos_roles (
+                    usuario_id,
+                    entorno_id,
+                    rol_id
+                 ) VALUES (
+                    :user_id,
+                    :environment_id,
+                    :role_id
+                 )
+                 ON DUPLICATE KEY UPDATE
+                    rol_id = VALUES(rol_id)'
                 );
 
                 $stmt->execute([
-                    'user_id'        => $userId,
+                    'user_id' => $userId,
                     'environment_id' => $env,
-                    'role_id'        => $roleId,
+                    'role_id' => $roleId,
                 ]);
             }
 
             // =====================================================
-            // 6. INSERTAR PROPIETARIO
+            // 8. CREAR PROPIETARIO
             // =====================================================
 
             $stmt = $db->prepare(
                 'INSERT INTO propietarios (
-                    usuario_id,
-                    tipo_identificacion_id,
-                    identificacion,
-                    nombres,
-                    apellidos,
-                    email,
-                    telefono,
-                    celular,
-                    direccion,
-                    activo
-                ) VALUES (
-                    :user_id,
-                    :identification_type,
-                    :identification,
-                    :names,
-                    :last_names,
-                    :email,
-                    :phone,
-                    :mobile,
-                    :address,
-                    1
-                )'
+                usuario_id,
+                tipo_identificacion_id,
+                identificacion,
+                nombres,
+                apellidos,
+                email,
+                telefono,
+                celular,
+                direccion,
+                activo
+             ) VALUES (
+                :user_id,
+                :identification_type,
+                :identification,
+                :names,
+                :last_names,
+                :email,
+                :phone,
+                :mobile,
+                :address,
+                1
+             )'
             );
 
             $stmt->execute([
-                'user_id'             => $userId,
+                'user_id' => $userId,
                 'identification_type' => $identificationTypeId,
-                'identification'      => $identification,
-                'names'               => $names,
-                'last_names'          => $lastNames,
-                'email'               => $email,
-                'phone'               => $phone,
-                'mobile'              => $mobile,
-                'address'             => $address,
+                'identification' => $identification,
+                'names' => $names,
+                'last_names' => $lastNames,
+                'email' => $email,
+                'phone' => $phone,
+                'mobile' => $mobile,
+                'address' => $address,
             ]);
 
             $ownerId = (int) $db->lastInsertId();
 
             // =====================================================
-            // 7. VINCULAR PROPIETARIO AL ENTORNO
+            // 9. VINCULAR PROPIETARIO AL ENTORNO
             // =====================================================
 
             $stmt = $db->prepare(
                 'INSERT INTO propietarios_entornos (
-                    propietario_id,
-                    entorno_id,
-                    activo
-                ) VALUES (
-                    :owner_id,
-                    :environment_id,
-                    1
-                )'
+                propietario_id,
+                entorno_id,
+                activo
+             ) VALUES (
+                :owner_id,
+                :environment_id,
+                1
+             )'
             );
 
             $stmt->execute([
-                'owner_id'       => $ownerId,
+                'owner_id' => $ownerId,
                 'environment_id' => $env,
             ]);
 
             // =====================================================
-            // 8. AUDITORÍA
+            // 10. AUDITORÍA
             // =====================================================
 
             (new AuditService())->log(
@@ -301,12 +405,22 @@ class OwnerService
                 null,
                 [
                     'usuario_id' => $userId,
+                    'modo_acceso' => $accessMode,
+                    'usuario_creado' => $userCreated,
+                    'usuario_vinculado' => $userLinked,
                 ]
             );
 
+            // =====================================================
+            // 11. RESULTADO
+            // =====================================================
+
             return [
-                'id'                 => $ownerId,
-                'temporary_password' => $temporaryPassword,
+                'id' => $ownerId,
+                'user_id' => $userId,
+                'user_created' => $userCreated,
+                'user_linked' => $userLinked,
+                'access_mode' => $accessMode,
             ];
         });
     }

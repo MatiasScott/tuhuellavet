@@ -195,12 +195,44 @@
                         <span>Dirección</span>
                         <input name="direccion">
                     </label>
-                    <label class="field-full">
-                        <span>
-                            <input type="checkbox" name="crear_acceso" value="1">
-                            Crear acceso de cliente automáticamente
+                    <div class="field-full owner-access-section">
+                        <span class="owner-access-title">
+                            Acceso al portal
                         </span>
-                    </label>
+
+                        <label class="owner-access-option">
+                            <input
+                                type="radio"
+                                name="modo_acceso"
+                                value="create"
+                                checked
+                                data-owner-access="create">
+
+                            <span>
+                                <strong>Crear o vincular cuenta de cliente</strong>
+                                <small>
+                                    Si el correo no existe, se creará una cuenta.
+                                    Si ya existe, se vinculará sin eliminar sus otros roles.
+                                </small>
+                            </span>
+                        </label>
+
+                        <label class="owner-access-option">
+                            <input
+                                type="radio"
+                                name="modo_acceso"
+                                value="none"
+                                data-owner-access="none">
+
+                            <span>
+                                <strong>Registrar sin acceso al portal</strong>
+                                <small>
+                                    Se creará solamente la ficha del propietario.
+                                    Podrá habilitarse el acceso posteriormente.
+                                </small>
+                            </span>
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
