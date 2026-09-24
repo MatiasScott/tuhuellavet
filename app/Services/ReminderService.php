@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use DateTimeImmutable;
 use PDO;
+use RuntimeException;
 
 class ReminderService
 {
@@ -21,20 +23,16 @@ class ReminderService
             'VACUNA',
             'VACUNACION',
             $vaccinationId,
-            'Recordatorio de Vacunación',
+            'Recordatorio de vacunación',
             sprintf(
-                'La próxima Vacunación de %s está programada para el %s.',
-                $patient['nombre']
-                    ?: 'el paciente',
-                $this->humanDate(
-                    $date
-                )
+                'La próxima vacunación de %s está programada para el %s.',
+                $patient['nombre'] ?: 'el paciente',
+                $this->humanDate($date)
             ),
             $date,
             $createdBy
         );
     }
-
 
     public function scheduleDewormingReminder(
         PDO $db,
@@ -51,20 +49,42 @@ class ReminderService
             'DESPARASITACION',
             'DESPARASITACION',
             $dewormingId,
-            'Recordatorio de Desparasitación',
+            'Recordatorio de desparasitación',
             sprintf(
-                'La próxima Desparasitación de %s está programada para el %s.',
-                $patient['nombre']
-                    ?: 'el paciente',
-                $this->humanDate(
-                    $date
-                )
+                'La próxima desparasitación de %s está programada para el %s.',
+                $patient['nombre'] ?: 'el paciente',
+                $this->humanDate($date)
             ),
             $date,
             $createdBy
         );
     }
 
+    public function scheduleGroomingReminder(
+        PDO $db,
+        int $environmentId,
+        array $patient,
+        int $groomingId,
+        string $date,
+        int $createdBy
+    ): void {
+        $this->schedule(
+            $db,
+            $environmentId,
+            $patient,
+            'PELUQUERIA',
+            'PELUQUERIA',
+            $groomingId,
+            'Recordatorio de peluquería',
+            sprintf(
+                'La próxima atención de peluquería de %s está programada para el %s.',
+                $patient['nombre'] ?: 'el paciente',
+                $this->humanDate($date)
+            ),
+            $date,
+            $createdBy
+        );
+    }
 
     private function schedule(
         PDO $db,
@@ -79,61 +99,50 @@ class ReminderService
         int $createdBy
     ): void {
         /*
-         * Recordatorio 3 días antes.
-         *
-         * Si ya está demasiado cerca,
-         * programamos para la propia fecha.
+         * Recordatorio 3 días antes,
+         * programado para las 09:00.
          */
-        $target
-            = new \DateTimeImmutable(
-                $date . ' 09:00:00'
-            );
+        $target = new DateTimeImmutable(
+            $date . ' 09:00:00'
+        );
 
-        $reminder
-            = $target->modify(
-                '-3 days'
-            );
+        $reminder = $target->modify('-3 days');
+        $now = new DateTimeImmutable();
 
-        $now
-            = new \DateTimeImmutable();
-
+        /*
+         * Si se registra cuando faltan menos
+         * de 3 días, no enviamos inmediatamente.
+         * Lo dejamos para la fecha objetivo.
+         */
         if ($reminder < $now) {
             $reminder = $target;
         }
 
-        $typeId
-            = $this->lookupId(
-                $db,
-                'tipos_notificacion',
-                $notificationTypeCode
-            );
+        $typeId = $this->lookupId(
+            $db,
+            'tipos_notificacion',
+            $notificationTypeCode
+        );
+
+        $ownerId = !empty($patient['propietario_id'])
+            ? (int)$patient['propietario_id']
+            : null;
+
+        $userId = !empty($patient['propietario_usuario_id'])
+            ? (int)$patient['propietario_usuario_id']
+            : null;
 
         /*
-         * Si no tiene propietario,
-         * no creamos recordatorios externos.
+         * Si el paciente no tiene propietario
+         * ni usuario vinculado no existe un
+         * destinatario válido.
          */
-        $ownerId
-            = !empty($patient['propietario_id'])
-            ? (int)
-            $patient['propietario_id']
-            : null;
-
-        $userId
-            = !empty($patient['propietario_usuario_id'])
-            ? (int)
-            $patient['propietario_usuario_id']
-            : null;
-
-        if (
-            !$ownerId
-            && !$userId
-        ) {
+        if (!$ownerId && !$userId) {
             return;
         }
 
         /*
-         * Siempre generamos recordatorio
-         * interno.
+         * Notificación interna.
          */
         $this->insertNotification(
             $db,
@@ -154,11 +163,11 @@ class ReminderService
         );
 
         /*
-         * Correo si el propietario
-         * tiene email.
+         * Email.
          */
         if (
             !empty($patient['propietario_email'])
+            || !empty($patient['usuario_email'])
         ) {
             $this->insertNotification(
                 $db,
@@ -180,10 +189,11 @@ class ReminderService
         }
 
         /*
-         * WhatsApp si existe celular.
+         * WhatsApp.
          */
         if (
             !empty($patient['propietario_celular'])
+            || !empty($patient['usuario_telefono'])
         ) {
             $this->insertNotification(
                 $db,
@@ -205,7 +215,6 @@ class ReminderService
         }
     }
 
-
     private function insertNotification(
         PDO $db,
         int $environmentId,
@@ -215,59 +224,43 @@ class ReminderService
         ?int $ownerId,
         string $subject,
         string $message,
-        \DateTimeImmutable $date,
+        DateTimeImmutable $date,
         string $referenceType,
         int $referenceId
     ): void {
         /*
-         * Previene duplicar recordatorios
-         * del mismo origen/canal.
+         * Evita duplicados pendientes para
+         * el mismo registro y canal.
          */
         $check = $db->prepare(
             '
             SELECT id
-
             FROM notificaciones
 
-            WHERE tipo_notificacion_id
-                = :tipo
+            WHERE entorno_id = :entorno
+              AND tipo_notificacion_id = :tipo
+              AND canal_id = :canal
+              AND referencia_tipo = :referencia_tipo
+              AND referencia_id = :referencia_id
 
-              AND canal_id
-                = :canal
-
-              AND referencia_tipo
-                = :referencia_tipo
-
-              AND referencia_id
-                = :referencia_id
-
-              AND estado
-                IN (
-                    "PENDIENTE",
-                    "PROGRAMADA"
-                )
+              AND estado IN (
+                  "PENDIENTE",
+                  "PROGRAMADA"
+              )
 
             LIMIT 1
             '
         );
 
         $check->execute([
-            'tipo'
-            => $typeId,
-
-            'canal'
-            => $channelId,
-
-            'referencia_tipo'
-            => $referenceType,
-
-            'referencia_id'
-            => $referenceId,
+            'entorno' => $environmentId,
+            'tipo' => $typeId,
+            'canal' => $channelId,
+            'referencia_tipo' => $referenceType,
+            'referencia_id' => $referenceId,
         ]);
 
-        if (
-            $check->fetchColumn()
-        ) {
+        if ($check->fetchColumn()) {
             return;
         }
 
@@ -307,105 +300,65 @@ class ReminderService
         );
 
         $stmt->execute([
-            'entorno'
-            => $environmentId,
-
-            'tipo'
-            => $typeId,
-
-            'canal'
-            => $channelId,
-
-            'usuario'
-            => $userId,
-
-            'propietario'
-            => $ownerId,
-
-            'asunto'
-            => $subject,
-
-            'mensaje'
-            => $message,
-
-            'fecha'
-            => $date->format(
-                'Y-m-d H:i:s'
-            ),
-
-            'referencia_tipo'
-            => $referenceType,
-
-            'referencia_id'
-            => $referenceId,
+            'entorno' => $environmentId,
+            'tipo' => $typeId,
+            'canal' => $channelId,
+            'usuario' => $userId,
+            'propietario' => $ownerId,
+            'asunto' => $subject,
+            'mensaje' => $message,
+            'fecha' => $date->format('Y-m-d H:i:s'),
+            'referencia_tipo' => $referenceType,
+            'referencia_id' => $referenceId,
         ]);
     }
-
 
     private function lookupId(
         PDO $db,
         string $table,
         string $code
     ): int {
-        /*
-         * Tabla controlada internamente;
-         * no viene del usuario.
-         */
         $allowed = [
             'tipos_notificacion',
             'canales_notificacion',
         ];
 
-        if (
-            !in_array(
-                $table,
-                $allowed,
-                true
-            )
-        ) {
-            throw new \RuntimeException(
-                'Catálogo no permitido.'
+        if (!in_array($table, $allowed, true)) {
+            throw new RuntimeException(
+                'Catálogo de notificación no permitido.'
             );
         }
 
         $stmt = $db->prepare(
             "
             SELECT id
-
             FROM {$table}
-
             WHERE codigo = :codigo
-
             LIMIT 1
             "
         );
 
         $stmt->execute([
-            'codigo'
-            => $code,
+            'codigo' => $code,
         ]);
 
         $id = $stmt->fetchColumn();
 
         if (!$id) {
-            throw new \RuntimeException(
-                'No existe el Catálogo requerido: '
-                    . $code
+            throw new RuntimeException(
+                'No existe el catálogo requerido: ' . $code
             );
         }
 
-        return (int) $id;
+        return (int)$id;
     }
-
 
     private function humanDate(
         string $date
     ): string {
         return date(
             'd/m/Y',
-            strtotime(
-                $date
-            )
+            strtotime($date)
         );
     }
 }

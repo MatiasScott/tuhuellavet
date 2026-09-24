@@ -51,6 +51,11 @@
                         💊 <span>Desparasitación</span>
                     </a>
                 <?php endif; ?>
+                <?php if (can('peluqueria.ver')): ?>
+                    <a href="<?= url('/peluquerias') ?>" class="nav-item">
+                        🛁 <span>Peluquería</span>
+                    </a>
+                <?php endif; ?>
                 <?php if (can('hospitalizacion.ver')): ?>
                     <a href="<?= url('/hospitalizaciones') ?>" class="nav-item">
                         🏥 <span>Hospitalización</span>

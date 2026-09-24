@@ -11,6 +11,7 @@ use App\Controllers\Clinica\PacienteController;
 use App\Controllers\Clinica\PropietarioController;
 use App\Controllers\Clinica\TratamientoController;
 use App\Controllers\Clinica\VacunacionController;
+use App\Controllers\Clinica\PeluqueriaController;
 use App\Controllers\Gestion\CitaController;
 use App\Controllers\Gestion\FacturacionController;
 use App\Controllers\Gestion\FormulaAdminController;
@@ -342,6 +343,31 @@ $router->post(
     '/laboratorio/eliminar',
     [LaboratorioController::class, 'delete'],
     ['auth', 'environment', 'permission:laboratorio.eliminar']
+);
+
+// Peluquería
+$router->get(
+    '/peluquerias',
+    [PeluqueriaController::class, 'index'],
+    ['auth', 'environment', 'permission:peluqueria.ver']
+);
+
+$router->post(
+    '/peluquerias',
+    [PeluqueriaController::class, 'store'],
+    ['auth', 'environment', 'permission:peluqueria.crear']
+);
+
+$router->post(
+    '/peluquerias/{id}/actualizar',
+    [PeluqueriaController::class, 'update'],
+    ['auth', 'environment', 'permission:peluqueria.editar']
+);
+
+$router->post(
+    '/peluquerias/{id}/anular',
+    [PeluqueriaController::class, 'cancel'],
+    ['auth', 'environment', 'permission:peluqueria.eliminar']
 );
 
 /*
