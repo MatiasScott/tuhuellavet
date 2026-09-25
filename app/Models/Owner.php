@@ -25,11 +25,77 @@ class Owner extends Model
         $s->execute($p);
         return $s->fetchAll();
     }
+
     public function options(int $e): array
     {
-        $s = $this->db->prepare('SELECT pe.id,p.nombres,p.apellidos,p.identificacion FROM propietarios_entornos pe JOIN propietarios p ON p.id=pe.propietario_id WHERE pe.entorno_id=:e AND pe.activo=1 AND p.activo=1 AND p.deleted_at IS NULL ORDER BY p.apellidos,p.nombres');
-        $s->execute(['e' => $e]);
+        $s = $this->db->prepare(
+            'SELECT
+            pe.id,
+            pe.id AS propietario_entorno_id,
+            p.id AS propietario_id,
+            p.nombres,
+            p.apellidos,
+            p.identificacion
+         FROM propietarios_entornos pe
+         INNER JOIN propietarios p
+            ON p.id = pe.propietario_id
+         WHERE pe.entorno_id = :e
+           AND pe.activo = 1
+           AND p.activo = 1
+           AND p.deleted_at IS NULL
+         ORDER BY p.apellidos, p.nombres'
+        );
+
+        $s->execute([
+            'e' => $e,
+        ]);
+
         return $s->fetchAll();
+    }
+
+    public function fiscalDataByEnvironment(int $e): array
+    {
+        $stmt = $this->db->prepare(
+            'SELECT
+            pdf.id,
+            pdf.propietario_id,
+            pe.id AS propietario_entorno_id,
+
+            pdf.tipo_identificacion_id,
+            pdf.identificacion,
+            pdf.razon_social,
+            pdf.direccion,
+            pdf.email,
+            pdf.telefono,
+            pdf.es_principal,
+            pdf.activo
+
+         FROM propietarios_datos_fiscales pdf
+
+         INNER JOIN propietarios_entornos pe
+            ON pe.propietario_id = pdf.propietario_id
+
+         INNER JOIN propietarios p
+            ON p.id = pdf.propietario_id
+
+         WHERE pe.entorno_id = :entorno
+           AND pe.activo = 1
+           AND p.activo = 1
+           AND p.deleted_at IS NULL
+           AND pdf.activo = 1
+
+         ORDER BY
+            pe.id,
+            pdf.es_principal DESC,
+            pdf.razon_social,
+            pdf.identificacion'
+        );
+
+        $stmt->execute([
+            'entorno' => $e,
+        ]);
+
+        return $stmt->fetchAll();
     }
 
     /**
@@ -147,5 +213,51 @@ class Owner extends Model
         $stmt->execute($params);
 
         return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * Datos fiscales activos e inactivos de un propietario
+     * dentro del entorno indicado.
+     */
+    public function fiscalData(
+        int $ownerId,
+        int $environmentId
+    ): array {
+        $stmt = $this->db->prepare(
+            'SELECT
+            pdf.id,
+            pdf.propietario_id,
+            pdf.tipo_identificacion_id,
+            pdf.identificacion,
+            pdf.razon_social,
+            pdf.direccion,
+            pdf.email,
+            pdf.telefono,
+            pdf.es_principal,
+            pdf.activo,
+            pdf.created_at,
+            pdf.updated_at
+         FROM propietarios_datos_fiscales pdf
+         INNER JOIN propietarios_entornos pe
+            ON pe.propietario_id = pdf.propietario_id
+         INNER JOIN propietarios p
+            ON p.id = pdf.propietario_id
+         WHERE pdf.propietario_id = :owner_id
+           AND pe.entorno_id = :environment_id
+           AND pe.activo = 1
+           AND p.activo = 1
+           AND p.deleted_at IS NULL
+         ORDER BY
+            pdf.activo DESC,
+            pdf.es_principal DESC,
+            pdf.id DESC'
+        );
+
+        $stmt->execute([
+            'owner_id' => $ownerId,
+            'environment_id' => $environmentId,
+        ]);
+
+        return $stmt->fetchAll();
     }
 }

@@ -129,6 +129,23 @@ $router->delete(
     [PropietarioController::class, 'destroy'],
     ['auth', 'environment', 'permission:propietarios.eliminar']
 );
+$router->post(
+    '/propietarios/{id}/datos-fiscales',
+    [PropietarioController::class, 'storeFiscalData'],
+    ['auth', 'environment', 'permission:propietarios.editar']
+);
+
+$router->post(
+    '/propietarios/{id}/datos-fiscales/{fiscalId}/actualizar',
+    [PropietarioController::class, 'updateFiscalData'],
+    ['auth', 'environment', 'permission:propietarios.editar']
+);
+
+$router->post(
+    '/propietarios/{id}/datos-fiscales/{fiscalId}/estado',
+    [PropietarioController::class, 'toggleFiscalData'],
+    ['auth', 'environment', 'permission:propietarios.editar']
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -450,6 +467,11 @@ $router->post(
     [InventarioController::class, 'movement'],
     ['auth', 'environment', 'permission:inventario.crear']
 );
+$router->post(
+    '/inventario/productos/{id}/actualizar',
+    [InventarioController::class, 'updateProduct'],
+    ['auth', 'environment', 'permission:inventario.editar']
+);
 
 // Citas
 $router->get(
@@ -478,6 +500,23 @@ $router->post(
     '/facturacion/{id}/emitir',
     [FacturacionController::class, 'invoice'],
     ['auth', 'environment', 'permission:facturacion.facturar']
+);
+
+$router->post(
+    '/facturacion/{id}/pagos',
+    [FacturacionController::class, 'payment'],
+    ['auth', 'environment', 'permission:ventas.editar']
+);
+
+$router->post(
+    '/facturacion/{id}/pagos/{paymentId}/anular',
+    [FacturacionController::class, 'cancelPayment'],
+    ['auth', 'environment', 'permission:ventas.editar']
+);
+$router->post(
+    '/facturacion/{id}/anular',
+    [FacturacionController::class, 'cancel'],
+    ['auth', 'environment', 'permission:ventas.eliminar']
 );
 
 // Reportes

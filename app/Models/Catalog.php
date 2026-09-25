@@ -138,15 +138,21 @@ class Catalog extends Model
     {
         return $this->rows(
             'SELECT
-            id,
-            codigo,
-            nombre,
-            descripcion,
-            precio_base,
-            activo
-         FROM servicios
-         WHERE activo = 1
-         ORDER BY nombre'
+            s.id,
+            s.codigo,
+            s.nombre,
+            s.descripcion,
+            s.precio_base,
+            s.precio_incluye_impuesto,
+            s.impuesto_tarifa_id,
+            it.nombre AS impuesto_nombre,
+            it.porcentaje AS impuesto_porcentaje,
+            s.activo
+         FROM servicios s
+         LEFT JOIN impuesto_tarifas it
+            ON it.id = s.impuesto_tarifa_id
+         WHERE s.activo = 1
+         ORDER BY s.nombre'
         );
     }
 
@@ -273,14 +279,41 @@ class Catalog extends Model
     {
         return $this->rows(
             'SELECT
-            id,
-            codigo,
-            nombre,
-            descripcion,
-            precio_base,
-            activo
-         FROM servicios
-         ORDER BY activo DESC, nombre'
+            s.id,
+            s.codigo,
+            s.nombre,
+            s.descripcion,
+            s.precio_base,
+            s.precio_incluye_impuesto,
+            s.impuesto_tarifa_id,
+            it.nombre AS impuesto_nombre,
+            it.porcentaje AS impuesto_porcentaje,
+            s.activo
+         FROM servicios s
+         LEFT JOIN impuesto_tarifas it
+            ON it.id = s.impuesto_tarifa_id
+         ORDER BY s.activo DESC, s.nombre'
+        );
+    }
+
+    public function taxRates(): array
+    {
+        return $this->rows(
+            'SELECT
+            it.id,
+            it.codigo,
+            it.nombre,
+            it.porcentaje,
+            it.fecha_desde,
+            it.fecha_hasta,
+            i.codigo AS impuesto_codigo,
+            i.nombre AS impuesto_nombre
+         FROM impuesto_tarifas it
+         INNER JOIN impuestos i
+            ON i.id = it.impuesto_id
+         WHERE it.activo = 1
+           AND i.activo = 1
+         ORDER BY i.nombre, it.porcentaje'
         );
     }
 }

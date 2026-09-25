@@ -195,6 +195,135 @@
                         <span>Dirección</span>
                         <input name="direccion">
                     </label>
+                    <div class="field-full owner-fiscal-section">
+
+                        <div class="owner-fiscal-heading">
+                            <div>
+                                <strong>Datos de facturación</strong>
+                                <small>
+                                    Información que podrá utilizarse para emitir
+                                    documentos fiscales.
+                                </small>
+                            </div>
+
+                            <label class="owner-fiscal-toggle">
+                                <input
+                                    type="checkbox"
+                                    name="crear_datos_fiscales"
+                                    value="1"
+                                    checked
+                                    data-fiscal-enabled>
+                                <span>Crear datos fiscales</span>
+                            </label>
+                        </div>
+
+
+                        <div data-fiscal-container>
+
+                            <label class="owner-fiscal-same">
+                                <input
+                                    type="checkbox"
+                                    name="datos_fiscales_mismos"
+                                    value="1"
+                                    checked
+                                    data-fiscal-same>
+
+                                <span>
+                                    <strong>
+                                        Usar los mismos datos del propietario
+                                    </strong>
+
+                                    <small>
+                                        Se utilizarán la identificación, nombre,
+                                        dirección y contacto registrados arriba.
+                                    </small>
+                                </span>
+                            </label>
+
+
+                            <div
+                                class="form-grid owner-fiscal-fields"
+                                data-fiscal-fields
+                                hidden>
+
+                                <label>
+                                    <span>Tipo de identificación *</span>
+
+                                    <select
+                                        name="fiscal_tipo_identificacion_id"
+                                        data-fiscal-input>
+                                        <option value="">
+                                            Seleccionar
+                                        </option>
+
+                                        <?php foreach ($identificationTypes as $t): ?>
+                                            <option value="<?= (int) $t['id'] ?>">
+                                                <?= e($t['nombre']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+
+
+                                <label>
+                                    <span>Identificación *</span>
+
+                                    <input
+                                        name="fiscal_identificacion"
+                                        maxlength="30"
+                                        autocomplete="off"
+                                        data-fiscal-input>
+                                </label>
+
+
+                                <label class="field-full">
+                                    <span>Razón social *</span>
+
+                                    <input
+                                        name="fiscal_razon_social"
+                                        maxlength="200"
+                                        autocomplete="off"
+                                        data-fiscal-input>
+                                </label>
+
+
+                                <label class="field-full">
+                                    <span>Dirección</span>
+
+                                    <input
+                                        name="fiscal_direccion"
+                                        maxlength="255"
+                                        data-fiscal-input>
+                                </label>
+
+
+                                <label>
+                                    <span>Correo de facturación</span>
+
+                                    <input
+                                        type="email"
+                                        name="fiscal_email"
+                                        maxlength="180"
+                                        autocomplete="off"
+                                        data-fiscal-input>
+                                </label>
+
+
+                                <label>
+                                    <span>Teléfono</span>
+
+                                    <input
+                                        name="fiscal_telefono"
+                                        maxlength="30"
+                                        autocomplete="off"
+                                        data-fiscal-input>
+                                </label>
+
+                            </div>
+
+                        </div>
+
+                    </div>
                     <div class="field-full owner-access-section">
                         <span class="owner-access-title">
                             Acceso al portal

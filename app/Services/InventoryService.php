@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Core\Database;
 use PDO;
 use RuntimeException;
+use Throwable;
 
 class InventoryService
 {
@@ -119,6 +120,44 @@ class InventoryService
                     : 0;
 
                 $controlsExpiration = !empty($data['controla_vencimiento'])
+                    ? 1
+                    : 0;
+
+                /*
+                * ==========================================
+                * DATOS COMERCIALES / FACTURACIÓN
+                * ==========================================
+                */
+
+                $priceRaw = trim(
+                    (string) (
+                        $data['precio_venta']
+                        ?? ''
+                    )
+                );
+
+                $salePrice = null;
+
+                if ($priceRaw !== '') {
+                    if (
+                        !preg_match(
+                            '/^\d{1,10}(?:\.\d{1,4})?$/',
+                            $priceRaw
+                        )
+                    ) {
+                        throw new RuntimeException(
+                            'El precio de venta debe ser un número válido con hasta cuatro decimales.'
+                        );
+                    }
+
+                    $salePrice = $priceRaw;
+                }
+
+                $taxRateId = !empty($data['impuesto_tarifa_id'])
+                    ? (int) $data['impuesto_tarifa_id']
+                    : null;
+
+                $priceIncludesTax = !empty($data['precio_incluye_impuesto'])
                     ? 1
                     : 0;
 
@@ -453,35 +492,91 @@ class InventoryService
                     }
                 }
 
+                /*
+                * ==========================================
+                * VALIDAR TARIFA DE IMPUESTO
+                * ==========================================
+                */
+
+                if ($taxRateId !== null) {
+                    $stmt = $db->prepare(
+                        '
+        SELECT
+            it.id
+        FROM impuesto_tarifas it
+        INNER JOIN impuestos i
+            ON i.id = it.impuesto_id
+        WHERE it.id = :id
+          AND it.activo = 1
+          AND i.activo = 1
+          AND it.fecha_desde <= CURDATE()
+          AND (
+                it.fecha_hasta IS NULL
+                OR it.fecha_hasta >= CURDATE()
+              )
+        LIMIT 1
+        '
+                    );
+
+                    $stmt->execute([
+                        'id' => $taxRateId,
+                    ]);
+
+                    if (!$stmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'La tarifa de impuesto seleccionada no es válida o no está vigente.'
+                        );
+                    }
+                }
+
+                /*
+ * Si no existe una tarifa configurada,
+ * el indicador "precio incluye impuesto"
+ * no tiene sentido.
+ */
+                if ($taxRateId === null) {
+                    $priceIncludesTax = 0;
+                }
+
                 $stmt = $db->prepare(
                     '
-                INSERT INTO productos
-                (
-                    categoria_producto_id,
-                    codigo,
-                    nombre,
-                    descripcion,
-                    unidad_base_id,
-                    farmaco_presentacion_id,
-                    vacuna_id,
-                    controla_lote,
-                    controla_vencimiento,
-                    activo
-                )
-                VALUES
-                (
-                    :categoria,
-                    :codigo,
-                    :nombre,
-                    :descripcion,
-                    :unidad,
-                    :farmaco_presentacion,
-                    :vacuna,
-                    :controla_lote,
-                    :controla_vencimiento,
-                    1
-                )
-                '
+                    INSERT INTO productos
+                    (
+                        categoria_producto_id,
+                        codigo,
+                        nombre,
+                        descripcion,
+                        unidad_base_id,
+                        farmaco_presentacion_id,
+                        vacuna_id,
+                        controla_lote,
+                        controla_vencimiento,
+
+                        precio_venta,
+                        precio_incluye_impuesto,
+                        impuesto_tarifa_id,
+
+                        activo
+                    )
+                    VALUES
+                    (
+                        :categoria,
+                        :codigo,
+                        :nombre,
+                        :descripcion,
+                        :unidad,
+                        :farmaco_presentacion,
+                        :vacuna,
+                        :controla_lote,
+                        :controla_vencimiento,
+
+                        :precio_venta,
+                        :precio_incluye_impuesto,
+                        :impuesto_tarifa_id,
+
+                        1
+                    )
+                    '
                 );
 
                 $stmt->execute([
@@ -513,6 +608,15 @@ class InventoryService
 
                     'controla_vencimiento' =>
                     $controlsExpiration,
+
+                    'precio_venta' =>
+                    $salePrice,
+
+                    'precio_incluye_impuesto' =>
+                    $priceIncludesTax,
+
+                    'impuesto_tarifa_id' =>
+                    $taxRateId,
                 ]);
 
                 $productId =
@@ -665,6 +769,9 @@ class InventoryService
                             'numero_lote' => $lotNumber,
                             'fecha_fabricacion' => $manufactureDate,
                             'fecha_vencimiento' => $expirationDate,
+                            'precio_venta' => $salePrice,
+                            'impuesto_tarifa_id' => $taxRateId,
+                            'precio_incluye_impuesto' => $priceIncludesTax,
                         ]
                     );
                 }
@@ -797,6 +904,532 @@ class InventoryService
                 return $productId;
             }
         );
+    }
+
+    public function updateProduct(
+        int $productId,
+        array $data,
+        int $environmentId,
+        int $updatedBy
+    ): void {
+        if ($productId <= 0) {
+            throw new RuntimeException(
+                'El producto seleccionado no es válido.'
+            );
+        }
+
+        $code = strtoupper(
+            trim((string)($data['codigo'] ?? ''))
+        );
+
+        $name = trim(
+            (string)($data['nombre'] ?? '')
+        );
+
+        $description = trim(
+            (string)($data['descripcion'] ?? '')
+        );
+
+        $categoryId = !empty($data['categoria_producto_id'])
+            ? (int)$data['categoria_producto_id']
+            : null;
+
+        $unitId = (int)(
+            $data['unidad_base_id']
+            ?? 0
+        );
+
+        $controlsLot = !empty($data['controla_lote'])
+            ? 1
+            : 0;
+
+        $controlsExpiration = !empty($data['controla_vencimiento'])
+            ? 1
+            : 0;
+
+        /*
+     * ==========================================
+     * VALIDACIONES GENERALES
+     * ==========================================
+     */
+
+        if ($code === '') {
+            throw new RuntimeException(
+                'El código del producto es obligatorio.'
+            );
+        }
+
+        if ($name === '') {
+            throw new RuntimeException(
+                'El nombre del producto es obligatorio.'
+            );
+        }
+
+        if ($unitId <= 0) {
+            throw new RuntimeException(
+                'Debe seleccionar una unidad base.'
+            );
+        }
+
+        /*
+     * Si controla vencimiento necesariamente
+     * debe controlar lote.
+     */
+        if (
+            $controlsExpiration === 1
+            && $controlsLot !== 1
+        ) {
+            throw new RuntimeException(
+                'Un producto que controla vencimiento debe controlar lote.'
+            );
+        }
+
+        /*
+     * ==========================================
+     * PRECIO
+     * ==========================================
+     */
+
+        $priceRaw = trim(
+            (string)(
+                $data['precio_venta']
+                ?? ''
+            )
+        );
+
+        $salePrice = null;
+
+        if ($priceRaw !== '') {
+            if (
+                !preg_match(
+                    '/^\d{1,10}(?:\.\d{1,4})?$/',
+                    $priceRaw
+                )
+            ) {
+                throw new RuntimeException(
+                    'El precio de venta debe ser un número válido con hasta cuatro decimales.'
+                );
+            }
+
+            $salePrice = $priceRaw;
+        }
+
+        /*
+     * ==========================================
+     * IMPUESTO
+     * ==========================================
+     */
+
+        $taxRateId = !empty($data['impuesto_tarifa_id'])
+            ? (int)$data['impuesto_tarifa_id']
+            : null;
+
+        $priceIncludesTax = !empty($data['precio_incluye_impuesto'])
+            ? 1
+            : 0;
+
+        if ($taxRateId === null) {
+            $priceIncludesTax = 0;
+        }
+
+        /*
+     * ==========================================
+     * STOCK MÍNIMO / MÁXIMO
+     * ==========================================
+     */
+
+        $minimumStockRaw = trim(
+            (string)(
+                $data['stock_minimo']
+                ?? ''
+            )
+        );
+
+        if (
+            $minimumStockRaw !== ''
+            && !preg_match('/^\d{1,10}(?:\.\d{1,4})?$/', $minimumStockRaw)
+        ) {
+            throw new RuntimeException(
+                'El stock mínimo debe ser un número válido con hasta cuatro decimales.'
+            );
+        }
+
+        $minimumStock = $minimumStockRaw === ''
+            ? '0'
+            : $minimumStockRaw;
+
+        $unlimitedMaximum = !empty($data['stock_maximo_sin_limite']);
+
+        $maximumStock = null;
+
+        if (!$unlimitedMaximum) {
+            $maximumStockRaw = trim(
+                (string)($data['stock_maximo'] ?? '')
+            );
+
+            if ($maximumStockRaw === '') {
+                throw new RuntimeException(
+                    'Debe indicar el stock máximo o seleccionar "Sin límite".'
+                );
+            }
+
+            if (
+                !preg_match('/^\d{1,10}(?:\.\d{1,4})?$/', $maximumStockRaw)
+            ) {
+                throw new RuntimeException(
+                    'El stock máximo debe ser un número válido con hasta cuatro decimales.'
+                );
+            }
+
+            $maximumStock = $maximumStockRaw;
+
+            if ((float)$maximumStock < (float)$minimumStock) {
+                throw new RuntimeException(
+                    'El stock máximo no puede ser menor que el stock mínimo.'
+                );
+            }
+        }
+
+        $db = Database::connection();
+
+        $db->beginTransaction();
+
+        try {
+            /*
+         * ==========================================
+         * PRODUCTO ACTUAL
+         * ==========================================
+         */
+
+            $stmt = $db->prepare(
+                '
+            SELECT
+                p.*
+            FROM productos p
+            WHERE p.id = :id
+              AND p.deleted_at IS NULL
+            LIMIT 1
+            FOR UPDATE
+            '
+            );
+
+            $stmt->execute([
+                'id' => $productId,
+            ]);
+
+            $before = $stmt->fetch();
+
+            if (!$before) {
+                throw new RuntimeException(
+                    'El producto no existe.'
+                );
+            }
+
+            /*
+         * ==========================================
+         * VERIFICAR QUE PERTENECE AL ENTORNO
+         * ==========================================
+         *
+         * El producto es global, pero para poder
+         * editarlo desde este entorno debe estar
+         * asociado a uno de sus inventarios.
+         */
+
+            $stmt = $db->prepare(
+                '
+            SELECT
+                ip.inventario_id,
+                ip.stock_minimo,
+                ip.stock_maximo
+            FROM inventario_productos ip
+            INNER JOIN inventarios i
+                ON i.id = ip.inventario_id
+            WHERE ip.producto_id = :producto
+              AND i.entorno_id = :entorno
+              AND i.activo = 1
+              AND ip.activo = 1
+            ORDER BY ip.inventario_id
+            LIMIT 1
+            FOR UPDATE
+            '
+            );
+
+            $stmt->execute([
+                'producto' => $productId,
+                'entorno' => $environmentId,
+            ]);
+
+            $inventoryProduct = $stmt->fetch();
+
+            if (!$inventoryProduct) {
+                throw new RuntimeException(
+                    'El producto no pertenece al inventario del entorno activo.'
+                );
+            }
+
+            $inventoryId = (int)$inventoryProduct['inventario_id'];
+
+            /*
+         * ==========================================
+         * CÓDIGO ÚNICO
+         * ==========================================
+         */
+
+            $stmt = $db->prepare(
+                '
+            SELECT id
+            FROM productos
+            WHERE codigo = :codigo
+              AND id <> :id
+              AND deleted_at IS NULL
+            LIMIT 1
+            '
+            );
+
+            $stmt->execute([
+                'codigo' => $code,
+                'id' => $productId,
+            ]);
+
+            if ($stmt->fetchColumn()) {
+                throw new RuntimeException(
+                    'Ya existe otro producto con ese código.'
+                );
+            }
+
+            /*
+         * ==========================================
+         * VALIDAR CATEGORÍA
+         * ==========================================
+         */
+
+            if ($categoryId !== null) {
+                $stmt = $db->prepare(
+                    '
+                SELECT id
+                FROM categorias_producto
+                WHERE id = :id
+                  AND activo = 1
+                LIMIT 1
+                '
+                );
+
+                $stmt->execute([
+                    'id' => $categoryId,
+                ]);
+
+                if (!$stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'La categoría seleccionada no es válida.'
+                    );
+                }
+            }
+
+            /*
+         * ==========================================
+         * VALIDAR UNIDAD
+         * ==========================================
+         */
+
+            $stmt = $db->prepare(
+                '
+            SELECT id
+            FROM unidades_medida
+            WHERE id = :id
+              AND activo = 1
+            LIMIT 1
+            '
+            );
+
+            $stmt->execute([
+                'id' => $unitId,
+            ]);
+
+            if (!$stmt->fetchColumn()) {
+                throw new RuntimeException(
+                    'La unidad seleccionada no es válida.'
+                );
+            }
+
+            /*
+         * ==========================================
+         * VALIDAR TARIFA
+         * ==========================================
+         */
+
+            if ($taxRateId !== null) {
+                $stmt = $db->prepare(
+                    '
+                SELECT
+                    it.id
+                FROM impuesto_tarifas it
+                INNER JOIN impuestos i
+                    ON i.id = it.impuesto_id
+                WHERE it.id = :id
+                  AND it.activo = 1
+                  AND i.activo = 1
+                  AND it.fecha_desde <= CURDATE()
+                  AND (
+                        it.fecha_hasta IS NULL
+                        OR it.fecha_hasta >= CURDATE()
+                      )
+                LIMIT 1
+                '
+                );
+
+                $stmt->execute([
+                    'id' => $taxRateId,
+                ]);
+
+                if (!$stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'La tarifa de impuesto seleccionada no es válida o no está vigente.'
+                    );
+                }
+            }
+
+            /*
+         * ==========================================
+         * ACTUALIZAR PRODUCTO
+         * ==========================================
+         */
+
+            $stmt = $db->prepare(
+                '
+            UPDATE productos
+            SET
+                categoria_producto_id = :categoria,
+                codigo = :codigo,
+                nombre = :nombre,
+                descripcion = :descripcion,
+                unidad_base_id = :unidad,
+                controla_lote = :controla_lote,
+                controla_vencimiento = :controla_vencimiento,
+                precio_venta = :precio_venta,
+                precio_incluye_impuesto = :precio_incluye_impuesto,
+                impuesto_tarifa_id = :impuesto_tarifa_id,
+                updated_at = NOW()
+            WHERE id = :id
+            '
+            );
+
+            $stmt->execute([
+                'categoria' => $categoryId,
+                'codigo' => $code,
+                'nombre' => $name,
+
+                'descripcion' => $description !== ''
+                    ? $description
+                    : null,
+
+                'unidad' => $unitId,
+
+                'controla_lote' => $controlsLot,
+
+                'controla_vencimiento' =>
+                $controlsExpiration,
+
+                'precio_venta' => $salePrice,
+
+                'precio_incluye_impuesto' =>
+                $priceIncludesTax,
+
+                'impuesto_tarifa_id' =>
+                $taxRateId,
+
+                'id' => $productId,
+            ]);
+
+            /*
+         * ==========================================
+         * ACTUALIZAR CONFIGURACIÓN DE INVENTARIO
+         * ==========================================
+         *
+         * No modificamos stock actual.
+         * Solo mínimos/máximos.
+         */
+
+            $stmt = $db->prepare(
+                '
+            UPDATE inventario_productos
+            SET
+                stock_minimo = :minimo,
+                stock_maximo = :maximo
+            WHERE inventario_id = :inventario
+              AND producto_id = :producto
+            '
+            );
+
+            $stmt->execute([
+                'minimo' => $minimumStock,
+                'maximo' => $maximumStock,
+                'inventario' => $inventoryId,
+                'producto' => $productId,
+            ]);
+
+            /*
+         * ==========================================
+         * AUDITORÍA
+         * ==========================================
+         */
+
+            (new AuditService())->log(
+                $updatedBy,
+                $environmentId,
+                'INVENTARIO',
+                'EDITAR_PRODUCTO',
+                'productos',
+                $productId,
+                $before,
+                [
+                    'categoria_producto_id' =>
+                    $categoryId,
+
+                    'codigo' =>
+                    $code,
+
+                    'nombre' =>
+                    $name,
+
+                    'descripcion' =>
+                    $description !== ''
+                        ? $description
+                        : null,
+
+                    'unidad_base_id' =>
+                    $unitId,
+
+                    'controla_lote' =>
+                    $controlsLot,
+
+                    'controla_vencimiento' =>
+                    $controlsExpiration,
+
+                    'precio_venta' =>
+                    $salePrice,
+
+                    'impuesto_tarifa_id' =>
+                    $taxRateId,
+
+                    'precio_incluye_impuesto' =>
+                    $priceIncludesTax,
+
+                    'stock_minimo' =>
+                    $minimumStock,
+
+                    'stock_maximo' =>
+                    $maximumStock,
+                ]
+            );
+
+            $db->commit();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $e;
+        }
     }
 
     public function movement(

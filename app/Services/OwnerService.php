@@ -392,6 +392,173 @@ class OwnerService
             ]);
 
             // =====================================================
+            // 10. CREAR DATOS FISCALES PRINCIPALES
+            // =====================================================
+
+            $createFiscalData = isset($d['crear_datos_fiscales'])
+                && (string) $d['crear_datos_fiscales'] === '1';
+
+            $fiscalDataId = null;
+
+            if ($createFiscalData) {
+
+                $sameFiscalData = isset($d['datos_fiscales_mismos'])
+                    && (string) $d['datos_fiscales_mismos'] === '1';
+
+
+                // -------------------------------------------------
+                // 10A. USAR DATOS DEL PROPIETARIO
+                // -------------------------------------------------
+
+                if ($sameFiscalData) {
+
+                    $fiscalIdentificationTypeId = $identificationTypeId;
+                    $fiscalIdentification = $identification;
+
+                    $fiscalBusinessName = trim(
+                        $names . ' ' . ($lastNames ?? '')
+                    );
+
+                    $fiscalAddress = $address;
+                    $fiscalEmail = $email;
+                    $fiscalPhone = $mobile ?? $phone;
+                }
+
+
+                // -------------------------------------------------
+                // 10B. DATOS FISCALES DIFERENTES
+                // -------------------------------------------------
+
+                else {
+
+                    $fiscalIdentificationTypeId =
+                        !empty($d['fiscal_tipo_identificacion_id'])
+                        ? (int) $d['fiscal_tipo_identificacion_id']
+                        : null;
+
+                    $fiscalIdentification =
+                        $this->normalizeIdentification(
+                            $d['fiscal_identificacion'] ?? null
+                        );
+
+                    $fiscalBusinessName =
+                        $this->nullableString(
+                            $d['fiscal_razon_social'] ?? null
+                        );
+
+                    $fiscalAddress =
+                        $this->nullableString(
+                            $d['fiscal_direccion'] ?? null
+                        );
+
+                    $fiscalEmail =
+                        $this->normalizeEmail(
+                            $d['fiscal_email'] ?? null
+                        );
+
+                    $fiscalPhone =
+                        $this->nullableString(
+                            $d['fiscal_telefono'] ?? null
+                        );
+                }
+
+
+                // -------------------------------------------------
+                // 10C. VALIDACIONES
+                // -------------------------------------------------
+
+                if ($fiscalIdentificationTypeId === null) {
+                    throw new RuntimeException(
+                        'Debe seleccionar el tipo de identificación fiscal.'
+                    );
+                }
+
+                if ($fiscalIdentification === null) {
+                    throw new RuntimeException(
+                        'La identificación fiscal es obligatoria.'
+                    );
+                }
+
+                if ($fiscalBusinessName === null) {
+                    throw new RuntimeException(
+                        'La razón social es obligatoria.'
+                    );
+                }
+
+                if (
+                    $fiscalEmail !== null
+                    && !filter_var($fiscalEmail, FILTER_VALIDATE_EMAIL)
+                ) {
+                    throw new RuntimeException(
+                        'El correo de facturación no tiene un formato válido.'
+                    );
+                }
+
+
+                // -------------------------------------------------
+                // 10D. VALIDAR TIPO DE IDENTIFICACIÓN
+                // -------------------------------------------------
+
+                $stmt = $db->prepare(
+                    'SELECT id
+         FROM tipos_identificacion
+         WHERE id = :id
+         LIMIT 1'
+                );
+
+                $stmt->execute([
+                    'id' => $fiscalIdentificationTypeId,
+                ]);
+
+                if (!$stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'El tipo de identificación fiscal seleccionado no existe.'
+                    );
+                }
+
+
+                // -------------------------------------------------
+                // 10E. CREAR REGISTRO FISCAL PRINCIPAL
+                // -------------------------------------------------
+
+                $stmt = $db->prepare(
+                    'INSERT INTO propietarios_datos_fiscales (
+            propietario_id,
+            tipo_identificacion_id,
+            identificacion,
+            razon_social,
+            direccion,
+            email,
+            telefono,
+            es_principal,
+            activo
+         ) VALUES (
+            :owner_id,
+            :identification_type,
+            :identification,
+            :business_name,
+            :address,
+            :email,
+            :phone,
+            1,
+            1
+         )'
+                );
+
+                $stmt->execute([
+                    'owner_id' => $ownerId,
+                    'identification_type' => $fiscalIdentificationTypeId,
+                    'identification' => $fiscalIdentification,
+                    'business_name' => $fiscalBusinessName,
+                    'address' => $fiscalAddress,
+                    'email' => $fiscalEmail,
+                    'phone' => $fiscalPhone,
+                ]);
+
+                $fiscalDataId = (int) $db->lastInsertId();
+            }
+
+            // =====================================================
             // 10. AUDITORÍA
             // =====================================================
 
@@ -408,6 +575,7 @@ class OwnerService
                     'modo_acceso' => $accessMode,
                     'usuario_creado' => $userCreated,
                     'usuario_vinculado' => $userLinked,
+                    'dato_fiscal_id' => $fiscalDataId,
                 ]
             );
 
@@ -421,6 +589,7 @@ class OwnerService
                 'user_created' => $userCreated,
                 'user_linked' => $userLinked,
                 'access_mode' => $accessMode,
+                'fiscal_data_id' => $fiscalDataId,
             ];
         });
     }
@@ -790,5 +959,504 @@ class OwnerService
         return $value !== ''
             ? $value
             : null;
+    }
+
+    public function createFiscalData(
+        int $ownerId,
+        array $d,
+        int $env,
+        int $by
+    ): void {
+        Database::transaction(function (PDO $db) use (
+            $ownerId,
+            $d,
+            $env,
+            $by
+        ) {
+            $this->assertOwnerInEnvironment(
+                $db,
+                $ownerId,
+                $env
+            );
+
+            $identificationTypeId =
+                !empty($d['tipo_identificacion_id'])
+                ? (int) $d['tipo_identificacion_id']
+                : 0;
+
+            $identification = $this->normalizeIdentification(
+                $d['identificacion'] ?? null
+            );
+
+            $businessName = $this->nullableString(
+                $d['razon_social'] ?? null
+            );
+
+            $address = $this->nullableString(
+                $d['direccion'] ?? null
+            );
+
+            $email = $this->normalizeEmail(
+                $d['email'] ?? null
+            );
+
+            $phone = $this->nullableString(
+                $d['telefono'] ?? null
+            );
+
+            if ($identificationTypeId <= 0) {
+                throw new RuntimeException(
+                    'Debe seleccionar el tipo de identificación fiscal.'
+                );
+            }
+
+            if ($identification === null) {
+                throw new RuntimeException(
+                    'La identificación fiscal es obligatoria.'
+                );
+            }
+
+            if ($businessName === null) {
+                throw new RuntimeException(
+                    'La razón social es obligatoria.'
+                );
+            }
+
+            if (
+                $email !== null
+                && !filter_var($email, FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new RuntimeException(
+                    'El correo de facturación no es válido.'
+                );
+            }
+
+            $this->assertIdentificationType(
+                $db,
+                $identificationTypeId
+            );
+
+            /*
+         * Bloqueamos los datos fiscales del propietario.
+         */
+            $stmt = $db->prepare(
+                'SELECT id
+             FROM propietarios_datos_fiscales
+             WHERE propietario_id = :owner_id
+             FOR UPDATE'
+            );
+
+            $stmt->execute([
+                'owner_id' => $ownerId,
+            ]);
+
+            $existing = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            /*
+         * Si es el primer dato fiscal, obligatoriamente será principal.
+         * Si ya existen, respetamos lo seleccionado.
+         */
+            $isPrincipal = empty($existing)
+                || (
+                    isset($d['es_principal'])
+                    && (string) $d['es_principal'] === '1'
+                );
+
+            if ($isPrincipal) {
+                $stmt = $db->prepare(
+                    'UPDATE propietarios_datos_fiscales
+                 SET es_principal = 0
+                 WHERE propietario_id = :owner_id'
+                );
+
+                $stmt->execute([
+                    'owner_id' => $ownerId,
+                ]);
+            }
+
+            $stmt = $db->prepare(
+                'INSERT INTO propietarios_datos_fiscales (
+                propietario_id,
+                tipo_identificacion_id,
+                identificacion,
+                razon_social,
+                direccion,
+                email,
+                telefono,
+                es_principal,
+                activo
+             ) VALUES (
+                :owner_id,
+                :identification_type,
+                :identification,
+                :business_name,
+                :address,
+                :email,
+                :phone,
+                :principal,
+                1
+             )'
+            );
+
+            $stmt->execute([
+                'owner_id' => $ownerId,
+                'identification_type' => $identificationTypeId,
+                'identification' => $identification,
+                'business_name' => $businessName,
+                'address' => $address,
+                'email' => $email,
+                'phone' => $phone,
+                'principal' => $isPrincipal ? 1 : 0,
+            ]);
+
+            $fiscalDataId = (int) $db->lastInsertId();
+
+            (new AuditService())->log(
+                $by,
+                $env,
+                'PROPIETARIOS',
+                'CREAR_DATO_FISCAL',
+                'propietarios_datos_fiscales',
+                $fiscalDataId,
+                null,
+                [
+                    'propietario_id' => $ownerId,
+                    'identificacion' => $identification,
+                    'razon_social' => $businessName,
+                    'es_principal' => $isPrincipal,
+                ]
+            );
+        });
+    }
+
+    public function updateFiscalData(
+        int $ownerId,
+        int $fiscalDataId,
+        array $d,
+        int $env,
+        int $by
+    ): void {
+        Database::transaction(function (PDO $db) use (
+            $ownerId,
+            $fiscalDataId,
+            $d,
+            $env,
+            $by
+        ) {
+            $this->assertOwnerInEnvironment(
+                $db,
+                $ownerId,
+                $env
+            );
+
+            $stmt = $db->prepare(
+                'SELECT *
+             FROM propietarios_datos_fiscales
+             WHERE id = :id
+               AND propietario_id = :owner_id
+             LIMIT 1
+             FOR UPDATE'
+            );
+
+            $stmt->execute([
+                'id' => $fiscalDataId,
+                'owner_id' => $ownerId,
+            ]);
+
+            $old = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old) {
+                throw new RuntimeException(
+                    'Dato fiscal no encontrado.'
+                );
+            }
+
+            $identificationTypeId =
+                !empty($d['tipo_identificacion_id'])
+                ? (int) $d['tipo_identificacion_id']
+                : 0;
+
+            $identification = $this->normalizeIdentification(
+                $d['identificacion'] ?? null
+            );
+
+            $businessName = $this->nullableString(
+                $d['razon_social'] ?? null
+            );
+
+            $address = $this->nullableString(
+                $d['direccion'] ?? null
+            );
+
+            $email = $this->normalizeEmail(
+                $d['email'] ?? null
+            );
+
+            $phone = $this->nullableString(
+                $d['telefono'] ?? null
+            );
+
+            if ($identificationTypeId <= 0) {
+                throw new RuntimeException(
+                    'Debe seleccionar el tipo de identificación fiscal.'
+                );
+            }
+
+            if ($identification === null) {
+                throw new RuntimeException(
+                    'La identificación fiscal es obligatoria.'
+                );
+            }
+
+            if ($businessName === null) {
+                throw new RuntimeException(
+                    'La razón social es obligatoria.'
+                );
+            }
+
+            if (
+                $email !== null
+                && !filter_var($email, FILTER_VALIDATE_EMAIL)
+            ) {
+                throw new RuntimeException(
+                    'El correo de facturación no es válido.'
+                );
+            }
+
+            $this->assertIdentificationType(
+                $db,
+                $identificationTypeId
+            );
+
+            $isPrincipal =
+                isset($d['es_principal'])
+                && (string) $d['es_principal'] === '1';
+
+            if ($isPrincipal) {
+                $stmt = $db->prepare(
+                    'UPDATE propietarios_datos_fiscales
+                 SET es_principal = 0
+                 WHERE propietario_id = :owner_id
+                   AND id <> :id'
+                );
+
+                $stmt->execute([
+                    'owner_id' => $ownerId,
+                    'id' => $fiscalDataId,
+                ]);
+            }
+
+            /*
+         * Si ya era principal, no permitimos quitarle la marca
+         * simplemente desmarcando el checkbox. Para cambiar el
+         * principal se debe marcar otro registro como principal.
+         */
+            if (
+                (int) $old['es_principal'] === 1
+                && !$isPrincipal
+            ) {
+                $isPrincipal = true;
+            }
+
+            $stmt = $db->prepare(
+                'UPDATE propietarios_datos_fiscales
+             SET
+                tipo_identificacion_id = :identification_type,
+                identificacion = :identification,
+                razon_social = :business_name,
+                direccion = :address,
+                email = :email,
+                telefono = :phone,
+                es_principal = :principal
+             WHERE id = :id
+               AND propietario_id = :owner_id'
+            );
+
+            $stmt->execute([
+                'identification_type' => $identificationTypeId,
+                'identification' => $identification,
+                'business_name' => $businessName,
+                'address' => $address,
+                'email' => $email,
+                'phone' => $phone,
+                'principal' => $isPrincipal ? 1 : 0,
+                'id' => $fiscalDataId,
+                'owner_id' => $ownerId,
+            ]);
+
+            (new AuditService())->log(
+                $by,
+                $env,
+                'PROPIETARIOS',
+                'EDITAR_DATO_FISCAL',
+                'propietarios_datos_fiscales',
+                $fiscalDataId,
+                $old,
+                [
+                    'tipo_identificacion_id' => $identificationTypeId,
+                    'identificacion' => $identification,
+                    'razon_social' => $businessName,
+                    'direccion' => $address,
+                    'email' => $email,
+                    'telefono' => $phone,
+                    'es_principal' => $isPrincipal,
+                ]
+            );
+        });
+    }
+
+    public function toggleFiscalData(
+        int $ownerId,
+        int $fiscalDataId,
+        int $env,
+        int $by
+    ): void {
+        Database::transaction(function (PDO $db) use (
+            $ownerId,
+            $fiscalDataId,
+            $env,
+            $by
+        ) {
+            $this->assertOwnerInEnvironment(
+                $db,
+                $ownerId,
+                $env
+            );
+
+            $stmt = $db->prepare(
+                'SELECT *
+             FROM propietarios_datos_fiscales
+             WHERE id = :id
+               AND propietario_id = :owner_id
+             LIMIT 1
+             FOR UPDATE'
+            );
+
+            $stmt->execute([
+                'id' => $fiscalDataId,
+                'owner_id' => $ownerId,
+            ]);
+
+            $old = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$old) {
+                throw new RuntimeException(
+                    'Dato fiscal no encontrado.'
+                );
+            }
+
+            $newStatus = (int) $old['activo'] === 1 ? 0 : 1;
+
+            /*
+         * No desactivamos el principal mientras existan otros
+         * datos fiscales activos.
+         */
+            if (
+                $newStatus === 0
+                && (int) $old['es_principal'] === 1
+            ) {
+                $stmt = $db->prepare(
+                    'SELECT COUNT(*)
+                 FROM propietarios_datos_fiscales
+                 WHERE propietario_id = :owner_id
+                   AND activo = 1
+                   AND id <> :id'
+                );
+
+                $stmt->execute([
+                    'owner_id' => $ownerId,
+                    'id' => $fiscalDataId,
+                ]);
+
+                if ((int) $stmt->fetchColumn() > 0) {
+                    throw new RuntimeException(
+                        'No puedes desactivar el dato fiscal principal mientras '
+                            . 'existan otros datos fiscales activos. '
+                            . 'Primero marca otro como principal.'
+                    );
+                }
+            }
+
+            $stmt = $db->prepare(
+                'UPDATE propietarios_datos_fiscales
+             SET activo = :active
+             WHERE id = :id
+               AND propietario_id = :owner_id'
+            );
+
+            $stmt->execute([
+                'active' => $newStatus,
+                'id' => $fiscalDataId,
+                'owner_id' => $ownerId,
+            ]);
+
+            (new AuditService())->log(
+                $by,
+                $env,
+                'PROPIETARIOS',
+                $newStatus === 1
+                    ? 'ACTIVAR_DATO_FISCAL'
+                    : 'DESACTIVAR_DATO_FISCAL',
+                'propietarios_datos_fiscales',
+                $fiscalDataId,
+                $old,
+                [
+                    'activo' => $newStatus,
+                ]
+            );
+        });
+    }
+
+    private function assertOwnerInEnvironment(
+        PDO $db,
+        int $ownerId,
+        int $env
+    ): void {
+        $stmt = $db->prepare(
+            'SELECT p.id
+         FROM propietarios p
+         INNER JOIN propietarios_entornos pe
+            ON pe.propietario_id = p.id
+         WHERE p.id = :owner_id
+           AND pe.entorno_id = :env
+           AND pe.activo = 1
+           AND p.activo = 1
+           AND p.deleted_at IS NULL
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'owner_id' => $ownerId,
+            'env' => $env,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'Propietario no encontrado en el entorno activo.'
+            );
+        }
+    }
+
+
+    private function assertIdentificationType(
+        PDO $db,
+        int $identificationTypeId
+    ): void {
+        $stmt = $db->prepare(
+            'SELECT id
+         FROM tipos_identificacion
+         WHERE id = :id
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'id' => $identificationTypeId,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'El tipo de identificación seleccionado no existe.'
+            );
+        }
     }
 }

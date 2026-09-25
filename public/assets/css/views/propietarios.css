@@ -1,90 +1,92 @@
 /* Estilos específicos: propietarios. La base visual vive en global.css/components.css/layouts.css. */
-.propietarios-page{min-width:0}
+.propietarios-page {
+  min-width: 0;
+}
 /* =========================================
    ENLACE INTERACTIVO DEL PROPIETARIO
 ========================================= */
 
 .owner-profile-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
 
-    padding: 9px 13px;
-    border-radius: 12px;
+  padding: 9px 13px;
+  border-radius: 12px;
 
-    text-decoration: none;
-    color: inherit;
+  text-decoration: none;
+  color: inherit;
 
-    border: 1px solid transparent;
-    background: transparent;
+  border: 1px solid transparent;
+  background: transparent;
 
-    transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 /* Avatar */
 
 .owner-profile-avatar {
-    width: 38px;
-    height: 38px;
+  width: 38px;
+  height: 38px;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    flex-shrink: 0;
+  flex-shrink: 0;
 
-    border-radius: 11px;
+  border-radius: 11px;
 
-    background: #e0f3f2;
-    color: #008b9e;
+  background: #e0f3f2;
+  color: #008b9e;
 
-    font-size: 15px;
-    font-weight: 700;
+  font-size: 15px;
+  font-weight: 700;
 
-    transition: all 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 /* Nombre y descripción */
 
 .owner-profile-info {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .owner-profile-info strong {
-    font-size: 13px;
-    font-weight: 650;
-    color: #243447;
+  font-size: 13px;
+  font-weight: 650;
+  color: #243447;
 
-    transition: color 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .owner-profile-info small {
-    font-size: 11px;
-    color: #8492a6;
+  font-size: 11px;
+  color: #8492a6;
 
-    transition: color 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 /* Flecha */
 
 .owner-profile-arrow {
-    margin-left: 5px;
+  margin-left: 5px;
 
-    font-size: 17px;
-    color: #9ca3af;
+  font-size: 17px;
+  color: #9ca3af;
 
-    opacity: 0;
-    transform: translateX(-5px);
+  opacity: 0;
+  transform: translateX(-5px);
 
-    transition:
-        opacity 0.2s ease,
-        transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 /* =========================================
@@ -92,67 +94,67 @@
 ========================================= */
 
 .owner-profile-link:hover {
-    background: #eefafa;
-    border-color: #b7e3e2;
+  background: #eefafa;
+  border-color: #b7e3e2;
 
-    box-shadow: 0 4px 12px rgba(0, 139, 158, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 139, 158, 0.08);
 
-    transform: translateY(-1px);
+  transform: translateY(-1px);
 }
 
 .owner-profile-link:hover .owner-profile-avatar {
-    background: #008b9e;
-    color: #ffffff;
+  background: #008b9e;
+  color: #ffffff;
 }
 
 .owner-profile-link:hover .owner-profile-info strong {
-    color: #008b9e;
+  color: #008b9e;
 }
 
 .owner-profile-link:hover .owner-profile-info small {
-    color: #008b9e;
+  color: #008b9e;
 }
 
 .owner-profile-link:hover .owner-profile-arrow {
-    opacity: 1;
-    transform: translateX(0);
-    color: #008b9e;
+  opacity: 1;
+  transform: translateX(0);
+  color: #008b9e;
 }
 
 /* Accesibilidad con teclado */
 
 .owner-profile-link:focus-visible {
-    outline: 2px solid #008b9e;
-    outline-offset: 3px;
+  outline: 2px solid #008b9e;
+  outline-offset: 3px;
 }
 
 /* Pantallas pequeñas */
 
 @media (max-width: 768px) {
-    .owner-profile-link {
-        gap: 8px;
-        padding: 7px;
-    }
+  .owner-profile-link {
+    gap: 8px;
+    padding: 7px;
+  }
 
-    .owner-profile-avatar {
-        width: 34px;
-        height: 34px;
-    }
+  .owner-profile-avatar {
+    width: 34px;
+    height: 34px;
+  }
 
-    .owner-profile-arrow {
-        opacity: 1;
-        transform: none;
-    }
+  .owner-profile-arrow {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .owner-profile-link,
-    .owner-profile-avatar,
-    .owner-profile-info strong,
-    .owner-profile-info small,
-    .owner-profile-arrow {
-        transition: none;
-    }
+  .owner-profile-link,
+  .owner-profile-avatar,
+  .owner-profile-info strong,
+  .owner-profile-info small,
+  .owner-profile-arrow {
+    transition: none;
+  }
 }
 
 /* ========================================
@@ -160,81 +162,81 @@
 ======================================== */
 
 .owner-contact {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-    min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 200px;
 }
 
 .owner-contact-item {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 
-    font-size: 12px;
-    line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .owner-contact-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 28px;
-    height: 28px;
-    flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 
-    border-radius: 8px;
-    background: #f0f5f8;
-    font-size: 14px;
+  border-radius: 8px;
+  background: #f0f5f8;
+  font-size: 14px;
 }
 
 .owner-contact-item a {
-    color: #475569;
-    text-decoration: none;
-    overflow-wrap: anywhere;
+  color: #475569;
+  text-decoration: none;
+  overflow-wrap: anywhere;
 }
 
 .owner-contact-email:hover {
-    color: #008b9e;
-    text-decoration: underline;
+  color: #008b9e;
+  text-decoration: underline;
 }
 
 .owner-contact-empty {
-    color: #94a3b8;
+  color: #94a3b8;
 }
 
 /* WhatsApp */
 
 .owner-contact-item .owner-contact-whatsapp {
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 
-    color: #16803c;
-    font-weight: 600;
+  color: #16803c;
+  font-weight: 600;
 }
 
 .owner-whatsapp-label {
-    padding: 3px 7px;
-    border-radius: 6px;
+  padding: 3px 7px;
+  border-radius: 6px;
 
-    background: #dcfce7;
-    color: #15803d;
+  background: #dcfce7;
+  color: #15803d;
 
-    font-size: 10px;
-    font-weight: 600;
+  font-size: 10px;
+  font-weight: 600;
 
-    transition: background 0.2s ease;
+  transition: background 0.2s ease;
 }
 
 .owner-contact-whatsapp:hover .owner-whatsapp-label {
-    background: #bbf7d0;
+  background: #bbf7d0;
 }
 
 .owner-contact-whatsapp:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* =========================================
@@ -242,60 +244,185 @@
 ========================================= */
 
 .owner-field-message {
-    display: block;
-    min-height: 17px;
-    margin-top: 5px;
-    font-size: 11px;
-    line-height: 1.45;
-    font-weight: 500;
-    color: #64748b;
+  display: block;
+  min-height: 17px;
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: #64748b;
 }
 
 .owner-field-message:empty {
-    min-height: 0;
-    margin-top: 0;
+  min-height: 0;
+  margin-top: 0;
 }
 
 .owner-field-message.is-error {
-    color: #dc2626;
+  color: #dc2626;
 }
 
 .owner-field-message.is-error::before {
-    content: "✕ ";
+  content: "✕ ";
 }
 
 .owner-field-message.is-success {
-    color: #15803d;
+  color: #15803d;
 }
 
 .owner-field-message.is-success::before {
-    content: "✓ ";
+  content: "✓ ";
 }
 
 .owner-field-message.is-checking {
-    color: #d97706;
+  color: #d97706;
 }
 
 .owner-field-message.is-checking::before {
-    content: "◌ ";
+  content: "◌ ";
 }
 
 .form-grid input.owner-input-error {
-    border-color: #dc2626;
-    background: #fff7f7;
+  border-color: #dc2626;
+  background: #fff7f7;
 }
 
 .form-grid input.owner-input-success {
-    border-color: #16a34a;
-    background: #f0fdf4;
+  border-color: #16a34a;
+  background: #f0fdf4;
 }
 
 .form-grid input.owner-input-error:focus {
-    border-color: #dc2626;
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
 }
 
 .owner-validation-form button[type="submit"]:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   DATOS FISCALES
+========================================================= */
+
+.owner-fiscal-card {
+  min-width: 0;
+}
+
+.owner-fiscal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.owner-fiscal-item {
+  padding: 20px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+}
+
+.owner-fiscal-item.is-inactive {
+  opacity: 0.68;
+}
+
+.owner-fiscal-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.owner-fiscal-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.owner-fiscal-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.owner-fiscal-main strong {
+  font-size: 1.05rem;
+}
+
+.owner-fiscal-label,
+.owner-fiscal-details span {
+  font-size: 0.78rem;
+  opacity: 0.68;
+}
+
+.owner-fiscal-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.owner-fiscal-details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.owner-fiscal-details strong {
+  overflow-wrap: anywhere;
+}
+
+.owner-fiscal-empty {
+  text-align: center;
+}
+
+.owner-fiscal-empty p {
+  margin: 6px 0 14px;
+}
+
+.owner-fiscal-same {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.owner-fiscal-same input {
+  margin-top: 4px;
+}
+
+.owner-fiscal-same span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.owner-fiscal-same small {
+  opacity: 0.7;
+}
+
+.inline-form {
+  display: inline;
+}
+
+@media (max-width: 700px) {
+  .owner-fiscal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-fiscal-item-header {
+    flex-direction: column;
+  }
+
+  .owner-fiscal-details {
+    grid-template-columns: 1fr;
+  }
 }

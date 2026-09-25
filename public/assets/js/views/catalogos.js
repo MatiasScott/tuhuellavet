@@ -57,6 +57,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  /*
+   * ============================================================
+   * APERTURA DE MODALES DE CATÁLOGOS
+   * ============================================================
+   */
+
   document.querySelectorAll("[data-catalog-modal-open]").forEach((button) => {
     button.addEventListener("click", () => {
       const name = button.dataset.catalogModalOpen;
@@ -66,6 +72,12 @@ document.addEventListener("DOMContentLoaded", () => {
       openModal(modal);
     });
   });
+
+  /*
+   * ============================================================
+   * CIERRE Y BÚSQUEDA EN MODALES
+   * ============================================================
+   */
 
   modals.forEach((modal) => {
     modal.querySelectorAll("[data-catalog-modal-close]").forEach((button) => {
@@ -102,6 +114,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  /*
+   * ============================================================
+   * ESCAPE
+   * ============================================================
+   */
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") {
       return;
@@ -111,9 +129,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
     closeModal(openedModal);
   });
+
+  /*
+   * ============================================================
+   * MODAL DE EDICIÓN
+   * ============================================================
+   */
+
   const editModal = document.getElementById("catalog-edit-modal");
   const editForm = document.getElementById("catalog-edit-form");
 
+  /*
+   * Inputs disponibles dentro del modal único.
+   */
   const editInputs = {
     categoriaEspecie: document.getElementById("catalog-edit-categoria-especie"),
 
@@ -132,8 +160,18 @@ document.addEventListener("DOMContentLoaded", () => {
     categoriaUnidad: document.getElementById("catalog-edit-categoria-unidad"),
 
     precio: document.getElementById("catalog-edit-precio"),
+
+    impuesto: document.getElementById("catalog-edit-impuesto"),
+
+    precioIncluyeImpuesto: document.getElementById(
+      "catalog-edit-precio-incluye-impuesto",
+    ),
   };
 
+  /*
+   * Contenedores de campos que se muestran/ocultan
+   * según el tipo de catálogo.
+   */
   const editFields = {
     categoriaEspecie: document.querySelector(
       '[data-edit-field="categoria-especie"]',
@@ -158,7 +196,19 @@ document.addEventListener("DOMContentLoaded", () => {
     ),
 
     precio: document.querySelector('[data-edit-field="precio"]'),
+
+    impuesto: document.querySelector('[data-edit-field="impuesto"]'),
+
+    precioIncluyeImpuesto: document.querySelector(
+      '[data-edit-field="precio-incluye-impuesto"]',
+    ),
   };
+
+  /*
+   * ============================================================
+   * CAMPOS VISIBLES POR TIPO
+   * ============================================================
+   */
 
   const fieldConfiguration = {
     especie: ["categoriaEspecie", "codigo", "nombre", "nombreCientifico"],
@@ -175,8 +225,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     unidad: ["codigo", "nombre", "simbolo", "categoriaUnidad"],
 
-    servicio: ["codigo", "nombre", "descripcion", "precio"],
+    servicio: [
+      "codigo",
+      "nombre",
+      "descripcion",
+      "precio",
+      "impuesto",
+      "precioIncluyeImpuesto",
+    ],
   };
+
+  /*
+   * ============================================================
+   * OCULTAR CAMPOS
+   * ============================================================
+   */
 
   const hideAllEditFields = () => {
     Object.values(editFields).forEach((field) => {
@@ -186,13 +249,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
+  /*
+   * ============================================================
+   * LIMPIAR CAMPOS
+   * ============================================================
+   */
+
   const clearEditInputs = () => {
     Object.values(editInputs).forEach((input) => {
-      if (input) {
-        input.value = "";
+      if (!input) {
+        return;
       }
+
+      /*
+       * Checkbox necesita limpiarse mediante checked,
+       * no mediante value.
+       */
+      if (input.type === "checkbox") {
+        input.checked = false;
+        return;
+      }
+
+      input.value = "";
     });
   };
+
+  /*
+   * ============================================================
+   * MOSTRAR CAMPOS SEGÚN TIPO
+   * ============================================================
+   */
 
   const showFieldsForType = (type) => {
     hideAllEditFields();
@@ -205,6 +291,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   };
+
+  /*
+   * ============================================================
+   * CERRAR MODAL DE EDICIÓN
+   * ============================================================
+   */
 
   const closeEditModal = () => {
     if (!editModal) {
@@ -222,6 +314,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  /*
+   * ============================================================
+   * ABRIR EDICIÓN
+   * ============================================================
+   */
+
   document.querySelectorAll("[data-catalog-edit]").forEach((button) => {
     button.addEventListener("click", () => {
       if (!editModal || !editForm) {
@@ -234,8 +332,11 @@ document.addEventListener("DOMContentLoaded", () => {
       showFieldsForType(type);
 
       /*
-       * Valores comunes.
+       * ========================================================
+       * VALORES COMUNES
+       * ========================================================
        */
+
       if (editInputs.codigo) {
         editInputs.codigo.value = button.dataset.codigo || "";
       }
@@ -249,8 +350,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       /*
-       * Especie.
+       * ========================================================
+       * ESPECIE
+       * ========================================================
        */
+
       if (editInputs.categoriaEspecie) {
         editInputs.categoriaEspecie.value = button.dataset.categoriaId || "";
       }
@@ -261,15 +365,21 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       /*
-       * Raza.
+       * ========================================================
+       * RAZA
+       * ========================================================
        */
+
       if (editInputs.especie) {
         editInputs.especie.value = button.dataset.especieId || "";
       }
 
       /*
-       * Unidad.
+       * ========================================================
+       * UNIDAD
+       * ========================================================
        */
+
       if (editInputs.simbolo) {
         editInputs.simbolo.value = button.dataset.simbolo || "";
       }
@@ -279,21 +389,50 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       /*
-       * Servicio.
+       * ========================================================
+       * SERVICIO
+       * ========================================================
        */
-      if (editInputs.precio) {
-        editInputs.precio.value = button.dataset.precio || "";
+
+      if (type === "servicio") {
+        if (editInputs.precio) {
+          editInputs.precio.value = button.dataset.precio || "";
+        }
+
+        if (editInputs.impuesto) {
+          editInputs.impuesto.value = button.dataset.impuestoTarifaId || "";
+        }
+
+        if (editInputs.precioIncluyeImpuesto) {
+          editInputs.precioIncluyeImpuesto.checked =
+            button.dataset.precioIncluyeImpuesto === "1";
+        }
       }
 
       /*
-       * La URL viene generada por PHP.
+       * ========================================================
+       * URL DEL UPDATE
+       * ========================================================
        */
+
       editForm.action = button.dataset.updateUrl || "";
+
+      /*
+       * ========================================================
+       * ABRIR MODAL
+       * ========================================================
+       */
 
       editModal.classList.add("is-open");
       editModal.setAttribute("aria-hidden", "false");
 
       document.body.classList.add("catalog-modal-open");
+
+      /*
+       * ========================================================
+       * FOCUS
+       * ========================================================
+       */
 
       window.setTimeout(() => {
         const firstVisible = editForm.querySelector(
@@ -307,15 +446,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  /*
+   * ============================================================
+   * CERRAR EDICIÓN
+   * ============================================================
+   */
+
   document.querySelectorAll("[data-catalog-edit-close]").forEach((button) => {
     button.addEventListener("click", () => {
       closeEditModal();
     });
   });
 
+  /*
+   * ============================================================
+   * CONFIRMACIÓN ACTIVAR / DESACTIVAR
+   * ============================================================
+   */
+
   document.querySelectorAll("[data-confirm-status]").forEach((button) => {
     button.addEventListener("click", (event) => {
       const action = button.dataset.action || "";
+
       const name = button.dataset.name || "este registro";
 
       const confirmed = window.confirm(`¿Deseas ${action} "${name}"?`);

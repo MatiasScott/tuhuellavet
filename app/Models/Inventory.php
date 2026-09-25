@@ -12,26 +12,65 @@ class Inventory extends Model
         $s->execute(['e' => $e]);
         return $s->fetchAll();
     }
+
     public function products(): array
     {
         $sql = '
         SELECT
             p.id,
+            p.categoria_producto_id,
             p.codigo,
             p.nombre,
+            p.descripcion,
+            p.unidad_base_id,
             p.controla_lote,
             p.controla_vencimiento,
-            um.simbolo AS unidad
+            p.farmaco_presentacion_id,
+            p.vacuna_id,
+
+            p.precio_venta,
+            p.precio_incluye_impuesto,
+            p.impuesto_tarifa_id,
+
+            p.activo,
+
+            um.nombre AS unidad_nombre,
+            um.simbolo AS unidad,
+
+            cp.nombre AS categoria_nombre,
+
+            it.codigo AS impuesto_tarifa_codigo,
+            it.nombre AS impuesto_tarifa_nombre,
+            it.porcentaje AS impuesto_porcentaje,
+
+            i.codigo AS impuesto_codigo,
+            i.nombre AS impuesto_nombre
+
         FROM productos p
+
         INNER JOIN unidades_medida um
             ON um.id = p.unidad_base_id
+
+        LEFT JOIN categorias_producto cp
+            ON cp.id = p.categoria_producto_id
+
+        LEFT JOIN impuesto_tarifas it
+            ON it.id = p.impuesto_tarifa_id
+
+        LEFT JOIN impuestos i
+            ON i.id = it.impuesto_id
+
         WHERE p.activo = 1
           AND p.deleted_at IS NULL
+
         ORDER BY p.nombre
     ';
 
-        return $this->db->query($sql)->fetchAll();
+        return $this->db
+            ->query($sql)
+            ->fetchAll();
     }
+
     public function stock(int $e): array
     {
         $sql = '

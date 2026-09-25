@@ -447,3 +447,49 @@
     updateSubmit();
   });
 })();
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(".owner-validation-form").forEach((form) => {
+    const enabled = form.querySelector("[data-fiscal-enabled]");
+
+    const container = form.querySelector("[data-fiscal-container]");
+
+    const same = form.querySelector("[data-fiscal-same]");
+
+    const fields = form.querySelector("[data-fiscal-fields]");
+
+    if (!enabled || !container || !same || !fields) {
+      return;
+    }
+
+    const fiscalInputs = fields.querySelectorAll("[data-fiscal-input]");
+
+    const refresh = () => {
+      const fiscalEnabled = enabled.checked;
+      const useSame = same.checked;
+
+      container.hidden = !fiscalEnabled;
+
+      /*
+       * Campos fiscales manuales.
+       */
+      fields.hidden = !fiscalEnabled || useSame;
+
+      fiscalInputs.forEach((input) => {
+        input.disabled = !fiscalEnabled || useSame;
+      });
+
+      /*
+       * El checkbox "usar mismos datos"
+       * tampoco debe enviarse si toda la
+       * sección fiscal está desactivada.
+       */
+      same.disabled = !fiscalEnabled;
+    };
+
+    enabled.addEventListener("change", refresh);
+
+    same.addEventListener("change", refresh);
+
+    refresh();
+  });
+});

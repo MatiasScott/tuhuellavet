@@ -609,7 +609,9 @@
             method="POST"
             action="<?= url('/admin/catalogos/servicio') ?>"
             class="form-stack">
+
             <?= csrf_field() ?>
+
 
             <label>
                 <span>Código</span>
@@ -656,25 +658,74 @@
             </label>
 
 
+            <label>
+                <span>Impuesto</span>
+
+                <select name="impuesto_tarifa_id">
+
+                    <option value="">
+                        Sin impuesto
+                    </option>
+
+                    <?php foreach ($taxRates as $taxRate): ?>
+
+                        <option value="<?= (int)$taxRate['id'] ?>">
+
+                            <?= e(
+                                $taxRate['impuesto_nombre']
+                                    . ' · '
+                                    . $taxRate['nombre']
+                            ) ?>
+
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+            </label>
+
+
+            <label class="inventory-checkbox">
+
+                <input
+                    type="checkbox"
+                    name="precio_incluye_impuesto"
+                    value="1"
+                    checked>
+
+                <span>
+                    El precio incluye impuesto
+                </span>
+
+            </label>
+
+
             <button
                 type="submit"
                 class="btn btn-primary">
+
                 Agregar servicio
+
             </button>
+
         </form>
 
 
         <div class="catalog-card-footer">
+
             <button
                 type="button"
                 class="btn btn-secondary"
                 data-catalog-modal-open="services">
+
                 Ver registros
 
                 <span class="catalog-count">
                     <?= count($services) ?>
                 </span>
+
             </button>
+
         </div>
 
     </section>
@@ -1896,455 +1947,623 @@
 </div>
 
 
-<!-- ============================================================
-     MODAL: SERVICIOS
-============================================================ -->
+<<!--============================================================MODAL: SERVICIOS============================================================-->
 
-<div
-    class="catalog-modal"
-    data-catalog-modal="services"
-    aria-hidden="true">
     <div
-        class="catalog-modal-backdrop"
-        data-catalog-modal-close></div>
+        class="catalog-modal"
+        data-catalog-modal="services"
+        aria-hidden="true">
+
+        <div
+            class="catalog-modal-backdrop"
+            data-catalog-modal-close></div>
 
 
-    <div class="catalog-modal-dialog">
+        <div class="catalog-modal-dialog">
 
-        <div class="catalog-modal-header">
-            <div>
-                <span class="eyebrow">
-                    Catálogo comercial
-                </span>
+            <div class="catalog-modal-header">
 
-                <h2>Servicios registrados</h2>
+                <div>
 
-                <p>
-                    <?= count($services) ?> registro(s)
-                </p>
+                    <span class="eyebrow">
+                        Catálogo comercial
+                    </span>
+
+                    <h2>
+                        Servicios registrados
+                    </h2>
+
+                    <p>
+                        <?= count($services) ?> registro(s)
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="catalog-modal-close"
+                    data-catalog-modal-close
+                    aria-label="Cerrar">
+                    ×
+                </button>
+
             </div>
 
 
-            <button
-                type="button"
-                class="catalog-modal-close"
-                data-catalog-modal-close
-                aria-label="Cerrar">
-                ×
-            </button>
-        </div>
+            <div class="catalog-modal-search">
+
+                <input
+                    type="search"
+                    placeholder="Buscar código, servicio, descripción, impuesto o estado..."
+                    data-catalog-search
+                    autocomplete="off">
+
+            </div>
 
 
-        <div class="catalog-modal-search">
-            <input
-                type="search"
-                placeholder="Buscar código, servicio, descripción o estado..."
-                data-catalog-search
-                autocomplete="off">
-        </div>
+            <div class="catalog-modal-body">
 
+                <div class="table-responsive">
 
-        <div class="catalog-modal-body">
+                    <table class="table">
 
-            <div class="table-responsive">
-                <table class="table">
+                        <thead>
 
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Servicio</th>
-                            <th>Precio</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-
-
-                    <tbody data-catalog-rows>
-
-                        <?php foreach ($services as $service): ?>
-
-                            <?php
-                            $active = (int)$service['activo'] === 1;
-                            ?>
-
-                            <tr data-catalog-row>
-
-                                <td>
-                                    <?= e($service['codigo']) ?>
-                                </td>
-
-
-                                <td>
-                                    <strong>
-                                        <?= e($service['nombre']) ?>
-                                    </strong>
-
-                                    <?php if (!empty($service['descripcion'])): ?>
-                                        <div class="muted">
-                                            <?= e($service['descripcion']) ?>
-                                        </div>
-                                    <?php endif; ?>
-                                </td>
-
-
-                                <td>
-                                    <?php if ($service['precio_base'] !== null): ?>
-
-                                        $<?= number_format(
-                                                (float)$service['precio_base'],
-                                                2
-                                            ) ?>
-
-                                    <?php else: ?>
-
-                                        —
-
-                                    <?php endif; ?>
-                                </td>
-
-
-                                <td>
-                                    <span
-                                        class="catalog-status <?= $active
-                                                                    ? 'is-active'
-                                                                    : 'is-inactive' ?>">
-                                        <?= $active ? 'Activo' : 'Inactivo' ?>
-                                    </span>
-                                </td>
-
-
-                                <td>
-                                    <div class="catalog-actions">
-
-                                        <button
-                                            type="button"
-                                            class="btn btn-secondary btn-sm"
-                                            data-catalog-edit
-                                            data-type="servicio"
-                                            data-id="<?= (int)$service['id'] ?>"
-                                            data-codigo="<?= e($service['codigo']) ?>"
-                                            data-nombre="<?= e($service['nombre']) ?>"
-                                            data-descripcion="<?= e(
-                                                                    $service['descripcion'] ?? ''
-                                                                ) ?>"
-                                            data-precio="<?= e(
-                                                                $service['precio_base'] ?? ''
-                                                            ) ?>"
-                                            data-update-url="<?= e(
-                                                                    url(
-                                                                        '/admin/catalogos/servicio/'
-                                                                            . (int)$service['id']
-                                                                            . '/actualizar'
-                                                                    )
-                                                                ) ?>">
-                                            Editar
-                                        </button>
-
-
-                                        <form
-                                            method="POST"
-                                            action="<?= url(
-                                                        '/admin/catalogos/servicio/'
-                                                            . (int)$service['id']
-                                                            . '/estado'
-                                                    ) ?>"
-                                            class="catalog-status-form">
-                                            <?= csrf_field() ?>
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-sm <?= $active
-                                                                        ? 'btn-danger'
-                                                                        : 'btn-primary' ?>"
-                                                data-confirm-status
-                                                data-action="<?= $active
-                                                                    ? 'desactivar'
-                                                                    : 'activar' ?>"
-                                                data-name="<?= e(
-                                                                $service['nombre']
-                                                            ) ?>">
-                                                <?= $active
-                                                    ? 'Desactivar'
-                                                    : 'Activar' ?>
-                                            </button>
-                                        </form>
-
-                                    </div>
-                                </td>
-
+                            <tr>
+                                <th>Código</th>
+                                <th>Servicio</th>
+                                <th>Precio</th>
+                                <th>Impuesto</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
 
-                        <?php endforeach; ?>
-
-                    </tbody>
-
-                </table>
-            </div>
+                        </thead>
 
 
-            <div
-                class="catalog-empty"
-                data-catalog-empty
-                hidden>
-                No se encontraron servicios con ese criterio.
+                        <tbody data-catalog-rows>
+
+                            <?php foreach ($services as $service): ?>
+
+                                <?php
+                                $active = (int)$service['activo'] === 1;
+                                ?>
+
+                                <tr data-catalog-row>
+
+                                    <!-- CÓDIGO -->
+
+                                    <td>
+                                        <?= e($service['codigo']) ?>
+                                    </td>
+
+
+                                    <!-- SERVICIO -->
+
+                                    <td>
+
+                                        <strong>
+                                            <?= e($service['nombre']) ?>
+                                        </strong>
+
+                                        <?php if (!empty($service['descripcion'])): ?>
+
+                                            <div class="muted">
+                                                <?= e($service['descripcion']) ?>
+                                            </div>
+
+                                        <?php endif; ?>
+
+                                    </td>
+
+
+                                    <!-- PRECIO -->
+
+                                    <td>
+
+                                        <?php if ($service['precio_base'] !== null): ?>
+
+                                            $<?= number_format(
+                                                    (float)$service['precio_base'],
+                                                    2
+                                                ) ?>
+
+                                        <?php else: ?>
+
+                                            —
+
+                                        <?php endif; ?>
+
+                                    </td>
+
+
+                                    <!-- IMPUESTO -->
+
+                                    <td>
+
+                                        <?php if ($service['impuesto_tarifa_id'] !== null): ?>
+
+                                            <strong>
+                                                <?= e(
+                                                    $service['impuesto_nombre']
+                                                        ?? 'Impuesto'
+                                                ) ?>
+                                            </strong>
+
+                                            <div class="muted">
+
+                                                <?= number_format(
+                                                    (float)(
+                                                        $service['impuesto_porcentaje']
+                                                        ?? 0
+                                                    ),
+                                                    2
+                                                ) ?>%
+
+                                                ·
+
+                                                <?= (int)$service['precio_incluye_impuesto'] === 1
+                                                    ? 'Incluido'
+                                                    : 'No incluido' ?>
+
+                                            </div>
+
+                                        <?php else: ?>
+
+                                            <span class="muted">
+                                                Sin impuesto
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    </td>
+
+
+                                    <!-- ESTADO -->
+
+                                    <td>
+
+                                        <span
+                                            class="catalog-status <?= $active
+                                                                        ? 'is-active'
+                                                                        : 'is-inactive' ?>">
+
+                                            <?= $active
+                                                ? 'Activo'
+                                                : 'Inactivo' ?>
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ACCIONES -->
+
+                                    <td>
+
+                                        <div class="catalog-actions">
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-secondary btn-sm"
+
+                                                data-catalog-edit
+                                                data-type="servicio"
+
+                                                data-id="<?= (int)$service['id'] ?>"
+
+                                                data-codigo="<?= e(
+                                                                    $service['codigo']
+                                                                ) ?>"
+
+                                                data-nombre="<?= e(
+                                                                    $service['nombre']
+                                                                ) ?>"
+
+                                                data-descripcion="<?= e(
+                                                                        $service['descripcion']
+                                                                            ?? ''
+                                                                    ) ?>"
+
+                                                data-precio="<?= e(
+                                                                    $service['precio_base']
+                                                                        ?? ''
+                                                                ) ?>"
+
+                                                data-impuesto-tarifa-id="<?= e(
+                                                                                $service['impuesto_tarifa_id']
+                                                                                    ?? ''
+                                                                            ) ?>"
+
+                                                data-precio-incluye-impuesto="<?= (int)(
+                                                                                    $service['precio_incluye_impuesto']
+                                                                                    ?? 0
+                                                                                ) ?>"
+
+                                                data-update-url="<?= e(
+                                                                        url(
+                                                                            '/admin/catalogos/servicio/'
+                                                                                . (int)$service['id']
+                                                                                . '/actualizar'
+                                                                        )
+                                                                    ) ?>">
+
+                                                Editar
+
+                                            </button>
+
+
+                                            <form
+                                                method="POST"
+
+                                                action="<?= url(
+                                                            '/admin/catalogos/servicio/'
+                                                                . (int)$service['id']
+                                                                . '/estado'
+                                                        ) ?>"
+
+                                                class="catalog-status-form">
+
+                                                <?= csrf_field() ?>
+
+
+                                                <button
+                                                    type="submit"
+
+                                                    class="btn btn-sm <?= $active
+                                                                            ? 'btn-danger'
+                                                                            : 'btn-primary' ?>"
+
+                                                    data-confirm-status
+
+                                                    data-action="<?= $active
+                                                                        ? 'desactivar'
+                                                                        : 'activar' ?>"
+
+                                                    data-name="<?= e(
+                                                                    $service['nombre']
+                                                                ) ?>">
+
+                                                    <?= $active
+                                                        ? 'Desactivar'
+                                                        : 'Activar' ?>
+
+                                                </button>
+
+                                            </form>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+
+                            <?php endforeach; ?>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <div
+                    class="catalog-empty"
+                    data-catalog-empty
+                    hidden>
+
+                    No se encontraron servicios con ese criterio.
+
+                </div>
+
             </div>
 
         </div>
 
     </div>
-</div>
 
 
-<!-- ============================================================
+    <!-- ============================================================
      MODAL ÚNICO DE EDICIÓN
 ============================================================ -->
 
-<div
-    class="catalog-modal"
-    id="catalog-edit-modal"
-    aria-hidden="true">
     <div
-        class="catalog-modal-backdrop"
-        data-catalog-edit-close></div>
+        class="catalog-modal"
+        id="catalog-edit-modal"
+        aria-hidden="true">
+        <div
+            class="catalog-modal-backdrop"
+            data-catalog-edit-close></div>
 
 
-    <div class="catalog-modal-dialog catalog-edit-dialog">
+        <div class="catalog-modal-dialog catalog-edit-dialog">
 
-        <div class="catalog-modal-header">
+            <div class="catalog-modal-header">
 
-            <div>
-                <span class="eyebrow">
-                    Administración de catálogo
-                </span>
+                <div>
+                    <span class="eyebrow">
+                        Administración de catálogo
+                    </span>
 
-                <h2>
-                    Editar registro
-                </h2>
+                    <h2>
+                        Editar registro
+                    </h2>
 
-                <p>
-                    Actualiza la información del registro seleccionado.
-                </p>
+                    <p>
+                        Actualiza la información del registro seleccionado.
+                    </p>
+                </div>
+
+
+                <button
+                    type="button"
+                    class="catalog-modal-close"
+                    data-catalog-edit-close
+                    aria-label="Cerrar">
+                    ×
+                </button>
+
             </div>
 
 
-            <button
-                type="button"
-                class="catalog-modal-close"
-                data-catalog-edit-close
-                aria-label="Cerrar">
-                ×
-            </button>
+            <div class="catalog-modal-body">
+
+                <form
+                    method="POST"
+                    id="catalog-edit-form"
+                    class="form-stack">
+                    <?= csrf_field() ?>
+
+
+                    <!-- CATEGORÍA DE ESPECIE -->
+
+                    <div
+                        data-edit-field="categoria-especie"
+                        hidden>
+                        <label>
+                            <span>Categoría</span>
+
+                            <select
+                                name="categoria_id"
+                                id="catalog-edit-categoria-especie">
+                                <option value="">
+                                    Seleccione una categoría
+                                </option>
+
+                                <?php foreach ($categories as $category): ?>
+                                    <option
+                                        value="<?= (int)$category['id'] ?>">
+                                        <?= e($category['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+
+
+                    <!-- ESPECIE DE LA RAZA -->
+
+                    <div
+                        data-edit-field="especie"
+                        hidden>
+                        <label>
+                            <span>Especie</span>
+
+                            <select
+                                name="especie_id"
+                                id="catalog-edit-especie">
+                                <option value="">
+                                    Seleccione una especie
+                                </option>
+
+                                <?php foreach ($species as $speciesItem): ?>
+                                    <option
+                                        value="<?= (int)$speciesItem['id'] ?>">
+                                        <?= e($speciesItem['nombre_comun']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+
+
+                    <!-- CÓDIGO -->
+
+                    <div
+                        data-edit-field="codigo"
+                        hidden>
+                        <label>
+                            <span>Código</span>
+
+                            <input
+                                type="text"
+                                name="codigo"
+                                id="catalog-edit-codigo"
+                                maxlength="80">
+                        </label>
+                    </div>
+
+
+                    <!-- NOMBRE -->
+
+                    <div
+                        data-edit-field="nombre"
+                        hidden>
+                        <label>
+                            <span>Nombre</span>
+
+                            <input
+                                type="text"
+                                name="nombre"
+                                id="catalog-edit-nombre"
+                                maxlength="180">
+                        </label>
+                    </div>
+
+
+                    <!-- NOMBRE CIENTÍFICO -->
+
+                    <div
+                        data-edit-field="nombre-cientifico"
+                        hidden>
+                        <label>
+                            <span>Nombre científico</span>
+
+                            <input
+                                type="text"
+                                name="nombre_cientifico"
+                                id="catalog-edit-nombre-cientifico"
+                                maxlength="180"
+                                placeholder="Ej. Canis lupus familiaris">
+                        </label>
+                    </div>
+
+
+                    <!-- DESCRIPCIÓN -->
+
+                    <div
+                        data-edit-field="descripcion"
+                        hidden>
+                        <label>
+                            <span>Descripción</span>
+
+                            <textarea
+                                name="descripcion"
+                                id="catalog-edit-descripcion"></textarea>
+                        </label>
+                    </div>
+
+
+                    <!-- SÍMBOLO -->
+
+                    <div
+                        data-edit-field="simbolo"
+                        hidden>
+                        <label>
+                            <span>Símbolo</span>
+
+                            <input
+                                type="text"
+                                name="simbolo"
+                                id="catalog-edit-simbolo"
+                                maxlength="30"
+                                placeholder="Ej. mg">
+                        </label>
+                    </div>
+
+
+                    <!-- CATEGORÍA DE UNIDAD -->
+
+                    <div
+                        data-edit-field="categoria-unidad"
+                        hidden>
+                        <label>
+                            <span>Categoría</span>
+
+                            <input
+                                type="text"
+                                name="categoria"
+                                id="catalog-edit-categoria-unidad"
+                                maxlength="60"
+                                placeholder="Ej. MASA, VOLUMEN, DOSIS">
+                        </label>
+                    </div>
+
+
+                    <!-- PRECIO -->
+
+                    <div
+                        data-edit-field="precio"
+                        hidden>
+                        <label>
+                            <span>Precio base</span>
+
+                            <input
+                                type="number"
+                                name="precio_base"
+                                id="catalog-edit-precio"
+                                min="0"
+                                step="0.01">
+                        </label>
+                    </div>
+
+                    <div
+                        data-edit-field="impuesto"
+                        hidden>
+
+                        <label>
+                            <span>Impuesto</span>
+
+                            <select
+                                name="impuesto_tarifa_id"
+                                id="catalog-edit-impuesto">
+
+                                <option value="">
+                                    Sin impuesto
+                                </option>
+
+                                <?php foreach ($taxRates as $taxRate): ?>
+                                    <option value="<?= (int)$taxRate['id'] ?>">
+                                        <?= e(
+                                            $taxRate['impuesto_nombre']
+                                                . ' · '
+                                                . $taxRate['nombre']
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+                    </div>
+
+
+                    <div
+                        data-edit-field="precio-incluye-impuesto"
+                        hidden>
+
+                        <label class="inventory-checkbox">
+
+                            <input
+                                type="checkbox"
+                                name="precio_incluye_impuesto"
+                                id="catalog-edit-precio-incluye-impuesto"
+                                value="1">
+
+                            <span>
+                                El precio incluye impuesto
+                            </span>
+
+                        </label>
+
+                    </div>
+
+
+                    <!-- ACCIONES -->
+
+                    <div class="catalog-edit-actions">
+
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-catalog-edit-close>
+                            Cancelar
+                        </button>
+
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary">
+                            Guardar cambios
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
 
         </div>
-
-
-        <div class="catalog-modal-body">
-
-            <form
-                method="POST"
-                id="catalog-edit-form"
-                class="form-stack">
-                <?= csrf_field() ?>
-
-
-                <!-- CATEGORÍA DE ESPECIE -->
-
-                <div
-                    data-edit-field="categoria-especie"
-                    hidden>
-                    <label>
-                        <span>Categoría</span>
-
-                        <select
-                            name="categoria_id"
-                            id="catalog-edit-categoria-especie">
-                            <option value="">
-                                Seleccione una categoría
-                            </option>
-
-                            <?php foreach ($categories as $category): ?>
-                                <option
-                                    value="<?= (int)$category['id'] ?>">
-                                    <?= e($category['nombre']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                </div>
-
-
-                <!-- ESPECIE DE LA RAZA -->
-
-                <div
-                    data-edit-field="especie"
-                    hidden>
-                    <label>
-                        <span>Especie</span>
-
-                        <select
-                            name="especie_id"
-                            id="catalog-edit-especie">
-                            <option value="">
-                                Seleccione una especie
-                            </option>
-
-                            <?php foreach ($species as $speciesItem): ?>
-                                <option
-                                    value="<?= (int)$speciesItem['id'] ?>">
-                                    <?= e($speciesItem['nombre_comun']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </label>
-                </div>
-
-
-                <!-- CÓDIGO -->
-
-                <div
-                    data-edit-field="codigo"
-                    hidden>
-                    <label>
-                        <span>Código</span>
-
-                        <input
-                            type="text"
-                            name="codigo"
-                            id="catalog-edit-codigo"
-                            maxlength="80">
-                    </label>
-                </div>
-
-
-                <!-- NOMBRE -->
-
-                <div
-                    data-edit-field="nombre"
-                    hidden>
-                    <label>
-                        <span>Nombre</span>
-
-                        <input
-                            type="text"
-                            name="nombre"
-                            id="catalog-edit-nombre"
-                            maxlength="180">
-                    </label>
-                </div>
-
-
-                <!-- NOMBRE CIENTÍFICO -->
-
-                <div
-                    data-edit-field="nombre-cientifico"
-                    hidden>
-                    <label>
-                        <span>Nombre científico</span>
-
-                        <input
-                            type="text"
-                            name="nombre_cientifico"
-                            id="catalog-edit-nombre-cientifico"
-                            maxlength="180"
-                            placeholder="Ej. Canis lupus familiaris">
-                    </label>
-                </div>
-
-
-                <!-- DESCRIPCIÓN -->
-
-                <div
-                    data-edit-field="descripcion"
-                    hidden>
-                    <label>
-                        <span>Descripción</span>
-
-                        <textarea
-                            name="descripcion"
-                            id="catalog-edit-descripcion"></textarea>
-                    </label>
-                </div>
-
-
-                <!-- SÍMBOLO -->
-
-                <div
-                    data-edit-field="simbolo"
-                    hidden>
-                    <label>
-                        <span>Símbolo</span>
-
-                        <input
-                            type="text"
-                            name="simbolo"
-                            id="catalog-edit-simbolo"
-                            maxlength="30"
-                            placeholder="Ej. mg">
-                    </label>
-                </div>
-
-
-                <!-- CATEGORÍA DE UNIDAD -->
-
-                <div
-                    data-edit-field="categoria-unidad"
-                    hidden>
-                    <label>
-                        <span>Categoría</span>
-
-                        <input
-                            type="text"
-                            name="categoria"
-                            id="catalog-edit-categoria-unidad"
-                            maxlength="60"
-                            placeholder="Ej. MASA, VOLUMEN, DOSIS">
-                    </label>
-                </div>
-
-
-                <!-- PRECIO -->
-
-                <div
-                    data-edit-field="precio"
-                    hidden>
-                    <label>
-                        <span>Precio base</span>
-
-                        <input
-                            type="number"
-                            name="precio_base"
-                            id="catalog-edit-precio"
-                            min="0"
-                            step="0.01">
-                    </label>
-                </div>
-
-
-                <!-- ACCIONES -->
-
-                <div class="catalog-edit-actions">
-
-                    <button
-                        type="button"
-                        class="btn btn-secondary"
-                        data-catalog-edit-close>
-                        Cancelar
-                    </button>
-
-
-                    <button
-                        type="submit"
-                        class="btn btn-primary">
-                        Guardar cambios
-                    </button>
-
-                </div>
-
-            </form>
-
-        </div>
-
     </div>
-</div>
-<script src="<?= url('/assets/js/views/catalogos.js') ?>" defer></script>
+    <script src="<?= url('/assets/js/views/catalogos.js') ?>" defer></script>

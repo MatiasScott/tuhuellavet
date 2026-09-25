@@ -84,300 +84,287 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
         </div>
     </div>
 
-    <!-- Formulario de producto -->
-
-    <section class="card inventory-form-card">
-        <div class="inventory-card-heading">
-            <h3>Nuevo producto</h3>
-            <p>Completa la información del producto.</p>
-        </div>
-        <form
-            method="POST"
-            action="<?= url('/inventario/productos') ?>">
-
-            <?= csrf_field() ?>
-
-            <div class="form-grid">
-                <label>
-                    <span>Código *</span>
-                    <input
-                        type="text"
-                        name="codigo"
-                        maxlength="80"
-                        required>
-                </label>
-                <label>
-                    <span>Nombre *</span>
-
-                    <input
-                        type="text"
-                        name="nombre"
-                        maxlength="180"
-                        required>
-                </label>
-                <label>
-                    <span>Categoría</span>
-                    <select name="categoria_producto_id">
-                        <option value="">
-                            Sin categoría
-                        </option>
-                        <?php foreach ($productCategories as $category): ?>
-                            <option value="<?= (int) $category['id'] ?>">
-                                <?= e($category['nombre']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label>
-                    <span>Unidad base *</span>
-                    <select name="unidad_base_id" required>
-                        <option value="">
-                            Seleccione una unidad
-                        </option>
-                        <?php foreach ($units as $unit): ?>
-                            <option value="<?= (int) $unit['id'] ?>">
-                                <?= e($unit['simbolo'] . ' · ' . $unit['nombre']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label class="inventory-checkbox">
-                    <input
-                        type="checkbox"
-                        name="controla_lote"
-                        value="1">
-                    <span>Controla lote</span>
-                </label>
-                <label class="inventory-checkbox">
-                    <input
-                        type="checkbox"
-                        name="controla_vencimiento"
-                        value="1">
-                    <span>Controla vencimiento</span>
-                </label>
-                <label class="field-full">
-                    <span>Descripción</span>
-                    <textarea
-                        name="descripcion"
-                        rows="3"></textarea>
-                </label>
-            </div>
-            <div class="form-grid">
-                <label>
-                    <span>Stock mínimo</span>
-                    <input
-                        type="number"
-                        name="stock_minimo"
-                        min="0"
-                        step="0.0001"
-                        placeholder="Ej. 5">
-                </label>
-                <label class="field-full">
-                    <input
-                        type="checkbox"
-                        name="stock_maximo_sin_limite"
-                        id="stock-maximo-sin-limite"
-                        value="1"
-                        checked>
-                    Sin límite de stock máximo
-                </label>
-                <label id="stock-maximo-field" hidden>
-                    <span>Stock máximo</span>
-                    <input
-                        type="number"
-                        name="stock_maximo"
-                        id="stock-maximo"
-                        min="0"
-                        step="0.0001"
-                        placeholder="Ej. 100"
-                        disabled>
-                </label>
-            </div>
-            <?php /* Inventario de destino */ ?>
-            <div class="form-grid">
-                <label>
-                    <span>Inventario</span>
-                    <select name="inventario_id" required>
-                        <option value="">Seleccione un inventario</option>
-                        <?php foreach ($inventories as $inventory): ?>
-                            <option value="<?= (int) $inventory['id'] ?>">
-                                <?= htmlspecialchars(
-                                    $inventory['nombre'],
-                                    ENT_QUOTES,
-                                    'UTF-8'
-                                ) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <?php /* Datos del lote */ ?>
-                <div
-                    id="product-lot-fields"
-                    class="form-grid field-full inventory-lot-fields"
-                    hidden>
-                    <label>
-                        <span>Número de lote</span>
-                        <input
-                            type="text"
-                            name="numero_lote"
-                            id="product-lot-number"
-                            maxlength="100">
-                    </label>
-                    <label>
-                        <span>Fecha de fabricación</span>
-                        <input
-                            type="date"
-                            name="fecha_fabricacion"
-                            id="product-manufacture-date">
-                    </label>
-                    <label>
-                        <span>Fecha de vencimiento</span>
-                        <input
-                            type="date"
-                            name="fecha_vencimiento"
-                            id="product-expiration-date">
-                    </label>
-                </div>
-
-                <?php /* Existencias iniciales */ ?>
-                <label>
-                    <span>Cantidad inicial</span>
-                    <input
-                        type="number"
-                        name="cantidad_inicial"
-                        min="0"
-                        step="0.0001"
-                        value="0"
-                        required>
-                    <small>
-                        Si es mayor que cero, se registrará
-                        automáticamente un movimiento de entrada.
-                    </small>
-                </label>
-            </div> <!-- .form-grid -->
-            <div class="inventory-form-actions">
-                <button
-                    type="submit"
-                    class="btn btn-primary">
-                    ＋ Crear producto
-                </button>
-            </div>
-        </form>
-    </section>
-
     <!-- ==========================================
-     REGISTRO DE LOTES
-========================================== -->
-
-    <section class="card inventory-form-card">
-        <div class="inventory-card-heading">
-            <h3>Agregar lote a producto existente</h3>
-            <p>
-                Registra un nuevo lote de un producto
-                que ya existe en el catálogo.
-            </p>
-        </div>
-        <form
-            method="POST"
-            action="<?= url('/inventario/lotes') ?>">
-            <?= csrf_field() ?>
-            <div class="form-grid">
-                <!-- Producto -->
-                <label class="field-full">
-                    <span>Producto *</span>
-                    <select
-                        name="producto_id"
-                        id="lot-product"
-                        required>
-                        <option value="">
-                            Seleccione un producto
-                        </option>
-                        <?php foreach ($products as $product): ?>
-                            <option
-                                value="<?= (int) $product['id'] ?>"
-                                data-controls-expiration="<?= (int) ($product['controla_vencimiento'] ?? 0) ?>">
-                                <?= e($product['codigo'] . ' — ' . $product['nombre']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-
-                <!-- Número de lote -->
-                <label>
-                    <span>Número de lote *</span>
-                    <input
-                        type="text"
-                        name="numero_lote"
-                        maxlength="100"
-                        placeholder="Ej. LOT-2026-001"
-                        required>
-                </label>
-
-                <!-- Fecha de fabricación -->
-
-                <label>
-                    <span>Fecha de fabricación</span>
-                    <input
-                        type="date"
-                        name="fecha_fabricacion"
-                        id="lot-manufacture-date">
-                </label>
-
-                <!-- Fecha de vencimiento -->
-                <label>
-                    <span>Fecha de vencimiento</span>
-                    <input
-                        type="date"
-                        name="fecha_vencimiento"
-                        id="lot-expiration-date">
-                    <small id="lot-expiration-help">
-                        Obligatoria si el producto controla vencimiento.
-                    </small>
-                </label>
-            </div>
-
-            <!-- Acciones -->
-            <div class="inventory-form-actions">
-                <button
-                    type="submit"
-                    class="btn btn-primary">
-                    ＋ Registrar lote
-                </button>
-            </div>
-        </form>
-    </section>
-
-    <!-- Existencias -->
+        PRODUCTOS REGISTRADOS
+    ========================================== -->
 
     <section class="card inventory-stock-section">
-        <div class="inventory-card-heading">
-            <h3>Existencias actuales</h3>
-            <p>Productos asociados a los inventarios del entorno.</p>
+
+        <div class="inventory-card-heading inventory-card-heading--actions">
+            <div>
+                <span class="eyebrow">Inventario</span>
+                <h3>Productos registrados</h3>
+                <p>Consulta, busca y administra los productos disponibles en el inventario.</p>
+            </div>
+
+            <div class="inventory-heading-actions">
+                <button type="button" class="btn btn-secondary" data-stock-open>
+                    Existencias actuales
+                </button>
+                <button type="button" class="btn btn-primary" data-product-create-open>
+                    + Nuevo producto
+                </button>
+            </div>
         </div>
-        <div class="cards-grid">
-            <?php if (empty($stock)): ?>
-                <div class="soft-panel">
-                    <strong>Sin productos</strong>
-                    <p>No hay existencias para mostrar.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($stock as $item): ?>
-                    <div class="soft-panel">
-                        <strong>
-                            <?= e($item['producto'] ?? $item['nombre'] ?? '') ?>
-                        </strong>
-                        <p>
-                            <?= e($item['stock'] ?? 0) ?>
-                            <?= e($item['simbolo'] ?? '') ?>
-                        </p>
-                        <small>
-                            <?= e($item['inventario'] ?? '') ?>
-                        </small>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+
+        <div class="inventory-toolbar">
+            <div class="inventory-search">
+                <span class="inventory-search-icon">⌕</span>
+                <input
+                    type="search"
+                    id="inventory-product-search"
+                    placeholder="Buscar por código, producto, descripción o unidad..."
+                    autocomplete="off">
+                <button
+                    type="button"
+                    class="inventory-search-clear"
+                    id="inventory-product-search-clear"
+                    aria-label="Limpiar búsqueda"
+                    hidden>×</button>
+            </div>
+            <div class="inventory-search-result">
+                <span id="inventory-product-count"><?= count($products) ?> productos</span>
+            </div>
         </div>
+
+        <div class="table-wrap">
+
+            <table class="modern-table">
+
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Producto</th>
+                        <th>Unidad</th>
+                        <th>Precio</th>
+                        <th>Impuesto</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <?php if (empty($products)): ?>
+
+                        <tr>
+                            <td colspan="6">
+                                No existen productos registrados.
+                            </td>
+                        </tr>
+
+                    <?php else: ?>
+
+                        <?php foreach ($products as $product): ?>
+
+                            <?php
+                            $minimumStock = '';
+                            $maximumStock = '';
+
+                            foreach ($stock as $stockItem) {
+                                if (
+                                    (int)$stockItem['producto_id']
+                                    ===
+                                    (int)$product['id']
+                                ) {
+                                    $minimumStock =
+                                        $stockItem['stock_minimo']
+                                        ?? '';
+
+                                    $maximumStock =
+                                        $stockItem['stock_maximo']
+                                        ?? '';
+
+                                    break;
+                                }
+                            }
+                            ?>
+
+                            <tr
+                                data-product-row
+                                data-search="<?= e(strtolower(
+                                                    ($product['codigo'] ?? '') . ' ' .
+                                                        ($product['nombre'] ?? '') . ' ' .
+                                                        ($product['descripcion'] ?? '') . ' ' .
+                                                        ($product['unidad'] ?? '')
+                                                )) ?>">
+
+                                <td>
+                                    <?= e($product['codigo']) ?>
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        <?= e($product['nombre']) ?>
+                                    </strong>
+
+                                    <?php if (!empty($product['descripcion'])): ?>
+
+                                        <div class="muted">
+                                            <?= e($product['descripcion']) ?>
+                                        </div>
+
+                                    <?php endif; ?>
+                                </td>
+
+                                <td>
+                                    <?= e($product['unidad'] ?? '') ?>
+                                </td>
+
+                                <td>
+                                    <?php if ($product['precio_venta'] !== null): ?>
+
+                                        $<?= number_format(
+                                                (float)$product['precio_venta'],
+                                                2
+                                            ) ?>
+
+                                    <?php else: ?>
+
+                                        <span class="muted">
+                                            Sin configurar
+                                        </span>
+
+                                    <?php endif; ?>
+                                </td>
+
+                                <td>
+
+                                    <?php if ($product['impuesto_tarifa_id'] !== null): ?>
+
+                                        <strong>
+                                            <?= e(
+                                                $product['impuesto_nombre']
+                                                    ?? 'Impuesto'
+                                            ) ?>
+                                        </strong>
+
+                                        <div class="muted">
+
+                                            <?= number_format(
+                                                (float)(
+                                                    $product['impuesto_porcentaje']
+                                                    ?? 0
+                                                ),
+                                                2
+                                            ) ?>%
+
+                                            ·
+
+                                            <?= (int)$product['precio_incluye_impuesto'] === 1
+                                                ? 'Incluido'
+                                                : 'No incluido' ?>
+
+                                        </div>
+
+                                    <?php else: ?>
+
+                                        <span class="muted">
+                                            Sin configurar
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </td>
+
+                                <td>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-secondary btn-sm"
+
+                                        data-product-edit
+
+                                        data-id="<?= (int)$product['id'] ?>"
+
+                                        data-codigo="<?= e(
+                                                            $product['codigo']
+                                                        ) ?>"
+
+                                        data-nombre="<?= e(
+                                                            $product['nombre']
+                                                        ) ?>"
+
+                                        data-descripcion="<?= e(
+                                                                $product['descripcion']
+                                                                    ?? ''
+                                                            ) ?>"
+
+                                        data-categoria-id="<?= e(
+                                                                $product['categoria_producto_id']
+                                                                    ?? ''
+                                                            ) ?>"
+
+                                        data-unidad-id="<?= e(
+                                                            $product['unidad_base_id']
+                                                                ?? ''
+                                                        ) ?>"
+
+                                        data-precio="<?= e(
+                                                            $product['precio_venta']
+                                                                ?? ''
+                                                        ) ?>"
+
+                                        data-impuesto-tarifa-id="<?= e(
+                                                                        $product['impuesto_tarifa_id']
+                                                                            ?? ''
+                                                                    ) ?>"
+
+                                        data-precio-incluye-impuesto="<?= (int)(
+                                                                            $product['precio_incluye_impuesto']
+                                                                            ?? 0
+                                                                        ) ?>"
+
+                                        data-controla-lote="<?= (int)(
+                                                                $product['controla_lote']
+                                                                ?? 0
+                                                            ) ?>"
+
+                                        data-controla-vencimiento="<?= (int)(
+                                                                        $product['controla_vencimiento']
+                                                                        ?? 0
+                                                                    ) ?>"
+
+                                        data-stock-minimo="<?= e(
+                                                                $minimumStock
+                                                            ) ?>"
+
+                                        data-stock-maximo="<?= e(
+                                                                $maximumStock
+                                                            ) ?>"
+
+                                        data-update-url="<?= e(
+                                                                url(
+                                                                    '/inventario/productos/'
+                                                                        . (int)$product['id']
+                                                                        . '/actualizar'
+                                                                )
+                                                            ) ?>">
+
+                                        Editar
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    <?php endif; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="inventory-empty-search" id="inventory-product-empty" hidden>
+            <strong>No encontramos productos</strong>
+            <p>Prueba con otro código, nombre o término de búsqueda.</p>
+        </div>
+
     </section>
+
 </section>
 
 
@@ -552,6 +539,518 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
         </div>
     </section>
 </section>
+
+<!-- ==========================================
+     MODAL CREAR PRODUCTO
+========================================== -->
+<div class="catalog-modal" id="product-create-modal" aria-hidden="true">
+    <div class="catalog-modal-backdrop" data-product-create-close></div>
+    <div class="catalog-modal-dialog catalog-modal-dialog--large" role="dialog" aria-modal="true" aria-labelledby="product-create-title">
+        <div class="catalog-modal-header">
+            <div>
+                <span class="eyebrow">Inventario</span>
+                <h2 id="product-create-title">Nuevo producto</h2>
+                <p>Registra la información general, comercial y de inventario.</p>
+            </div>
+            <button type="button" class="catalog-modal-close" data-product-create-close aria-label="Cerrar">×</button>
+        </div>
+        <div class="catalog-modal-body">
+            <form method="POST" action="<?= url('/inventario/productos') ?>" id="product-create-form">
+                <?= csrf_field() ?>
+
+                <div class="inventory-form-section">
+                    <div class="inventory-form-section-heading">
+                        <strong>Información general</strong>
+                        <span>Identificación y clasificación del producto.</span>
+                    </div>
+                    <div class="form-grid">
+                        <label><span>Código *</span><input type="text" name="codigo" maxlength="80" required placeholder="Ej. VET-001"></label>
+                        <label><span>Nombre *</span><input type="text" name="nombre" maxlength="180" required placeholder="Nombre del producto"></label>
+                        <label>
+                            <span>Categoría</span>
+                            <select name="categoria_producto_id">
+                                <option value="">Sin categoría</option>
+                                <?php foreach ($productCategories as $category): ?>
+                                    <option value="<?= (int)$category['id'] ?>"><?= e($category['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>
+                            <span>Unidad base *</span>
+                            <select name="unidad_base_id" required>
+                                <option value="">Seleccione una unidad</option>
+                                <?php foreach ($units as $unit): ?>
+                                    <option value="<?= (int)$unit['id'] ?>"><?= e($unit['simbolo'] . ' · ' . $unit['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="field-full">
+                            <span>Descripción</span>
+                            <textarea name="descripcion" rows="3" placeholder="Descripción opcional del producto"></textarea>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inventory-form-section">
+                    <div class="inventory-form-section-heading">
+                        <strong>Información comercial</strong>
+                        <span>Precio de venta e impuesto aplicable.</span>
+                    </div>
+                    <div class="form-grid">
+                        <label><span>Precio de venta</span><input type="number" name="precio_venta" min="0" step="0.0001" placeholder="Ej. 12.50"></label>
+                        <label>
+                            <span>Impuesto</span>
+                            <select name="impuesto_tarifa_id" id="product-create-tax">
+                                <option value="">Sin configurar</option>
+                                <?php foreach ($taxRates as $taxRate): ?>
+                                    <option value="<?= (int)$taxRate['id'] ?>">
+                                        <?= e($taxRate['impuesto_nombre'] . ' · ' . $taxRate['nombre'] . ' · ' . number_format((float)$taxRate['porcentaje'], 2) . '%') ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label class="inventory-checkbox field-full">
+                            <input type="checkbox" name="precio_incluye_impuesto" id="product-create-price-tax" value="1">
+                            <span>El precio de venta incluye impuesto</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="inventory-form-section">
+                    <div class="inventory-form-section-heading">
+                        <strong>Control de inventario</strong>
+                        <span>Define lotes, vencimientos y niveles mínimos y máximos.</span>
+                    </div>
+                    <div class="form-grid">
+                        <label class="inventory-checkbox">
+                            <input type="checkbox" name="controla_lote" id="product-create-controls-lot" value="1">
+                            <span>Controla lote</span>
+                        </label>
+                        <label class="inventory-checkbox">
+                            <input type="checkbox" name="controla_vencimiento" id="product-create-controls-expiration" value="1">
+                            <span>Controla vencimiento</span>
+                        </label>
+                        <label><span>Stock mínimo</span><input type="number" name="stock_minimo" min="0" step="0.0001" value="0"></label>
+                        <label class="inventory-checkbox">
+                            <input type="checkbox" name="stock_maximo_sin_limite" id="stock-maximo-sin-limite" value="1" checked>
+                            <span>Sin límite de stock máximo</span>
+                        </label>
+                        <label id="stock-maximo-field" hidden>
+                            <span>Stock máximo</span>
+                            <input type="number" name="stock_maximo" id="stock-maximo" min="0" step="0.0001" disabled>
+                        </label>
+                        <label>
+                            <span>Inventario *</span>
+                            <select name="inventario_id" required>
+                                <option value="">Seleccione un inventario</option>
+                                <?php foreach ($inventories as $inventory): ?>
+                                    <option value="<?= (int)$inventory['id'] ?>"><?= e($inventory['nombre']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label><span>Cantidad inicial</span><input type="number" name="cantidad_inicial" min="0" step="0.0001" value="0" required></label>
+                    </div>
+                </div>
+
+                <div id="product-lot-fields" class="inventory-lot-fields" hidden>
+                    <div class="inventory-form-section-heading field-full">
+                        <strong>Datos del lote inicial</strong>
+                        <span>Completa estos datos cuando el producto controle lotes.</span>
+                    </div>
+                    <label><span>Número de lote</span><input type="text" name="numero_lote" id="product-lot-number" maxlength="100"></label>
+                    <label><span>Fecha de fabricación</span><input type="date" name="fecha_fabricacion" id="product-manufacture-date"></label>
+                    <label><span>Fecha de vencimiento</span><input type="date" name="fecha_vencimiento" id="product-expiration-date"></label>
+                </div>
+
+                <div class="inventory-form-actions">
+                    <button type="button" class="btn btn-secondary" data-product-create-close>Cancelar</button>
+                    <button type="submit" class="btn btn-primary">+ Crear producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL EXISTENCIAS ACTUALES
+========================================== -->
+<div class="catalog-modal" id="stock-modal" aria-hidden="true">
+    <div class="catalog-modal-backdrop" data-stock-close></div>
+    <div class="catalog-modal-dialog catalog-modal-dialog--wide" role="dialog" aria-modal="true" aria-labelledby="stock-modal-title">
+        <div class="catalog-modal-header">
+            <div>
+                <span class="eyebrow">Inventario</span>
+                <h2 id="stock-modal-title">Existencias actuales</h2>
+                <p>Consulta el stock disponible y sus niveles mínimos y máximos.</p>
+            </div>
+            <button type="button" class="catalog-modal-close" data-stock-close aria-label="Cerrar">×</button>
+        </div>
+        <div class="catalog-modal-body">
+            <div class="inventory-toolbar">
+                <div class="inventory-search">
+                    <span class="inventory-search-icon">⌕</span>
+                    <input type="search" id="inventory-stock-search" placeholder="Buscar por código, producto o inventario..." autocomplete="off">
+                    <button type="button" class="inventory-search-clear" id="inventory-stock-search-clear" aria-label="Limpiar búsqueda" hidden>×</button>
+                </div>
+                <div class="inventory-search-result"><span id="inventory-stock-count"><?= count($stock) ?> registros</span></div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Inventario</th>
+                            <th>Existencia</th>
+                            <th>Mínimo</th>
+                            <th>Máximo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($stock)): ?>
+                            <tr>
+                                <td colspan="7">No existen existencias registradas.</td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($stock as $item): ?>
+                                <?php
+                                $currentStock = (float)($item['stock'] ?? 0);
+                                $minimumStockValue = $item['stock_minimo'] !== null ? (float)$item['stock_minimo'] : null;
+                                $isLowStock = $minimumStockValue !== null && $currentStock <= $minimumStockValue;
+                                ?>
+                                <tr
+                                    data-stock-row
+                                    data-search="<?= e(strtolower(
+                                                        ($item['codigo'] ?? '') . ' ' .
+                                                            ($item['producto'] ?? '') . ' ' .
+                                                            ($item['inventario'] ?? '') . ' ' .
+                                                            ($item['simbolo'] ?? '')
+                                                    )) ?>">
+                                    <td><?= e($item['codigo'] ?? '') ?></td>
+                                    <td><strong><?= e($item['producto'] ?? '') ?></strong></td>
+                                    <td><?= e($item['inventario'] ?? '') ?></td>
+                                    <td><strong><?= e((string)($item['stock'] ?? '0')) ?> <?= e($item['simbolo'] ?? '') ?></strong></td>
+                                    <td><?= $item['stock_minimo'] !== null ? e((string)$item['stock_minimo']) : '—' ?></td>
+                                    <td><?= $item['stock_maximo'] !== null ? e((string)$item['stock_maximo']) : 'Sin límite' ?></td>
+                                    <td>
+                                        <?php if ($isLowStock): ?>
+                                            <span class="inventory-status inventory-status--warning">Stock bajo</span>
+                                        <?php else: ?>
+                                            <span class="inventory-status inventory-status--ok">Disponible</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="inventory-empty-search" id="inventory-stock-empty" hidden>
+                <strong>No encontramos existencias</strong>
+                <p>Prueba con otro código, producto o inventario.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL EDITAR PRODUCTO
+========================================== -->
+
+<div
+    class="catalog-modal"
+    id="product-edit-modal"
+    aria-hidden="true">
+
+    <div
+        class="catalog-modal-backdrop"
+        data-product-edit-close>
+    </div>
+
+    <div class="catalog-modal-dialog">
+
+        <div class="catalog-modal-header">
+
+            <div>
+                <span class="eyebrow">
+                    Inventario
+                </span>
+
+                <h2>Editar producto</h2>
+
+                <p>
+                    Modifica la información general y
+                    comercial del producto.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                class="catalog-modal-close"
+                data-product-edit-close>
+                ×
+            </button>
+
+        </div>
+
+        <div class="catalog-modal-body">
+
+            <form
+                method="POST"
+                id="product-edit-form">
+
+                <?= csrf_field() ?>
+
+                <div class="form-grid">
+
+                    <label>
+                        <span>Código *</span>
+
+                        <input
+                            type="text"
+                            name="codigo"
+                            id="product-edit-code"
+                            maxlength="80"
+                            required>
+                    </label>
+
+
+                    <label>
+                        <span>Nombre *</span>
+
+                        <input
+                            type="text"
+                            name="nombre"
+                            id="product-edit-name"
+                            maxlength="180"
+                            required>
+                    </label>
+
+
+                    <label>
+                        <span>Categoría</span>
+
+                        <select
+                            name="categoria_producto_id"
+                            id="product-edit-category">
+
+                            <option value="">
+                                Sin categoría
+                            </option>
+
+                            <?php foreach ($productCategories as $category): ?>
+
+                                <option value="<?= (int)$category['id'] ?>">
+                                    <?= e($category['nombre']) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+
+                    <label>
+                        <span>Unidad base *</span>
+
+                        <select
+                            name="unidad_base_id"
+                            id="product-edit-unit"
+                            required>
+
+                            <?php foreach ($units as $unit): ?>
+
+                                <option value="<?= (int)$unit['id'] ?>">
+                                    <?= e(
+                                        $unit['simbolo']
+                                            . ' · '
+                                            . $unit['nombre']
+                                    ) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+
+                    <label>
+                        <span>Precio de venta</span>
+
+                        <input
+                            type="number"
+                            name="precio_venta"
+                            id="product-edit-price"
+                            min="0"
+                            step="0.0001">
+                    </label>
+
+
+                    <label>
+                        <span>Impuesto</span>
+
+                        <select
+                            name="impuesto_tarifa_id"
+                            id="product-edit-tax">
+
+                            <option value="">
+                                Sin configurar
+                            </option>
+
+                            <?php foreach ($taxRates as $taxRate): ?>
+
+                                <option value="<?= (int)$taxRate['id'] ?>">
+
+                                    <?= e(
+                                        $taxRate['impuesto_nombre']
+                                            . ' · '
+                                            . $taxRate['nombre']
+                                            . ' · '
+                                            . number_format(
+                                                (float)$taxRate['porcentaje'],
+                                                2
+                                            )
+                                            . '%'
+                                    ) ?>
+
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+
+                    <label class="inventory-checkbox">
+
+                        <input
+                            type="checkbox"
+                            name="precio_incluye_impuesto"
+                            id="product-edit-price-tax"
+                            value="1">
+
+                        <span>
+                            El precio de venta incluye impuesto
+                        </span>
+
+                    </label>
+
+
+                    <label class="inventory-checkbox">
+
+                        <input
+                            type="checkbox"
+                            name="controla_lote"
+                            id="product-edit-controls-lot"
+                            value="1">
+
+                        <span>
+                            Controla lote
+                        </span>
+
+                    </label>
+
+
+                    <label class="inventory-checkbox">
+
+                        <input
+                            type="checkbox"
+                            name="controla_vencimiento"
+                            id="product-edit-controls-expiration"
+                            value="1">
+
+                        <span>
+                            Controla vencimiento
+                        </span>
+
+                    </label>
+
+
+                    <label>
+                        <span>Stock mínimo</span>
+
+                        <input
+                            type="number"
+                            name="stock_minimo"
+                            id="product-edit-minimum-stock"
+                            min="0"
+                            step="0.0001">
+                    </label>
+
+
+                    <label class="inventory-checkbox">
+
+                        <input
+                            type="checkbox"
+                            name="stock_maximo_sin_limite"
+                            id="product-edit-unlimited-stock"
+                            value="1">
+
+                        <span>
+                            Sin límite de stock máximo
+                        </span>
+
+                    </label>
+
+
+                    <label id="product-edit-maximum-field">
+
+                        <span>Stock máximo</span>
+
+                        <input
+                            type="number"
+                            name="stock_maximo"
+                            id="product-edit-maximum-stock"
+                            min="0"
+                            step="0.0001">
+
+                    </label>
+
+
+                    <label class="field-full">
+
+                        <span>Descripción</span>
+
+                        <textarea
+                            name="descripcion"
+                            id="product-edit-description"
+                            rows="3"></textarea>
+
+                    </label>
+
+                </div>
+
+
+                <div class="inventory-form-actions">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-product-edit-close>
+
+                        Cancelar
+
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary">
+
+                        Guardar cambios
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
 
 
 <!-- ==========================================

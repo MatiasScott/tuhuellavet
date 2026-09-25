@@ -33,6 +33,7 @@ class InventarioController extends Controller
             'movementTypes' => $catalog->inventoryMovementTypes(),
             'productCategories' => $catalog->productCategories(),
             'units' => $catalog->measurementUnits(),
+            'taxRates' => $catalog->taxRates(),
 
             'success' => Session::pullFlash('success'),
             'error' => Session::pullFlash('error'),
@@ -59,6 +60,39 @@ class InventarioController extends Controller
         }
 
         $this->redirect('/inventario?tab=productos');
+    }
+
+    public function updateProduct(
+        Request $r,
+        int $id
+    ): void {
+        if (!Session::validateCsrf($r->input('_token'))) {
+            http_response_code(419);
+            return;
+        }
+
+        try {
+            (new InventoryService())->updateProduct(
+                $id,
+                $r->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Producto actualizado correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect(
+            '/inventario?tab=productos'
+        );
     }
 
     /**

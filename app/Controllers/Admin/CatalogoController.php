@@ -31,6 +31,7 @@ class CatalogoController extends Controller
             'procedures' => $c->adminSurgeryProcedures(),
             'units' => $c->adminMeasurementUnits(),
             'services' => $c->adminServices(),
+            'taxRates' => $c->taxRates(),
 
             'categories' => $db->query(
                 'SELECT id,codigo,nombre
@@ -141,6 +142,13 @@ class CatalogoController extends Controller
                     $descripcion = trim((string)$r->input('descripcion', ''));
                     $precioBase = trim((string)$r->input('precio_base', ''));
 
+                    $impuestoTarifaId = (int)$r->input('impuesto_tarifa_id', 0);
+                    $precioIncluyeImpuesto = $r->input('precio_incluye_impuesto') ? 1 : 0;
+
+                    $impuestoTarifaId = $impuestoTarifaId > 0
+                        ? $impuestoTarifaId
+                        : null;
+
                     if ($codigo === '' || $nombre === '') {
                         throw new \RuntimeException(
                             'Código y nombre del servicio son obligatorios.'
@@ -157,17 +165,35 @@ class CatalogoController extends Controller
                     }
 
                     $db->prepare(
-                        'INSERT INTO servicios
-                            (codigo, nombre, descripcion, precio_base, activo)
-                        VALUES
-                            (:codigo, :nombre, :descripcion, :precio_base, 1)'
+                        'INSERT INTO servicios (
+                            codigo,
+                            nombre,
+                            descripcion,
+                            precio_base,
+                            precio_incluye_impuesto,
+                            impuesto_tarifa_id,
+                            activo
+                        )
+                        VALUES (
+                            :codigo,
+                            :nombre,
+                            :descripcion,
+                            :precio_base,
+                            :precio_incluye_impuesto,
+                            :impuesto_tarifa_id,
+                            1
+                        )'
                     )->execute([
-                        'codigo'      => $codigo,
-                        'nombre'      => $nombre,
-                        'descripcion' => $descripcion !== '' ? $descripcion : null,
+                        'codigo' => $codigo,
+                        'nombre' => $nombre,
+                        'descripcion' => $descripcion !== ''
+                            ? $descripcion
+                            : null,
                         'precio_base' => $precioBase !== ''
                             ? number_format((float)$precioBase, 2, '.', '')
                             : null,
+                        'precio_incluye_impuesto' => $precioIncluyeImpuesto,
+                        'impuesto_tarifa_id' => $impuestoTarifaId,
                     ]);
                     break;
                 default:
@@ -419,6 +445,13 @@ class CatalogoController extends Controller
                 case 'servicio':
                     $codigo = strtoupper(trim((string)$r->input('codigo')));
                     $nombre = trim((string)$r->input('nombre'));
+                    $impuestoTarifaId = (int)$r->input('impuesto_tarifa_id', 0);
+                    $precioIncluyeImpuesto = $r->input('precio_incluye_impuesto') ? 1 : 0;
+
+                    $impuestoTarifaId = $impuestoTarifaId > 0
+                        ? $impuestoTarifaId
+                        : null;
+
                     $descripcion = trim(
                         (string)$r->input('descripcion', '')
                     );
@@ -443,12 +476,14 @@ class CatalogoController extends Controller
 
                     $stmt = $db->prepare(
                         'UPDATE servicios
-                     SET
-                        codigo = :codigo,
-                        nombre = :nombre,
-                        descripcion = :descripcion,
-                        precio_base = :precio
-                     WHERE id = :id'
+                        SET
+                            codigo = :codigo,
+                            nombre = :nombre,
+                            descripcion = :descripcion,
+                            precio_base = :precio,
+                            precio_incluye_impuesto = :precio_incluye_impuesto,
+                            impuesto_tarifa_id = :impuesto_tarifa_id
+                        WHERE id = :id'
                     );
 
                     $stmt->execute([
@@ -460,6 +495,8 @@ class CatalogoController extends Controller
                         'precio' => $precioBase !== ''
                             ? number_format((float)$precioBase, 2, '.', '')
                             : null,
+                        'precio_incluye_impuesto' => $precioIncluyeImpuesto,
+                        'impuesto_tarifa_id' => $impuestoTarifaId,
                         'id' => $id,
                     ]);
                     break;

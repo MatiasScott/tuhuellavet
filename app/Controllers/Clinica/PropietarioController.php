@@ -148,6 +148,11 @@ class PropietarioController extends Controller
             $environmentId
         );
 
+        $fiscalData = $ownerModel->fiscalData(
+            (int) $owner['id'],
+            $environmentId
+        );
+
         $catalog = new Catalog();
 
         $this->view('propietarios/show', [
@@ -158,11 +163,101 @@ class PropietarioController extends Controller
             'patients' => $patients,
 
             'identificationTypes' => $catalog->identificationTypes(),
+            'fiscalData' => $fiscalData,
 
             'success' => Session::pullFlash('success'),
 
             'error' => Session::pullFlash('error'),
         ]);
+    }
+
+    public function storeFiscalData(
+        Request $r,
+        string $id
+    ): void {
+        $this->csrf($r);
+
+        try {
+            (new OwnerService())->createFiscalData(
+                (int) $id,
+                $r->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Datos fiscales agregados correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect('/propietarios/' . (int) $id);
+    }
+
+
+    public function updateFiscalData(
+        Request $r,
+        string $id,
+        string $fiscalId
+    ): void {
+        $this->csrf($r);
+
+        try {
+            (new OwnerService())->updateFiscalData(
+                (int) $id,
+                (int) $fiscalId,
+                $r->all(),
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Datos fiscales actualizados correctamente.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect('/propietarios/' . (int) $id);
+    }
+
+
+    public function toggleFiscalData(
+        Request $r,
+        string $id,
+        string $fiscalId
+    ): void {
+        $this->csrf($r);
+
+        try {
+            (new OwnerService())->toggleFiscalData(
+                (int) $id,
+                (int) $fiscalId,
+                active_environment_id(),
+                auth_id()
+            );
+
+            Session::flash(
+                'success',
+                'Estado del dato fiscal actualizado.'
+            );
+        } catch (Throwable $e) {
+            Session::flash(
+                'error',
+                $e->getMessage()
+            );
+        }
+
+        $this->redirect('/propietarios/' . (int) $id);
     }
 
     /**
