@@ -19,28 +19,43 @@ use App\Controllers\Gestion\InventarioController;
 use App\Controllers\Gestion\NotificacionController;
 use App\Controllers\Gestion\ReporteController;
 use App\Controllers\MediaController;
+use App\Controllers\Auth\PublicController;
 
 /** @var \App\Core\Router $router */
 
 /*
 |--------------------------------------------------------------------------
-| RUTAS BASE & DASHBOARD
+| PÁGINAS PÚBLICAS
 |--------------------------------------------------------------------------
 */
-$router->get('/', function () {
-    if (!is_authenticated()) {
-        header('Location: ' . url('/login'));
-        exit;
-    }
-    if (!active_environment_id()) {
-        header('Location: ' . url('/seleccionar-entorno'));
-        exit;
-    }
-    header('Location: ' . url('/dashboard'));
-    exit;
-});
 
-$router->get('/dashboard', [DashboardController::class, 'index'], ['auth', 'environment']);
+$router->get(
+    '/',
+    [PublicController::class, 'home']
+);
+
+$router->get(
+    '/privacidad',
+    [PublicController::class, 'privacy']
+);
+
+$router->get(
+    '/terminos',
+    [PublicController::class, 'terms']
+);
+
+
+/*
+|--------------------------------------------------------------------------
+| DASHBOARD
+|--------------------------------------------------------------------------
+*/
+
+$router->get(
+    '/dashboard',
+    [DashboardController::class, 'index'],
+    ['auth', 'environment']
+);
 
 /*
 |--------------------------------------------------------------------------
