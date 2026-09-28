@@ -166,6 +166,48 @@ class Catalog extends Model
         return $this->rows('SELECT id,nombres,apellidos,email FROM usuarios WHERE activo=1 AND deleted_at IS NULL ORDER BY apellidos,nombres');
     }
 
+    public function academicUsersByRole(
+        int $environmentId,
+        string $roleCode
+    ): array {
+        $stmt = $this->db->prepare(
+            'SELECT DISTINCT
+            u.id,
+            u.nombres,
+            u.apellidos,
+            u.email
+         FROM usuarios u
+
+         INNER JOIN usuarios_entornos ue
+            ON ue.usuario_id = u.id
+           AND ue.entorno_id = :entorno
+           AND ue.activo = 1
+
+         INNER JOIN usuarios_entornos_roles uer
+            ON uer.usuario_id = u.id
+           AND uer.entorno_id = ue.entorno_id
+
+         INNER JOIN roles r
+            ON r.id = uer.rol_id
+           AND r.codigo = :rol
+           AND r.activo = 1
+
+         WHERE u.activo = 1
+           AND u.deleted_at IS NULL
+
+         ORDER BY
+            u.apellidos,
+            u.nombres'
+        );
+
+        $stmt->execute([
+            'entorno' => $environmentId,
+            'rol'      => strtoupper(trim($roleCode)),
+        ]);
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
     public function roles(): array
     {
         return $this->rows('SELECT id,codigo,nombre,descripcion,es_global,protegido,activo FROM roles ORDER BY id');
