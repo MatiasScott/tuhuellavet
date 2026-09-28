@@ -9,13 +9,25 @@
     <link rel="stylesheet" href="<?= asset('css/global.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/layouts.css') ?>">
+    <link
+        rel="icon"
+        type="image/png"
+        href="<?= url('/assets/img/Logo-tuhuella.png') ?>">
+    <link
+        rel="apple-touch-icon"
+        href="<?= url('/assets/img/Logo-tuhuella.png') ?>">
 </head>
 
 <body>
     <div class="app-shell">
         <aside class="sidebar">
             <div class="brand">
-                <div class="brand-mark">🐾</div>
+                <div class="brand-icon">
+                    <img
+                        src="<?= url('/assets/img/Logo-tuhuella.png') ?>"
+                        alt="Tu Huella Vet"
+                        class="brand-logo">
+                </div>
                 <div>
                     <strong>Tu Huella Vet</strong>
                     <span>Clínica · Hacienda · Academia</span>
