@@ -245,6 +245,216 @@ class FileService
         }
     }
 
+    public function storeGenerated(
+        string $content,
+        string $originalName,
+        int $userId,
+        string $folder = 'documents',
+        array $allowed = [
+            'application/pdf',
+            'application/xml',
+            'text/xml',
+        ],
+        ?string &$storedPhysicalPath = null
+    ): int {
+        $storedPhysicalPath = null;
+
+        if ($content === '') {
+            throw new RuntimeException(
+                'El contenido del archivo generado está vacío.'
+            );
+        }
+
+        if ($userId <= 0) {
+            throw new RuntimeException(
+                'El usuario asociado al archivo no es válido.'
+            );
+        }
+
+        $originalName = basename(trim($originalName));
+
+        if ($originalName === '') {
+            throw new RuntimeException(
+                'El nombre del archivo generado no es válido.'
+            );
+        }
+
+        $folder = $this->sanitizeFolder($folder);
+
+        $max = (int) (
+            $_ENV['UPLOAD_MAX_BYTES']
+            ?? 10485760
+        );
+
+        $realSize = strlen($content);
+
+        if ($realSize <= 0) {
+            throw new RuntimeException(
+                'No fue posible determinar el tamaño del archivo generado.'
+            );
+        }
+
+        if ($realSize > $max) {
+            throw new RuntimeException(
+                'El archivo generado supera el tamaño permitido.'
+            );
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->buffer($content) ?: '';
+
+        /*
+     * libmagic puede identificar XML como application/xml
+     * o text/xml dependiendo del sistema operativo/contenido.
+     */
+        $extensions = [
+            'application/pdf' => 'pdf',
+            'application/xml' => 'xml',
+            'text/xml' => 'xml',
+        ];
+
+        if (
+            !in_array($mime, $allowed, true)
+            || !isset($extensions[$mime])
+        ) {
+            throw new RuntimeException(
+                'Tipo de archivo generado no permitido: '
+                    . ($mime !== '' ? $mime : 'desconocido')
+                    . '.'
+            );
+        }
+
+        $extension = $extensions[$mime];
+
+        $safeName =
+            bin2hex(random_bytes(18))
+            . '.'
+            . $extension;
+
+        $relativePath =
+            $folder
+            . '/'
+            . $safeName;
+
+        $directory =
+            STORAGE_PATH
+            . '/uploads/'
+            . $folder;
+
+        if (
+            !is_dir($directory)
+            && !mkdir(
+                $directory,
+                0775,
+                true
+            )
+            && !is_dir($directory)
+        ) {
+            throw new RuntimeException(
+                'No fue posible crear el directorio de almacenamiento.'
+            );
+        }
+
+        $destination =
+            STORAGE_PATH
+            . '/uploads/'
+            . $relativePath;
+
+        $storedPhysicalPath = $destination;
+
+        try {
+            $written = file_put_contents(
+                $destination,
+                $content,
+                LOCK_EX
+            );
+
+            if (
+                $written === false
+                || $written !== $realSize
+            ) {
+                throw new RuntimeException(
+                    'No fue posible almacenar completamente el archivo generado.'
+                );
+            }
+
+            $hash = hash_file(
+                'sha256',
+                $destination
+            );
+
+            if ($hash === false) {
+                throw new RuntimeException(
+                    'No fue posible calcular el hash del archivo generado.'
+                );
+            }
+
+            $db = Database::connection();
+
+            $stmt = $db->prepare(
+                '
+            INSERT INTO archivos
+            (
+                nombre_original,
+                nombre_almacenado,
+                ruta_storage,
+                extension,
+                mime_type,
+                tamano_bytes,
+                hash_sha256,
+                subido_por
+            )
+            VALUES
+            (
+                :original,
+                :almacenado,
+                :ruta,
+                :extension,
+                :mime,
+                :tamano,
+                :hash,
+                :usuario
+            )
+            '
+            );
+
+            $stmt->execute([
+                'original' => $originalName,
+                'almacenado' => $safeName,
+                'ruta' => $relativePath,
+                'extension' => $extension,
+                'mime' => $mime,
+                'tamano' => $realSize,
+                'hash' => $hash,
+                'usuario' => $userId,
+            ]);
+
+            return (int) $db->lastInsertId();
+        } catch (Throwable $e) {
+            try {
+                $this->compensatePhysicalFile(
+                    $destination
+                );
+
+                $storedPhysicalPath = null;
+            } catch (Throwable $cleanupException) {
+                error_log(
+                    'No fue posible compensar el archivo generado '
+                        . $destination
+                        . ': '
+                        . $cleanupException->getMessage()
+                );
+
+                /*
+             * Conservamos la ruta para que el servicio llamador
+             * pueda realizar la compensación posteriormente.
+             */
+            }
+
+            throw $e;
+        }
+    }
+
     public function storedPath(int $fileId): string
     {
         $db = Database::connection();

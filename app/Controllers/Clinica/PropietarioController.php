@@ -14,8 +14,22 @@ class PropietarioController extends Controller
 {
     public function index(Request $r): void
     {
-        $q = trim((string)$r->input('q', ''));
-        $this->view('propietarios/index', ['title' => 'Propietarios', 'owners' => (new Owner())->listByEnvironment(active_environment_id(), $q), 'identificationTypes' => (new Catalog())->identificationTypes(), 'search' => $q, 'success' => Session::pullFlash('success'), 'error' => Session::pullFlash('error')]);
+        $q = trim((string) $r->input('q', ''));
+
+        $catalog = new Catalog();
+
+        $this->view('propietarios/index', [
+            'title' => 'Propietarios',
+            'owners' => (new Owner())->listByEnvironment(
+                active_environment_id(),
+                $q
+            ),
+            'identificationTypes' => $catalog->identificationTypes(),
+            'countries' => $catalog->countries(),
+            'search' => $q,
+            'success' => Session::pullFlash('success'),
+            'error' => Session::pullFlash('error'),
+        ]);
     }
 
     public function store(Request $r): void
@@ -164,6 +178,8 @@ class PropietarioController extends Controller
 
             'identificationTypes' => $catalog->identificationTypes(),
             'fiscalData' => $fiscalData,
+
+            'countries' => (new Catalog())->countries(),
 
             'success' => Session::pullFlash('success'),
 
@@ -503,16 +519,43 @@ class PropietarioController extends Controller
         }
 
         // =========================================================
-        // 8. CUENTA YA VINCULADA A PROPIETARIO
+        // 8. CUENTA VINCULADA A PROPIETARIO
         // =========================================================
 
         if (!empty($user['propietario_id'])) {
+
+            $linkedOwnerId = (int) $user['propietario_id'];
+
+            /*
+            * EDICIÓN:
+            *
+            * Si la cuenta encontrada pertenece exactamente al
+            * propietario que estamos editando, no es un duplicado.
+            *
+            * Es la misma relación propietario <-> usuario.
+            */
+            if (
+                $ownerId > 0
+                && $linkedOwnerId === $ownerId
+            ) {
+                $this->json([
+                    'ok' => true,
+                    'exists' => false,
+                    'status' => 'available',
+                    'message' =>
+                    'Correo actual del propietario.',
+                ]);
+            }
+
+            /*
+            * Si pertenece a OTRO propietario, sí debemos bloquearlo.
+            */
             $this->json([
                 'ok' => true,
                 'exists' => true,
                 'status' => 'existing_owner',
                 'message' =>
-                'Esta cuenta ya está vinculada a una ficha de propietario.',
+                'Esta cuenta ya está vinculada a otra ficha de propietario.',
             ]);
         }
 
@@ -528,5 +571,116 @@ class PropietarioController extends Controller
             'Cuenta existente encontrada. '
                 . 'Se vinculará como Cliente sin eliminar sus roles actuales.',
         ]);
+    }
+
+    public function provinces(Request $r): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $countryCode = trim(
+                (string) $r->input('pais', '')
+            );
+
+            if ($countryCode === '') {
+                echo json_encode([
+                    'ok' => false,
+                    'message' => 'El código del país es obligatorio.',
+                    'data' => [],
+                ]);
+                return;
+            }
+
+            $data = (new Catalog())->provincesByCountry(
+                $countryCode
+            );
+
+            echo json_encode([
+                'ok' => true,
+                'data' => $data,
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+
+            echo json_encode([
+                'ok' => false,
+                'message' => 'No fue posible cargar las provincias.',
+                'data' => [],
+            ]);
+        }
+    }
+
+    public function cantons(Request $r): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $provinceCode = trim(
+                (string) $r->input('provincia', '')
+            );
+
+            if ($provinceCode === '') {
+                echo json_encode([
+                    'ok' => false,
+                    'message' => 'El código de la provincia es obligatorio.',
+                    'data' => [],
+                ]);
+                return;
+            }
+
+            $data = (new Catalog())->cantonsByProvince(
+                $provinceCode
+            );
+
+            echo json_encode([
+                'ok' => true,
+                'data' => $data,
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+
+            echo json_encode([
+                'ok' => false,
+                'message' => 'No fue posible cargar los cantones.',
+                'data' => [],
+            ]);
+        }
+    }
+
+    public function parishes(Request $r): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+            $cantonCode = trim(
+                (string) $r->input('canton', '')
+            );
+
+            if ($cantonCode === '') {
+                echo json_encode([
+                    'ok' => false,
+                    'message' => 'El código del cantón es obligatorio.',
+                    'data' => [],
+                ]);
+                return;
+            }
+
+            $data = (new Catalog())->parishesByCanton(
+                $cantonCode
+            );
+
+            echo json_encode([
+                'ok' => true,
+                'data' => $data,
+            ]);
+        } catch (Throwable $e) {
+            http_response_code(500);
+
+            echo json_encode([
+                'ok' => false,
+                'message' => 'No fue posible cargar las parroquias.',
+                'data' => [],
+            ]);
+        }
     }
 }

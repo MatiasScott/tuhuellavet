@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Core\Model;
+use App\Core\Database;
+use PDO;
 
 class Catalog extends Model
 {
@@ -357,5 +359,76 @@ class Catalog extends Model
            AND i.activo = 1
          ORDER BY i.nombre, it.porcentaje'
         );
+    }
+
+    public function countries(): array
+    {
+        $db = Database::connection();
+
+        $stmt = $db->query(
+            'SELECT codigo, nombre
+         FROM ubicacion_paises
+         WHERE activo = 1
+         ORDER BY nombre'
+        );
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function provincesByCountry(string $countryCode): array
+    {
+        $db = Database::connection();
+
+        $stmt = $db->prepare(
+            'SELECT codigo, nombre
+         FROM ubicacion_provincias
+         WHERE pais_codigo = :country_code
+           AND activo = 1
+         ORDER BY nombre'
+        );
+
+        $stmt->execute([
+            'country_code' => trim($countryCode),
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function cantonsByProvince(string $provinceCode): array
+    {
+        $db = Database::connection();
+
+        $stmt = $db->prepare(
+            'SELECT codigo, nombre
+         FROM ubicacion_cantones
+         WHERE provincia_codigo = :province_code
+           AND activo = 1
+         ORDER BY nombre'
+        );
+
+        $stmt->execute([
+            'province_code' => trim($provinceCode),
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function parishesByCanton(string $cantonCode): array
+    {
+        $db = Database::connection();
+
+        $stmt = $db->prepare(
+            'SELECT codigo, nombre
+         FROM ubicacion_parroquias
+         WHERE canton_codigo = :canton_code
+           AND activo = 1
+         ORDER BY nombre'
+        );
+
+        $stmt->execute([
+            'canton_code' => trim($cantonCode),
+        ]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

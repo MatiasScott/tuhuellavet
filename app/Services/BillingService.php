@@ -1281,6 +1281,84 @@ class BillingService
                 }
 
                 /*
+|--------------------------------------------------------------------------
+| Datos fiscales
+|--------------------------------------------------------------------------
+*/
+
+                $fiscalDataId = (int) (
+                    $saleRow['datos_fiscales_id']
+                    ?? 0
+                );
+
+                if ($fiscalDataId <= 0) {
+                    throw new RuntimeException(
+                        'La venta debe tener datos fiscales para poder emitir la factura.'
+                    );
+                }
+
+                /*
+|--------------------------------------------------------------------------
+| Pago total
+|--------------------------------------------------------------------------
+|
+| Una venta únicamente puede facturarse cuando todos sus
+| pagos registrados cubren completamente el total.
+|
+| Los pagos anulados no forman parte del valor pagado.
+|
+*/
+
+                $paymentStmt = $db->prepare(
+                    '
+    SELECT
+        COALESCE(SUM(pg.monto), 0)
+
+    FROM pagos pg
+
+    WHERE pg.venta_id = :venta
+      AND pg.estado = "REGISTRADO"
+      AND pg.anulado_at IS NULL
+    '
+                );
+
+                $paymentStmt->execute([
+                    'venta' => $sale,
+                ]);
+
+                $paidAmount = round(
+                    (float) $paymentStmt->fetchColumn(),
+                    2
+                );
+
+                $saleTotal = round(
+                    (float) (
+                        $saleRow['total']
+                        ?? 0
+                    ),
+                    2
+                );
+
+                $balance = round(
+                    $saleTotal - $paidAmount,
+                    2
+                );
+
+                if ($balance > 0.004) {
+                    throw new RuntimeException(
+                        'La venta debe estar pagada en su totalidad antes de emitir la factura. '
+                            . 'Saldo pendiente: $'
+                            . number_format(
+                                $balance,
+                                2,
+                                '.',
+                                ''
+                            )
+                            . '.'
+                    );
+                }
+
+                /*
                 |--------------------------------------------------------------------------
                 | Entorno productivo
                 |--------------------------------------------------------------------------
@@ -1331,6 +1409,70 @@ class BillingService
                 }
 
                 /*
+|--------------------------------------------------------------------------
+| Métodos de pago compatibles con iConta
+|--------------------------------------------------------------------------
+|
+| Todos los pagos vigentes de la venta deben tener configurado un código
+| de forma de pago para iConta antes de crear el documento fiscal.
+|
+*/
+
+                $paymentMethodStmt = $db->prepare(
+                    '
+    SELECT
+        pg.id,
+        mp.nombre,
+        mp.codigo,
+        mp.iconta_codigo
+
+    FROM pagos pg
+
+    INNER JOIN metodos_pago mp
+        ON mp.id = pg.metodo_pago_id
+
+    WHERE pg.venta_id = :venta
+      AND pg.estado = "REGISTRADO"
+      AND pg.anulado_at IS NULL
+
+    ORDER BY pg.id ASC
+    '
+                );
+
+                $paymentMethodStmt->execute([
+                    'venta' => $sale,
+                ]);
+
+                $validPayments = $paymentMethodStmt->fetchAll(
+                    \PDO::FETCH_ASSOC
+                );
+
+                foreach ($validPayments as $payment) {
+                    $iContaPaymentCode = trim(
+                        (string) (
+                            $payment['iconta_codigo']
+                            ?? ''
+                        )
+                    );
+
+                    if ($iContaPaymentCode === '') {
+                        $paymentMethodName = trim(
+                            (string) (
+                                $payment['nombre']
+                                ?? $payment['codigo']
+                                ?? 'desconocido'
+                            )
+                        );
+
+                        throw new RuntimeException(
+                            'El método de pago "'
+                                . $paymentMethodName
+                                . '" no tiene configurado su código de forma de pago en iConta.'
+                        );
+                    }
+                }
+
+                /*
                 |--------------------------------------------------------------------------
                 | Documento fiscal
                 |--------------------------------------------------------------------------
@@ -1361,13 +1503,13 @@ class BillingService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Cola Contífico
+                | Cola iConta
                 |--------------------------------------------------------------------------
                 */
 
                 $stmt = $db->prepare(
                     '
-                    INSERT INTO contifico_documentos (
+                    INSERT INTO iconta_documentos (
                         documento_fiscal_id,
                         estado,
                         request_payload
@@ -1381,21 +1523,13 @@ class BillingService
                 );
 
                 $stmt->execute([
-                    'documento'
-                    => $documentId,
-
-                    'payload'
-                    => json_encode(
+                    'documento' => $documentId,
+                    'payload' => json_encode(
                         [
-                            'venta_id'
-                            => $sale,
-
-                            'documento_fiscal_id'
-                            => $documentId,
+                            'venta_id' => $sale,
+                            'documento_fiscal_id' => $documentId,
                         ],
-                        JSON_UNESCAPED_UNICODE
-                            |
-                            JSON_UNESCAPED_SLASHES
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
                     ),
                 ]);
 
@@ -1948,10 +2082,10 @@ class BillingService
 
 
             /*
-        |--------------------------------------------------------------------------
-        | 9. Confirmar todo junto
-        |--------------------------------------------------------------------------
-        */
+            |--------------------------------------------------------------------------
+            | 9. Confirmar todo junto
+            |--------------------------------------------------------------------------
+            */
 
             $db->commit();
         } catch (Throwable $e) {

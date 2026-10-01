@@ -51,7 +51,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                         <?php
                         $ownerName = trim(($s['propietario_nombres'] ?? '') . ' ' . ($s['propietario_apellidos'] ?? ''));
                         $paymentState = (string) ($s['estado_pago'] ?? 'SIN_PAGO');
-                        $fiscalState = $s['contifico_estado'] ?? $s['estado_fiscal'] ?? 'SIN_DOCUMENTO';
+                        $fiscalState = $s['iconta_estado'] ?? $s['estado_fiscal'] ?? 'SIN_DOCUMENTO';
                         ?>
                         <tr>
                             <td><strong><?= e($s['numero'] ?? ('#' . $s['id'])) ?></strong><?= !empty($s['es_simulada']) ? '<span class="sale-mini-tag">SIMULADA</span>' : '' ?></td>
@@ -108,6 +108,8 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                     can('facturacion.facturar')
                                     && empty($s['es_simulada'])
                                     && $s['estado'] === 'FINALIZADA'
+                                    && !empty($s['datos_fiscales_id'])
+                                    && (float) ($s['saldo'] ?? 0) <= 0.004
                                     && empty($s['documento_fiscal_id'])
                                 ): ?>
                                     <form
@@ -146,7 +148,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                         <th>ID</th>
                         <th>Venta</th>
                         <th>Estado</th>
-                        <th>Contífico</th>
+                        <th>iConta</th>
                         <th>Total</th>
                     </tr>
                 </thead>
@@ -159,7 +161,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                             <td>#<?= (int)$d['id'] ?></td>
                             <td><?= e($d['venta_numero'] ?? ('#' . $d['venta_id'])) ?></td>
                             <td><?= e($d['estado']) ?></td>
-                            <td><?= e($d['contifico_estado'] ?? 'PENDIENTE') ?></td>
+                            <td><?= e($d['iconta_estado'] ?? 'PENDIENTE') ?></td>
                             <td><?= $money($d['total']) ?></td>
                         </tr>
                     <?php endforeach; ?>

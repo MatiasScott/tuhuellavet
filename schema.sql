@@ -1688,30 +1688,59 @@ CREATE TABLE venta_detalles (
     venta_id BIGINT UNSIGNED NOT NULL,
     servicio_id BIGINT UNSIGNED NULL,
     producto_id BIGINT UNSIGNED NULL,
+
+    impuesto_tarifa_id BIGINT UNSIGNED NULL,
+    impuesto_codigo VARCHAR(50) NULL,
+    impuesto_nombre VARCHAR(120) NULL,
+    impuesto_porcentaje DECIMAL(8,4) NOT NULL DEFAULT 0.0000,
+
     descripcion VARCHAR(255) NOT NULL,
     cantidad DECIMAL(14,4) NOT NULL,
     precio_unitario DECIMAL(14,4) NOT NULL,
-    descuento DECIMAL(14,2) NOT NULL DEFAULT 0,
-    impuesto DECIMAL(14,2) NOT NULL DEFAULT 0,
+    precio_incluye_impuesto BOOLEAN NOT NULL DEFAULT FALSE,
+
+    subtotal DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    base_imponible DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    descuento DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    impuesto DECIMAL(14,2) NOT NULL DEFAULT 0.00,
     total DECIMAL(14,2) NOT NULL,
+
     PRIMARY KEY (id),
+
     CONSTRAINT fk_venta_detalle_venta
-        FOREIGN KEY (venta_id) REFERENCES ventas(id) ON DELETE CASCADE,
+        FOREIGN KEY (venta_id)
+        REFERENCES ventas(id)
+        ON DELETE CASCADE,
+
     CONSTRAINT fk_venta_detalle_servicio
-        FOREIGN KEY (servicio_id) REFERENCES servicios(id) ON DELETE SET NULL,
+        FOREIGN KEY (servicio_id)
+        REFERENCES servicios(id)
+        ON DELETE SET NULL,
+
     CONSTRAINT fk_venta_detalle_producto
-        FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE SET NULL,
-    -- Regla de negocio: debe existir exactamente un origen (servicio o producto).
-    -- Se valida en backend porque MySQL impide usar estas columnas en CHECK
-    -- al participar en FKs con ON DELETE SET NULL.
-    CONSTRAINT chk_venta_detalle_cantidad CHECK (cantidad > 0),
-    KEY idx_detalle_venta (venta_id)
+        FOREIGN KEY (producto_id)
+        REFERENCES productos(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_venta_detalle_impuesto_tarifa
+        FOREIGN KEY (impuesto_tarifa_id)
+        REFERENCES impuesto_tarifas(id)
+        ON DELETE SET NULL,
+
+    -- Regla de negocio: debe existir exactamente un origen
+    -- (servicio o producto). Se valida en backend.
+    CONSTRAINT chk_venta_detalle_cantidad
+        CHECK (cantidad > 0),
+
+    KEY idx_detalle_venta (venta_id),
+    KEY idx_detalle_impuesto_tarifa (impuesto_tarifa_id)
 ) ENGINE=InnoDB;
 
 CREATE TABLE metodos_pago (
     id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
     codigo VARCHAR(50) NOT NULL,
     nombre VARCHAR(100) NOT NULL,
+    iconta_codigo VARCHAR(25) NULL,
     activo BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY (id),
     UNIQUE KEY uq_metodo_pago_codigo (codigo)
@@ -1721,21 +1750,44 @@ CREATE TABLE pagos (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     venta_id BIGINT UNSIGNED NOT NULL,
     metodo_pago_id SMALLINT UNSIGNED NOT NULL,
+
     monto DECIMAL(14,2) NOT NULL,
     fecha_pago DATETIME NOT NULL,
     referencia VARCHAR(150) NULL,
+
+    estado VARCHAR(20) NOT NULL DEFAULT 'REGISTRADO',
+    anulado_at DATETIME NULL,
+    anulado_por BIGINT UNSIGNED NULL,
+    motivo_anulacion VARCHAR(500) NULL,
+
     registrado_por BIGINT UNSIGNED NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
     PRIMARY KEY (id),
+
     CONSTRAINT fk_pago_venta
-        FOREIGN KEY (venta_id) REFERENCES ventas(id),
+        FOREIGN KEY (venta_id)
+        REFERENCES ventas(id),
+
     CONSTRAINT fk_pago_metodo
-        FOREIGN KEY (metodo_pago_id) REFERENCES metodos_pago(id),
+        FOREIGN KEY (metodo_pago_id)
+        REFERENCES metodos_pago(id),
+
+    CONSTRAINT fk_pago_anulado_por
+        FOREIGN KEY (anulado_por)
+        REFERENCES usuarios(id)
+        ON DELETE SET NULL,
+
     CONSTRAINT fk_pago_usuario
-        FOREIGN KEY (registrado_por) REFERENCES usuarios(id),
-    CONSTRAINT chk_pago_monto CHECK (monto > 0),
+        FOREIGN KEY (registrado_por)
+        REFERENCES usuarios(id),
+
+    CONSTRAINT chk_pago_monto
+        CHECK (monto > 0),
+
     KEY idx_pago_venta (venta_id),
-    KEY idx_pago_fecha (fecha_pago)
+    KEY idx_pago_fecha (fecha_pago),
+    KEY idx_pago_anulado_por (anulado_por)
 ) ENGINE=InnoDB;
 
 CREATE TABLE documentos_fiscales (

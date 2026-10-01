@@ -24,7 +24,7 @@ class Billing extends Model
                 END AS estado_pago,
                 df.id AS documento_fiscal_id,
                 df.estado AS estado_fiscal,
-                cd.estado AS contifico_estado
+                idoc.estado AS iconta_estado
             FROM ventas v
             LEFT JOIN animales a
                 ON a.id = v.animal_id
@@ -51,8 +51,8 @@ class Billing extends Model
                     ORDER BY df2.id DESC
                     LIMIT 1
                 )
-            LEFT JOIN contifico_documentos cd
-                ON cd.documento_fiscal_id = df.id
+            LEFT JOIN iconta_documentos idoc
+                ON idoc.documento_fiscal_id = df.id
             WHERE v.entorno_id = :e
             ORDER BY v.fecha DESC, v.id DESC
             LIMIT 250
@@ -70,13 +70,13 @@ class Billing extends Model
                 df.*,
                 v.numero AS venta_numero,
                 v.total,
-                cd.contifico_id,
-                cd.estado AS contifico_estado
+                idoc.iconta_id_documento,
+                idoc.estado AS iconta_estado
             FROM documentos_fiscales df
             INNER JOIN ventas v
                 ON v.id = df.venta_id
-            LEFT JOIN contifico_documentos cd
-                ON cd.documento_fiscal_id = df.id
+            LEFT JOIN iconta_documentos idoc
+                ON idoc.documento_fiscal_id = df.id
             WHERE v.entorno_id = :e
             ORDER BY df.id DESC
         ');
@@ -300,6 +300,4 @@ class Billing extends Model
 
         return $stmt->fetchAll();
     }
-
-    
 }

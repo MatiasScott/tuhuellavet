@@ -67,6 +67,39 @@ class OwnerService
                 ? (int) $d['tipo_identificacion_id']
                 : null;
 
+            $secondName = $this->nullableString(
+                $d['segundo_nombre'] ?? null
+            );
+
+            $maternalLastName = $this->nullableString(
+                $d['apellido_materno'] ?? null
+            );
+
+            $reference = $this->nullableString(
+                $d['referencia'] ?? null
+            );
+
+            $countryCode = $this->nullableString(
+                $d['codigo_pais'] ?? null
+            );
+
+            $provinceCode = $this->nullableString(
+                $d['codigo_provincia'] ?? null
+            );
+
+            $cantonCode = $this->nullableString(
+                $d['codigo_canton'] ?? null
+            );
+
+            $parishCode = $this->nullableString(
+                $d['codigo_parroquia'] ?? null
+            );
+
+            $isNaturalPerson = $this->normalizeNaturalPerson(
+                $d['es_persona_natural'] ?? null,
+                $identificationTypeId
+            );
+
             /*
          * Modos:
          *
@@ -108,6 +141,26 @@ class OwnerService
                 $identification,
                 $email,
                 $mobile
+            );
+
+            $this->validateLocationHierarchy(
+                $db,
+                $countryCode,
+                $provinceCode,
+                $cantonCode,
+                $parishCode
+            );
+
+            // =====================================================
+            // 2A. VALIDAR UBICACIÓN GEOGRÁFICA
+            // =====================================================
+
+            $this->validateLocationHierarchy(
+                $db,
+                $countryCode,
+                $provinceCode,
+                $cantonCode,
+                $parishCode
             );
 
             // =====================================================
@@ -332,40 +385,64 @@ class OwnerService
 
             $stmt = $db->prepare(
                 'INSERT INTO propietarios (
-                usuario_id,
-                tipo_identificacion_id,
-                identificacion,
-                nombres,
-                apellidos,
-                email,
-                telefono,
-                celular,
-                direccion,
-                activo
-             ) VALUES (
-                :user_id,
-                :identification_type,
-                :identification,
-                :names,
-                :last_names,
-                :email,
-                :phone,
-                :mobile,
-                :address,
-                1
-             )'
+        usuario_id,
+        tipo_identificacion_id,
+        es_persona_natural,
+        identificacion,
+        nombres,
+        segundo_nombre,
+        apellidos,
+        apellido_materno,
+        email,
+        telefono,
+        celular,
+        direccion,
+        codigo_pais,
+        codigo_provincia,
+        codigo_canton,
+        codigo_parroquia,
+        referencia,
+        activo
+    ) VALUES (
+        :user_id,
+        :identification_type,
+        :is_natural_person,
+        :identification,
+        :names,
+        :second_name,
+        :last_names,
+        :maternal_last_name,
+        :email,
+        :phone,
+        :mobile,
+        :address,
+        :country_code,
+        :province_code,
+        :canton_code,
+        :parish_code,
+        :reference,
+        1
+    )'
             );
 
             $stmt->execute([
-                'user_id' => $userId,
+                'user_id'            => $userId,
                 'identification_type' => $identificationTypeId,
-                'identification' => $identification,
-                'names' => $names,
-                'last_names' => $lastNames,
-                'email' => $email,
-                'phone' => $phone,
-                'mobile' => $mobile,
-                'address' => $address,
+                'is_natural_person'  => $isNaturalPerson,
+                'identification'     => $identification,
+                'names'              => $names,
+                'second_name'        => $secondName,
+                'last_names'         => $lastNames,
+                'maternal_last_name' => $maternalLastName,
+                'email'              => $email,
+                'phone'              => $phone,
+                'mobile'             => $mobile,
+                'address'            => $address,
+                'country_code'       => $countryCode,
+                'province_code'      => $provinceCode,
+                'canton_code'        => $cantonCode,
+                'parish_code'        => $parishCode,
+                'reference'          => $reference,
             ]);
 
             $ownerId = (int) $db->lastInsertId();
@@ -688,6 +765,60 @@ class OwnerService
                 )
                 : $old['tipo_identificacion_id'];
 
+            $secondName = $this->nullableString(
+                $d['segundo_nombre']
+                    ?? $old['segundo_nombre']
+                    ?? null
+            );
+
+            $maternalLastName = $this->nullableString(
+                $d['apellido_materno']
+                    ?? $old['apellido_materno']
+                    ?? null
+            );
+
+            $reference = $this->nullableString(
+                $d['referencia']
+                    ?? $old['referencia']
+                    ?? null
+            );
+
+            $countryCode = $this->nullableString(
+                $d['codigo_pais']
+                    ?? $old['codigo_pais']
+                    ?? null
+            );
+
+            $provinceCode = $this->nullableString(
+                $d['codigo_provincia']
+                    ?? $old['codigo_provincia']
+                    ?? null
+            );
+
+            $cantonCode = $this->nullableString(
+                $d['codigo_canton']
+                    ?? $old['codigo_canton']
+                    ?? null
+            );
+
+            $parishCode = $this->nullableString(
+                $d['codigo_parroquia']
+                    ?? $old['codigo_parroquia']
+                    ?? null
+            );
+
+            $naturalPersonValue = array_key_exists(
+                'es_persona_natural',
+                $d
+            )
+                ? $d['es_persona_natural']
+                : ($old['es_persona_natural'] ?? null);
+
+            $isNaturalPerson = $this->normalizeNaturalPerson(
+                $naturalPersonValue,
+                $identificationTypeId
+            );
+
             // =====================================================
             // 3. VALIDAR CORREO
             // =====================================================
@@ -713,34 +844,70 @@ class OwnerService
                 $id
             );
 
+            $this->validateLocationHierarchy(
+                $db,
+                $countryCode,
+                $provinceCode,
+                $cantonCode,
+                $parishCode
+            );
+
+            // =====================================================
+            // 4A. VALIDAR UBICACIÓN GEOGRÁFICA
+            // =====================================================
+
+            $this->validateLocationHierarchy(
+                $db,
+                $countryCode,
+                $provinceCode,
+                $cantonCode,
+                $parishCode
+            );
+
             // =====================================================
             // 5. ACTUALIZAR PROPIETARIO
             // =====================================================
 
             $stmt = $db->prepare(
                 'UPDATE propietarios
-                 SET
-                    tipo_identificacion_id = :identification_type,
-                    identificacion = :identification,
-                    nombres = :names,
-                    apellidos = :last_names,
-                    email = :email,
-                    telefono = :phone,
-                    celular = :mobile,
-                    direccion = :address
-                 WHERE id = :id
-                   AND deleted_at IS NULL'
+     SET
+        tipo_identificacion_id = :identification_type,
+        es_persona_natural = :is_natural_person,
+        identificacion = :identification,
+        nombres = :names,
+        segundo_nombre = :second_name,
+        apellidos = :last_names,
+        apellido_materno = :maternal_last_name,
+        email = :email,
+        telefono = :phone,
+        celular = :mobile,
+        direccion = :address,
+        codigo_pais = :country_code,
+        codigo_provincia = :province_code,
+        codigo_canton = :canton_code,
+        codigo_parroquia = :parish_code,
+        referencia = :reference
+     WHERE id = :id
+       AND deleted_at IS NULL'
             );
 
             $stmt->execute([
                 'identification_type' => $identificationTypeId,
+                'is_natural_person'   => $isNaturalPerson,
                 'identification'      => $identification,
                 'names'               => $names,
+                'second_name'         => $secondName,
                 'last_names'          => $lastNames,
+                'maternal_last_name'  => $maternalLastName,
                 'email'               => $email,
                 'phone'               => $phone,
                 'mobile'              => $mobile,
                 'address'             => $address,
+                'country_code'        => $countryCode,
+                'province_code'       => $provinceCode,
+                'canton_code'         => $cantonCode,
+                'parish_code'         => $parishCode,
+                'reference'           => $reference,
                 'id'                  => $id,
             ]);
 
@@ -756,7 +923,24 @@ class OwnerService
                 'propietarios',
                 $id,
                 $old,
-                $d
+                [
+                    'tipo_identificacion_id' => $identificationTypeId,
+                    'es_persona_natural'     => $isNaturalPerson,
+                    'identificacion'         => $identification,
+                    'nombres'                => $names,
+                    'segundo_nombre'         => $secondName,
+                    'apellidos'              => $lastNames,
+                    'apellido_materno'       => $maternalLastName,
+                    'email'                  => $email,
+                    'telefono'               => $phone,
+                    'celular'                => $mobile,
+                    'direccion'              => $address,
+                    'codigo_pais'            => $countryCode,
+                    'codigo_provincia'       => $provinceCode,
+                    'codigo_canton'          => $cantonCode,
+                    'codigo_parroquia'       => $parishCode,
+                    'referencia'             => $reference,
+                ]
             );
         });
     }
@@ -942,6 +1126,60 @@ class OwnerService
         }
 
         return $digits;
+    }
+
+    private function normalizeNaturalPerson(
+        mixed $value,
+        ?int $identificationTypeId
+    ): ?int {
+        /*
+     * Catálogo local:
+     * 1 = CEDULA
+     * 2 = RUC
+     * 3 = PASAPORTE
+     * 4 = CONSUMIDOR_FINAL
+     */
+
+        if ($identificationTypeId === 1) {
+            return 1;
+        }
+
+        if ($identificationTypeId === 3) {
+            return 1;
+        }
+
+        if ($identificationTypeId === 4) {
+            return 0;
+        }
+
+        /*
+     * RUC:
+     * iConta diferencia RUC natural (N)
+     * y RUC jurídico (R).
+     */
+        if ($identificationTypeId === 2) {
+            if ($value === null || $value === '') {
+                throw new RuntimeException(
+                    'Debe indicar si el RUC pertenece a una persona natural o jurídica.'
+                );
+            }
+
+            $normalized = strtolower(trim((string) $value));
+
+            if (in_array($normalized, ['1', 'true', 'natural'], true)) {
+                return 1;
+            }
+
+            if (in_array($normalized, ['0', 'false', 'juridica', 'jurídica'], true)) {
+                return 0;
+            }
+
+            throw new RuntimeException(
+                'El tipo de persona seleccionado para el RUC no es válido.'
+            );
+        }
+
+        return null;
     }
 
     /**
@@ -1456,6 +1694,170 @@ class OwnerService
         if (!$stmt->fetchColumn()) {
             throw new RuntimeException(
                 'El tipo de identificación seleccionado no existe.'
+            );
+        }
+    }
+
+    /**
+     * Validar la jerarquía geográfica del propietario.
+     *
+     * Garantiza:
+     * - que el país exista y esté activo;
+     * - que la provincia pertenezca al país;
+     * - que el cantón pertenezca a la provincia;
+     * - que la parroquia pertenezca al cantón.
+     *
+     * También evita recibir niveles hijos sin su nivel padre.
+     */
+    private function validateLocationHierarchy(
+        PDO $db,
+        ?string $countryCode,
+        ?string $provinceCode,
+        ?string $cantonCode,
+        ?string $parishCode
+    ): void {
+
+        // =====================================================
+        // 1. SIN UBICACIÓN
+        // =====================================================
+
+        if (
+            $countryCode === null
+            && $provinceCode === null
+            && $cantonCode === null
+            && $parishCode === null
+        ) {
+            return;
+        }
+
+        // =====================================================
+        // 2. VALIDAR JERARQUÍA MÍNIMA
+        // =====================================================
+
+        if ($countryCode === null) {
+            throw new RuntimeException(
+                'Debe seleccionar el país antes de completar la ubicación.'
+            );
+        }
+
+        if ($cantonCode !== null && $provinceCode === null) {
+            throw new RuntimeException(
+                'Debe seleccionar una provincia antes del cantón.'
+            );
+        }
+
+        if ($parishCode !== null && $cantonCode === null) {
+            throw new RuntimeException(
+                'Debe seleccionar un cantón antes de la parroquia.'
+            );
+        }
+
+        // =====================================================
+        // 3. VALIDAR PAÍS
+        // =====================================================
+
+        $stmt = $db->prepare(
+            'SELECT codigo
+         FROM ubicacion_paises
+         WHERE codigo = :country_code
+           AND activo = 1
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'country_code' => $countryCode,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'El país seleccionado no existe o no está disponible.'
+            );
+        }
+
+        // =====================================================
+        // 4. PROVINCIA OPCIONAL
+        // =====================================================
+
+        if ($provinceCode === null) {
+            return;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT codigo
+         FROM ubicacion_provincias
+         WHERE codigo = :province_code
+           AND pais_codigo = :country_code
+           AND activo = 1
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'province_code' => $provinceCode,
+            'country_code'  => $countryCode,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'La provincia seleccionada no pertenece al país indicado '
+                    . 'o no está disponible.'
+            );
+        }
+
+        // =====================================================
+        // 5. CANTÓN OPCIONAL
+        // =====================================================
+
+        if ($cantonCode === null) {
+            return;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT codigo
+         FROM ubicacion_cantones
+         WHERE codigo = :canton_code
+           AND provincia_codigo = :province_code
+           AND activo = 1
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'canton_code'   => $cantonCode,
+            'province_code' => $provinceCode,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'El cantón seleccionado no pertenece a la provincia indicada '
+                    . 'o no está disponible.'
+            );
+        }
+
+        // =====================================================
+        // 6. PARROQUIA OPCIONAL
+        // =====================================================
+
+        if ($parishCode === null) {
+            return;
+        }
+
+        $stmt = $db->prepare(
+            'SELECT codigo
+         FROM ubicacion_parroquias
+         WHERE codigo = :parish_code
+           AND canton_codigo = :canton_code
+           AND activo = 1
+         LIMIT 1'
+        );
+
+        $stmt->execute([
+            'parish_code' => $parishCode,
+            'canton_code' => $cantonCode,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'La parroquia seleccionada no pertenece al cantón indicado '
+                    . 'o no está disponible.'
             );
         }
     }

@@ -144,6 +144,23 @@ $router->delete(
     [PropietarioController::class, 'destroy'],
     ['auth', 'environment', 'permission:propietarios.eliminar']
 );
+$router->get(
+    '/propietarios/ubicacion/provincias',
+    [PropietarioController::class, 'provinces'],
+    ['auth', 'environment', 'permission:propietarios.ver']
+);
+
+$router->get(
+    '/propietarios/ubicacion/cantones',
+    [PropietarioController::class, 'cantons'],
+    ['auth', 'environment', 'permission:propietarios.ver']
+);
+
+$router->get(
+    '/propietarios/ubicacion/parroquias',
+    [PropietarioController::class, 'parishes'],
+    ['auth', 'environment', 'permission:propietarios.ver']
+);
 $router->post(
     '/propietarios/{id}/datos-fiscales',
     [PropietarioController::class, 'storeFiscalData'],

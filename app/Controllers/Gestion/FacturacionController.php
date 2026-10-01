@@ -111,7 +111,7 @@ class FacturacionController extends Controller
                 active_environment_id(),
                 auth_id()
             ),
-            'Factura encolada para Contífico.'
+            'Factura encolada para iConta.'
         );
     }
 

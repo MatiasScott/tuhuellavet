@@ -436,34 +436,62 @@ $canEdit = can('propietarios.editar');
                     value="PUT">
                 <div class="modal-body">
                     <div class="form-grid">
-                        <!-- Nombres -->
+                        <!-- PRIMER NOMBRE / NOMBRES -->
                         <label>
-                            <span>Nombres *</span>
+                            <span>Primer nombre / Nombres *</span>
                             <input
                                 type="text"
                                 name="nombres"
+                                maxlength="120"
                                 value="<?= e($owner['nombres'] ?? '') ?>"
                                 required>
                         </label>
-                        <!-- Apellidos -->
+
+                        <!-- SEGUNDO NOMBRE -->
                         <label>
-                            <span>Apellidos *</span>
+                            <span>Segundo nombre</span>
+                            <input
+                                type="text"
+                                name="segundo_nombre"
+                                maxlength="120"
+                                value="<?= e($owner['segundo_nombre'] ?? '') ?>">
+                        </label>
+
+                        <!-- APELLIDO PATERNO -->
+                        <label>
+                            <span>Apellido paterno</span>
                             <input
                                 type="text"
                                 name="apellidos"
-                                value="<?= e($owner['apellidos'] ?? '') ?>"
-                                required>
+                                maxlength="120"
+                                value="<?= e($owner['apellidos'] ?? '') ?>">
                         </label>
-                        <!-- Tipo identificación -->
+
+                        <!-- APELLIDO MATERNO -->
+                        <label>
+                            <span>Apellido materno</span>
+                            <input
+                                type="text"
+                                name="apellido_materno"
+                                maxlength="120"
+                                value="<?= e($owner['apellido_materno'] ?? '') ?>">
+                        </label>
+
+                        <!-- TIPO IDENTIFICACIÓN -->
                         <label>
                             <span>Tipo de identificación *</span>
-                            <select name="tipo_identificacion_id" required>
-                                <option value="">
-                                    Seleccionar
-                                </option>
+
+                            <select
+                                name="tipo_identificacion_id"
+                                data-owner-type
+                                required>
+
+                                <option value="">Seleccionar</option>
+
                                 <?php foreach ($identificationTypes as $type): ?>
                                     <option
                                         value="<?= (int) $type['id'] ?>"
+                                        data-code="<?= e($type['codigo']) ?>"
                                         <?= (int) ($owner['tipo_identificacion_id'] ?? 0)
                                             === (int) $type['id']
                                             ? 'selected'
@@ -471,58 +499,203 @@ $canEdit = can('propietarios.editar');
                                         <?= e($type['nombre']) ?>
                                     </option>
                                 <?php endforeach; ?>
+
                             </select>
                         </label>
-                        <!-- Identificación -->
+
+                        <!-- NATURAL / JURÍDICA -->
+                        <label
+                            data-owner-natural-container
+                            <?= (int) ($owner['tipo_identificacion_id'] ?? 0) === 2
+                                ? ''
+                                : 'hidden' ?>>
+
+                            <span>Tipo de persona *</span>
+
+                            <select
+                                name="es_persona_natural"
+                                data-owner-natural
+                                <?= (int) ($owner['tipo_identificacion_id'] ?? 0) === 2
+                                    ? 'required'
+                                    : 'disabled' ?>>
+
+                                <option value="">Seleccionar</option>
+
+                                <option
+                                    value="1"
+                                    <?= (string) ($owner['es_persona_natural'] ?? '') === '1'
+                                        ? 'selected'
+                                        : '' ?>>
+                                    Persona natural
+                                </option>
+
+                                <option
+                                    value="0"
+                                    <?= (string) ($owner['es_persona_natural'] ?? '') === '0'
+                                        ? 'selected'
+                                        : '' ?>>
+                                    Persona jurídica
+                                </option>
+
+                            </select>
+                        </label>
+
+                        <!-- IDENTIFICACIÓN -->
                         <label>
                             <span>Identificación *</span>
+
                             <input
                                 type="text"
                                 name="identificacion"
                                 maxlength="30"
                                 value="<?= e($owner['identificacion'] ?? '') ?>"
+                                autocomplete="off"
                                 data-owner-field="identificacion"
                                 required>
+
                             <span
                                 class="owner-field-message"
                                 data-message-for="identificacion"
                                 aria-live="polite"></span>
                         </label>
-                        <!-- Correo -->
+
+                        <!-- CORREO -->
                         <label>
                             <span>Correo electrónico *</span>
+
                             <input
                                 type="email"
                                 name="email"
+                                maxlength="180"
                                 value="<?= e($owner['email'] ?? '') ?>"
+                                autocomplete="email"
                                 data-owner-field="email"
                                 required>
+
+                            <span
+                                class="owner-field-message"
+                                data-message-for="email"
+                                aria-live="polite"></span>
                         </label>
-                        <!-- Celular -->
+
+                        <!-- CELULAR -->
                         <label>
                             <span>Celular</span>
+
                             <input
                                 type="tel"
                                 name="celular"
+                                maxlength="30"
                                 value="<?= e($owner['celular'] ?? '') ?>"
+                                autocomplete="tel"
                                 data-owner-field="celular">
+
+                            <span
+                                class="owner-field-message"
+                                data-message-for="celular"
+                                aria-live="polite"></span>
                         </label>
-                        <!-- Teléfono -->
+
+                        <!-- TELÉFONO -->
                         <label>
                             <span>Teléfono</span>
+
                             <input
                                 type="tel"
                                 name="telefono"
-                                value="<?= e($owner['telefono'] ?? '') ?>"
-                                data-owner-field="telefono">
+                                maxlength="30"
+                                value="<?= e($owner['telefono'] ?? '') ?>">
                         </label>
-                        <!-- Dirección -->
+
+                        <!-- DIRECCIÓN -->
                         <label class="field-full">
                             <span>Dirección</span>
+
                             <input
                                 type="text"
                                 name="direccion"
+                                maxlength="255"
                                 value="<?= e($owner['direccion'] ?? '') ?>">
+                        </label>
+
+                        <!-- REFERENCIA -->
+                        <label class="field-full">
+                            <span>Referencia</span>
+
+                            <input
+                                type="text"
+                                name="referencia"
+                                maxlength="250"
+                                value="<?= e($owner['referencia'] ?? '') ?>">
+                        </label>
+
+                        <!-- PAÍS -->
+                        <label>
+                            <span>País</span>
+
+                            <select
+                                name="codigo_pais"
+                                data-location-country
+                                data-selected="<?= e($owner['codigo_pais'] ?? '') ?>"
+                                data-provinces-url="<?= url('/propietarios/ubicacion/provincias') ?>">
+
+                                <option value="">Seleccionar</option>
+
+                                <?php foreach (($countries ?? []) as $country): ?>
+                                    <option
+                                        value="<?= e($country['codigo']) ?>"
+                                        <?= ($owner['codigo_pais'] ?? '') === $country['codigo']
+                                            ? 'selected'
+                                            : '' ?>>
+                                        <?= e($country['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+                        <!-- PROVINCIA -->
+                        <label>
+                            <span>Provincia</span>
+
+                            <select
+                                name="codigo_provincia"
+                                data-location-province
+                                data-selected="<?= e($owner['codigo_provincia'] ?? '') ?>"
+                                data-cantons-url="<?= url('/propietarios/ubicacion/cantones') ?>">
+
+                                <option value="">Seleccionar provincia</option>
+
+                            </select>
+                        </label>
+
+                        <!-- CANTÓN -->
+                        <label>
+                            <span>Cantón</span>
+
+                            <select
+                                name="codigo_canton"
+                                data-location-canton
+                                data-selected="<?= e($owner['codigo_canton'] ?? '') ?>"
+                                data-parishes-url="<?= url('/propietarios/ubicacion/parroquias') ?>">
+
+                                <option value="">Seleccionar cantón</option>
+
+                            </select>
+                        </label>
+
+                        <!-- PARROQUIA -->
+                        <label>
+                            <span>Parroquia</span>
+
+                            <select
+                                name="codigo_parroquia"
+                                data-location-parish
+                                data-selected="<?= e($owner['codigo_parroquia'] ?? '') ?>">
+
+                                <option value="">Seleccionar parroquia</option>
+
+                            </select>
                         </label>
                     </div>
                 </div>
@@ -1138,3 +1311,13 @@ $canEdit = can('propietarios.editar');
 
     });
 </script>
+
+<script
+    src="<?= url('/assets/js/views/propietarios-validacion.js') ?>"
+    defer></script>
+<script
+    src="<?= url('/assets/js/views/propietarios-formulario.js') ?>"
+    defer></script>
+<script
+    src="<?= url('/assets/js/views/propietarios-ubicacion.js') ?>"
+    defer></script>

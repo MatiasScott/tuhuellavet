@@ -133,19 +133,57 @@
             <?= csrf_field() ?>
             <div class="modal-body">
                 <div class="form-grid">
+
+                    <!-- PRIMER NOMBRE / NOMBRES -->
                     <label>
-                        <span>Nombres *</span>
-                        <input name="nombres" required>
+                        <span>Primer nombre / Nombres *</span>
+                        <input
+                            type="text"
+                            name="nombres"
+                            maxlength="120"
+                            autocomplete="given-name"
+                            required>
                     </label>
+
+                    <!-- SEGUNDO NOMBRE -->
                     <label>
-                        <span>Apellidos</span>
-                        <input name="apellidos">
+                        <span>Segundo nombre</span>
+                        <input
+                            type="text"
+                            name="segundo_nombre"
+                            maxlength="120">
                     </label>
+
+                    <!-- APELLIDO PATERNO -->
+                    <label>
+                        <span>Apellido paterno</span>
+                        <input
+                            type="text"
+                            name="apellidos"
+                            maxlength="120">
+                    </label>
+
+                    <!-- APELLIDO MATERNO -->
+                    <label>
+                        <span>Apellido materno</span>
+                        <input
+                            type="text"
+                            name="apellido_materno"
+                            maxlength="120">
+                    </label>
+
+                    <!-- TIPO DE IDENTIFICACIÓN -->
                     <label>
                         <span>Tipo de identificación</span>
-                        <select name="tipo_identificacion_id"
+
+                        <select
+                            name="tipo_identificacion_id"
                             data-owner-type>
-                            <option value="">Seleccionar</option>
+
+                            <option value="">
+                                Seleccionar
+                            </option>
+
                             <?php foreach ($identificationTypes as $t): ?>
                                 <option
                                     value="<?= (int) $t['id'] ?>"
@@ -153,47 +191,191 @@
                                     <?= e($t['nombre']) ?>
                                 </option>
                             <?php endforeach; ?>
+
                         </select>
                     </label>
+
+                    <!-- NATURAL / JURÍDICA - SOLO RUC -->
+                    <label
+                        data-owner-natural-container
+                        hidden>
+
+                        <span>Tipo de persona *</span>
+
+                        <select
+                            name="es_persona_natural"
+                            data-owner-natural
+                            disabled>
+
+                            <option value="">
+                                Seleccionar
+                            </option>
+
+                            <option value="1">
+                                Persona natural
+                            </option>
+
+                            <option value="0">
+                                Persona jurídica
+                            </option>
+
+                        </select>
+                    </label>
+
+                    <!-- IDENTIFICACIÓN -->
                     <label>
                         <span>Identificación</span>
+
                         <input
+                            type="text"
                             name="identificacion"
                             maxlength="30"
                             autocomplete="off"
                             data-owner-field="identificacion">
 
-                        <span class="owner-field-message"
+                        <span
+                            class="owner-field-message"
                             data-message-for="identificacion"
                             aria-live="polite"></span>
                     </label>
+
+                    <!-- CORREO -->
                     <label>
                         <span>Correo electrónico</span>
+
                         <input
                             type="email"
                             name="email"
                             maxlength="180"
-                            autocomplete="off"
+                            autocomplete="email"
                             data-owner-field="email">
-                        <span class="owner-field-message"
+
+                        <span
+                            class="owner-field-message"
                             data-message-for="email"
                             aria-live="polite"></span>
                     </label>
+
+                    <!-- CELULAR -->
                     <label>
                         <span>Celular</span>
+
                         <input
                             type="tel"
                             name="celular"
                             maxlength="30"
-                            autocomplete="off"
+                            autocomplete="tel"
                             data-owner-field="celular">
-                        <span class="owner-field-message"
+
+                        <span
+                            class="owner-field-message"
                             data-message-for="celular"
                             aria-live="polite"></span>
                     </label>
+
+                    <!-- TELÉFONO -->
+                    <label>
+                        <span>Teléfono</span>
+
+                        <input
+                            type="tel"
+                            name="telefono"
+                            maxlength="30">
+                    </label>
+
+                    <!-- DIRECCIÓN -->
                     <label class="field-full">
                         <span>Dirección</span>
-                        <input name="direccion">
+
+                        <input
+                            type="text"
+                            name="direccion"
+                            maxlength="255"
+                            autocomplete="street-address">
+                    </label>
+
+                    <!-- REFERENCIA -->
+                    <label class="field-full">
+                        <span>Referencia</span>
+
+                        <input
+                            type="text"
+                            name="referencia"
+                            maxlength="250"
+                            placeholder="Ej.: Frente al parque, casa color blanco">
+                    </label>
+
+                    <!-- PAÍS -->
+                    <label>
+                        <span>País</span>
+
+                        <select
+                            name="codigo_pais"
+                            data-location-country
+                            data-provinces-url="<?= url('/propietarios/ubicacion/provincias') ?>">
+
+                            <option value="">
+                                Seleccionar
+                            </option>
+
+                            <?php foreach (($countries ?? []) as $country): ?>
+                                <option
+                                    value="<?= e($country['codigo']) ?>"
+                                    <?= ($country['codigo'] ?? '') === 'ECU'
+                                        ? 'selected'
+                                        : '' ?>>
+                                    <?= e($country['nombre']) ?>
+                                </option>
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+                    <!-- PROVINCIA -->
+                    <label>
+                        <span>Provincia</span>
+
+                        <select
+                            name="codigo_provincia"
+                            data-location-province
+                            data-cantons-url="<?= url('/propietarios/ubicacion/cantones') ?>">
+
+                            <option value="">
+                                Seleccionar provincia
+                            </option>
+
+                        </select>
+                    </label>
+
+                    <!-- CANTÓN -->
+                    <label>
+                        <span>Cantón</span>
+
+                        <select
+                            name="codigo_canton"
+                            data-location-canton
+                            data-parishes-url="<?= url('/propietarios/ubicacion/parroquias') ?>">
+
+                            <option value="">
+                                Seleccionar cantón
+                            </option>
+
+                        </select>
+                    </label>
+
+                    <!-- PARROQUIA -->
+                    <label>
+                        <span>Parroquia</span>
+
+                        <select
+                            name="codigo_parroquia"
+                            data-location-parish>
+
+                            <option value="">
+                                Seleccionar parroquia
+                            </option>
+
+                        </select>
                     </label>
                     <div class="field-full owner-fiscal-section">
 
@@ -372,5 +554,11 @@
     </div>
 </div>
 <script
-    src="<?= asset('js/views/propietarios-validacion.js') ?>"
+    src="<?= url('/assets/js/views/propietarios-validacion.js') ?>"
+    defer></script>
+<script
+    src="<?= url('/assets/js/views/propietarios-formulario.js') ?>"
+    defer></script>
+<script
+    src="<?= url('/assets/js/views/propietarios-ubicacion.js') ?>"
     defer></script>
