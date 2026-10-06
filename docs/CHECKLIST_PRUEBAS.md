@@ -20,6 +20,8 @@ Las pruebas funcionales se ejecutarán después de terminar la construcción, se
 - Propietarios, creación opcional de acceso de Cliente.
 - Pacientes, fotos y peso histórico.
 - Consulta externa, diagnósticos y tratamientos.
+- En el detalle de consulta, abrir «Agregar tratamiento», verificar el medicamento inicial y agregar otro con «+ Medicamento». Comprobar que el formulario envía `tipo_tratamiento_id` y los medicamentos.
+- Abrir «Registrar aplicación» de un medicamento clínico, cerrar con Cancelar y comprobar que la acción apunta al ID del medicamento y envía `cantidad_aplicada`.
 - Vacunación y desparasitación con recordatorios.
 - Hospitalización: ingreso, signos, peso, fórmulas, fluidoterapia, tratamientos, evoluciones y alta.
 - Laboratorio con PDF/imagen.

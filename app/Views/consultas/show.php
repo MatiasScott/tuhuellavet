@@ -310,9 +310,7 @@
             <button
                 class="btn btn-primary"
                 type="button"
-                data-modal-open="
-                    treatment-create
-                ">
+                data-modal-open="treatment-create">
                 <span aria-hidden="true">+</span> Agregar tratamiento
             </button>
         <?php endif; ?>
@@ -510,9 +508,10 @@
                                                 btn-secondary
                                             "
                                             data-medication-apply
+                                            data-modal-open="medication-apply"
                                             data-event="<?= (int)
                                                         $consultation['evento_id'] ?>"
-                                            data-medication="<?= (int)
+                                            data-medication-id="<?= (int)
                                                                 $medication['id'] ?>"
                                             data-dose="<?= e(
                                                             $medication['dosis_cantidad']
@@ -808,9 +807,7 @@
                                 Tipo *
                             </span>
                             <select
-                                name="
-                                tipo_tratamiento_id
-                            "
+                                name="tipo_tratamiento_id"
                                 required>
                                 <option value="">
                                     Seleccionar
@@ -868,16 +865,13 @@
                             btn
                             btn-secondary
                         "
-                            id="
-                            add-treatment-medication
-                        ">
+                            id="add-treatment-medication"
+                            data-add-medication>
                             + Medicamento
                         </button>
                     </div>
                     <div
-                        id="
-                        treatment-medications
-                    ">
+                        id="treatment-medications">
                     </div>
                     <label
                         class="field-full">
@@ -949,12 +943,8 @@
                             type="number"
                             step="0.000001"
                             min="0.000001"
-                            name="
-                                cantidad_aplicada
-                            "
-                            id="
-                                applied-quantity
-                            "
+                            name="cantidad_aplicada"
+                            id="applied-quantity"
                             required>
                     </label>
                     <label>
