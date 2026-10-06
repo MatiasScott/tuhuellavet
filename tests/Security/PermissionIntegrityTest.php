@@ -256,6 +256,7 @@ class PermissionIntegrityTest extends TestCase
             'consultas',
             'vacunas',
             'desparasitacion',
+            'peluqueria',
             'tratamientos',
             'hospitalizacion',
             'laboratorio',

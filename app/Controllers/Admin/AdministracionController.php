@@ -70,7 +70,7 @@ class AdministracionController extends Controller
     }
     public function roles(Request $r): void
     {
-        (new \App\Services\PermissionService())->syncPermissions();
+        (new \App\Services\PermissionService())->registerModule('PELUQUERIA', 'Peluquería');
         $m = new AdminRepository();
         $roles = $m->roles();
         $selected = (int)$r->input('rol_id', ($roles[0]['id'] ?? 0));

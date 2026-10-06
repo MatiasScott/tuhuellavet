@@ -2326,6 +2326,7 @@ INSERT INTO modulos (codigo, nombre, orden) VALUES
 ('CONSULTAS', 'Consultas', 80),
 ('VACUNAS', 'Vacunación', 90),
 ('DESPARASITACION', 'Desparasitación', 100),
+('PELUQUERIA', 'Peluquería', 105),
 ('HOSPITALIZACION', 'Hospitalización', 110),
 ('LABORATORIO', 'Laboratorio', 120),
 ('CIRUGIAS', 'Cirugías', 130),
@@ -2349,7 +2350,7 @@ CROSS JOIN acciones_permiso a
 WHERE a.codigo IN ('VER','CREAR','EDITAR','ELIMINAR')
   AND m.codigo IN (
     'EMPRESAS','USUARIOS','ROLES','PERMISOS','PROPIETARIOS','PACIENTES',
-    'CONSULTAS','VACUNAS','DESPARASITACION','HOSPITALIZACION','LABORATORIO',
+    'CONSULTAS','VACUNAS','DESPARASITACION','PELUQUERIA','HOSPITALIZACION','LABORATORIO',
     'CIRUGIAS','FORMULAS','TRATAMIENTOS','INVENTARIO','CITAS','NOTIFICACIONES',
     'VENTAS','ACADEMICO'
   );
@@ -2539,4 +2540,3 @@ WHERE r.codigo='DOCENTE' AND (p.codigo LIKE 'academico.%' OR p.codigo IN ('dashb
 INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
 WHERE r.codigo='ESTUDIANTE' AND p.codigo IN ('academico.ver','dashboard.ver','pacientes.ver','pacientes.crear','consultas.ver','consultas.crear','hospitalizacion.ver','hospitalizacion.crear','hospitalizacion.editar','laboratorio.ver','laboratorio.crear','formulas.ver','formulas.calcular','tratamientos.ver','tratamientos.crear');
-
