@@ -348,6 +348,17 @@
 
 
                 <label>
+                    <span>Fecha de aplicación</span>
+
+                    <input
+                        type="datetime-local"
+                        name="fecha_evento"
+                        value="<?= e(date('Y-m-d\TH:i')) ?>"
+                        required>
+                </label>
+
+
+                <label>
 
                     <span>Fármaco</span>
 

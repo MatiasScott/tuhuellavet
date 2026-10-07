@@ -117,6 +117,14 @@
                     </select>
                 </label>
                 <label>
+                    <span>Fecha de aplicación</span>
+                    <input
+                        type="datetime-local"
+                        name="fecha_evento"
+                        value="<?= e(date('Y-m-d\TH:i')) ?>"
+                        required>
+                </label>
+                <label>
                     <span>Vacuna</span>
                     <select name="vacuna_id" required>
                         <?php foreach ($vaccines as $x): ?>

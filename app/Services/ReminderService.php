@@ -98,22 +98,31 @@ class ReminderService
         string $date,
         int $createdBy
     ): void {
-        /*
-         * Recordatorio 3 días antes,
-         * programado para las 09:00.
-         */
         $target = new DateTimeImmutable(
             $date . ' 09:00:00'
         );
 
-        $reminder = $target->modify('-3 days');
         $now = new DateTimeImmutable();
 
         /*
-         * Si se registra cuando faltan menos
-         * de 3 días, no enviamos inmediatamente.
-         * Lo dejamos para la fecha objetivo.
-         */
+ * Los registros históricos deben conservar
+ * su próxima fecha en el expediente clínico,
+ * pero no deben generar recordatorios vencidos.
+ */
+        if ($target < $now) {
+            return;
+        }
+
+        /*
+ * El recordatorio se programa 3 días antes.
+ */
+        $reminder = $target->modify('-3 days');
+
+        /*
+ * Si faltan menos de 3 días, no enviamos
+ * inmediatamente. Lo dejamos para la
+ * propia fecha objetivo.
+ */
         if ($reminder < $now) {
             $reminder = $target;
         }

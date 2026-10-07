@@ -166,8 +166,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /*
-   * Validamos que próxima fecha
-   * no sea anterior a la actual.
+   * La próxima fecha puede ser histórica.
+   *
+   * Solo validamos que no sea anterior
+   * a la fecha en que se realizó el procedimiento.
    */
   document
     .querySelectorAll(
@@ -179,14 +181,28 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const selected = new Date(input.value + "T00:00:00");
+        const form = input.closest("form");
 
-        const today = new Date();
+        if (!form) {
+          return;
+        }
 
-        today.setHours(0, 0, 0, 0);
+        const eventDateInput = form.querySelector('input[name="fecha_evento"]');
 
-        if (selected < today) {
-          alert("La próxima fecha no puede estar en el pasado.");
+        if (!eventDateInput || !eventDateInput.value) {
+          return;
+        }
+
+        const nextDate = new Date(input.value + "T00:00:00");
+
+        const eventDate = new Date(eventDateInput.value);
+
+        eventDate.setHours(0, 0, 0, 0);
+
+        if (nextDate < eventDate) {
+          alert(
+            "La próxima fecha no puede ser anterior a la fecha de aplicación.",
+          );
 
           input.value = "";
         }

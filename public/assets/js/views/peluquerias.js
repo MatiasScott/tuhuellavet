@@ -172,10 +172,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   /*
-  |--------------------------------------------------------------------------
-  | VALIDACIÓN - PRÓXIMA PELUQUERÍA
-  |--------------------------------------------------------------------------
-  */
+|--------------------------------------------------------------------------
+| VALIDACIÓN - PRÓXIMA PELUQUERÍA
+|--------------------------------------------------------------------------
+|
+| Se permiten registros históricos.
+| La próxima fecha únicamente debe ser igual
+| o posterior a la fecha del servicio.
+|
+*/
 
   document
     .querySelectorAll('input[name="proxima_peluqueria"]')
@@ -185,14 +190,28 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const selected = new Date(input.value + "T00:00:00");
+        const form = input.closest("form");
 
-        const today = new Date();
+        if (!form) {
+          return;
+        }
 
-        today.setHours(0, 0, 0, 0);
+        const eventDateInput = form.querySelector('input[name="fecha_evento"]');
 
-        if (selected < today) {
-          alert("La próxima fecha de peluquería no puede estar en el pasado.");
+        if (!eventDateInput || !eventDateInput.value) {
+          return;
+        }
+
+        const nextDate = new Date(input.value + "T00:00:00");
+
+        const eventDate = new Date(eventDateInput.value);
+
+        eventDate.setHours(0, 0, 0, 0);
+
+        if (nextDate < eventDate) {
+          alert(
+            "La próxima fecha de peluquería no puede ser anterior a la fecha del servicio.",
+          );
 
           input.value = "";
         }
