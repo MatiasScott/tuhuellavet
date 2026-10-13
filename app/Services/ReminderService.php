@@ -197,31 +197,6 @@ class ReminderService
             );
         }
 
-        /*
-         * WhatsApp.
-         */
-        if (
-            !empty($patient['propietario_celular'])
-            || !empty($patient['usuario_telefono'])
-        ) {
-            $this->insertNotification(
-                $db,
-                $environmentId,
-                $typeId,
-                $this->lookupId(
-                    $db,
-                    'canales_notificacion',
-                    'WHATSAPP'
-                ),
-                $userId,
-                $ownerId,
-                $subject,
-                $message,
-                $reminder,
-                $referenceType,
-                $referenceId
-            );
-        }
     }
 
     private function insertNotification(

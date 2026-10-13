@@ -11,50 +11,76 @@ class InventoryAlertService
 {
     private const EXPIRATION_DAYS = 5;
 
+
     public function generate(): array
     {
         $db = Database::connection();
 
-        $environments = $db->query(
-            '
+        $lockName = 'axxis_inventory_alert_generation';
+
+        $stmt = $db->prepare(
+            'SELECT GET_LOCK(:lock_name, 0)'
+        );
+
+        $stmt->execute([
+            'lock_name' => $lockName,
+        ]);
+
+        if ((int)$stmt->fetchColumn() !== 1) {
+            return [
+                'generated' => 0,
+                'skipped' => 0,
+                'busy' => true,
+            ];
+        }
+
+        try {
+            $environments = $db->query(
+                '
             SELECT DISTINCT
                 e.id,
                 e.nombre
-
             FROM entornos e
-
             INNER JOIN inventarios i
                 ON i.entorno_id = e.id
                AND i.activo = 1
-
             WHERE e.activo = 1
-
             ORDER BY e.id
             '
-        )->fetchAll();
+            )->fetchAll();
 
-        $generated = 0;
-        $skipped = 0;
+            $generated = 0;
+            $skipped = 0;
 
-        foreach ($environments as $environment) {
-            $environmentId =
-                (int)$environment['id'];
+            foreach ($environments as $environment) {
+                $environmentId = (int)$environment['id'];
 
-            $result = $this->generateForEnvironment(
-                $db,
-                $environmentId,
-                (string)$environment['nombre']
+                $result = $this->generateForEnvironment(
+                    $db,
+                    $environmentId,
+                    (string)$environment['nombre']
+                );
+
+                $generated += $result['generated'];
+                $skipped += $result['skipped'];
+            }
+
+            return [
+                'generated' => $generated,
+                'skipped' => $skipped,
+                'busy' => false,
+            ];
+        } finally {
+            $release = $db->prepare(
+                'SELECT RELEASE_LOCK(:lock_name)'
             );
 
-            $generated += $result['generated'];
-            $skipped += $result['skipped'];
+            $release->execute([
+                'lock_name' => $lockName,
+            ]);
         }
-
-        return [
-            'generated' => $generated,
-            'skipped' => $skipped,
-        ];
     }
+
 
     public function generateForEnvironment(
         PDO $db,

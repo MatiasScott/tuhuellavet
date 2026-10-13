@@ -50,6 +50,8 @@ class NotificationService
                 WHERE
                     n.estado = 'PENDIENTE'
 
+                    AND cn.codigo IN ('EMAIL', 'INTERNA')
+
                     AND (
                         n.fecha_programada IS NULL
                         OR n.fecha_programada <= NOW()
@@ -70,70 +72,92 @@ class NotificationService
     public function processBatch(
         int $limit = 50
     ): array {
+        $db = Database::connection();
+
+        $lockName = 'axxis_notifications_batch';
+
+        $lock = $db->prepare(
+            'SELECT GET_LOCK(:lock_name, 0)'
+        );
+
+        $lock->execute([
+            'lock_name' => $lockName,
+        ]);
+
+        if ((int) $lock->fetchColumn() !== 1) {
+            return [
+                'sent' => 0,
+                'failed' => 0,
+                'skipped' => true,
+            ];
+        }
+
         $ok = 0;
         $failed = 0;
 
-        foreach (
-            $this->pending($limit)
-            as $notification
-        ) {
-            try {
-                $this->deliver(
-                    $notification
-                );
+        try {
+            foreach (
+                $this->pending($limit)
+                as $notification
+            ) {
+                try {
+                    $this->deliver(
+                        $notification
+                    );
 
-                Database::connection()
-                    ->prepare(
+                    $db->prepare(
                         "UPDATE notificaciones
-                         SET
-                            estado = 'ENVIADA',
-                            fecha_envio = NOW(),
-                            ultimo_error = NULL
-                         WHERE id = :id"
-                    )
-                    ->execute([
-                        'id'
-                        => $notification['id'],
+                     SET
+                        estado = 'ENVIADA',
+                        fecha_envio = NOW(),
+                        ultimo_error = NULL
+                     WHERE id = :id
+                       AND estado = 'PENDIENTE'"
+                    )->execute([
+                        'id' => $notification['id'],
                     ]);
 
-                $ok++;
-            } catch (Throwable $e) {
-                Database::connection()
-                    ->prepare(
+                    $ok++;
+                } catch (Throwable $e) {
+                    $db->prepare(
                         "UPDATE notificaciones
-                         SET
-                            intentos = intentos + 1,
-
-                            ultimo_error = :error,
-
-                            estado = IF(
-                                intentos + 1 >= 5,
-                                'FALLIDA',
-                                'PENDIENTE'
-                            )
-
-                         WHERE id = :id"
-                    )
-                    ->execute([
-                        'error'
-                        => mb_substr(
+                     SET
+                        intentos = intentos + 1,
+                        ultimo_error = :error,
+                        estado = IF(
+                            intentos + 1 >= 5,
+                            'FALLIDA',
+                            'PENDIENTE'
+                        )
+                     WHERE id = :id
+                       AND estado = 'PENDIENTE'"
+                    )->execute([
+                        'error' => mb_substr(
                             $e->getMessage(),
                             0,
                             500
                         ),
-
-                        'id'
-                        => $notification['id'],
+                        'id' => $notification['id'],
                     ]);
 
-                $failed++;
+                    $failed++;
+                }
             }
-        }
 
-        return [
-            'sent' => $ok,
-            'failed' => $failed,
-        ];
+            return [
+                'sent' => $ok,
+                'failed' => $failed,
+                'skipped' => false,
+            ];
+        } finally {
+            $release = $db->prepare(
+                'SELECT RELEASE_LOCK(:lock_name)'
+            );
+
+            $release->execute([
+                'lock_name' => $lockName,
+            ]);
+        }
     }
 
 
