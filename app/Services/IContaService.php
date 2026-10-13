@@ -835,6 +835,23 @@ class IContaService
                 $isNatural
             );
 
+        $email = trim((string) ($fiscal['email'] ?? ''));
+
+        if ($email === '') {
+            throw new RuntimeException(
+                'El cliente no tiene un correo electrónico configurado '
+                    . 'en sus datos fiscales. Registre un correo válido '
+                    . 'antes de sincronizar con iConta.'
+            );
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new RuntimeException(
+                'El correo electrónico de los datos fiscales '
+                    . 'del cliente no tiene un formato válido.'
+            );
+        }
+
         $personPayload = [
             'IdPersona' => $personId,
 
@@ -2630,12 +2647,62 @@ class IContaService
     }
 
     /**
-     * Procesa un documento fiscal de tipo FACTURA pendiente de envío a iConta.
+     * Procesa una factura con bloqueo exclusivo por documento.
      *
-     * El documento debe existir previamente en iconta_documentos.
+     * Evita que dos procesos PHP intenten emitir simultáneamente
+     * el mismo documento fiscal.
      */
     public function processInvoice(int $iContaDocumentId): array
     {
+        $this->assertConfiguration();
+
+        if ($iContaDocumentId <= 0) {
+            throw new RuntimeException(
+                'El documento de iConta indicado no es válido.'
+            );
+        }
+
+        $db = Database::connection();
+
+        $lockName = 'thv_iconta_invoice_' . $iContaDocumentId;
+
+        $stmt = $db->prepare(
+            'SELECT GET_LOCK(:lock_name, 10)'
+        );
+
+        $stmt->execute([
+            'lock_name' => $lockName,
+        ]);
+
+        if ((int) $stmt->fetchColumn() !== 1) {
+            throw new RuntimeException(
+                'No se pudo obtener el bloqueo exclusivo del documento.'
+            );
+        }
+
+        try {
+            return $this->processInvoiceUnlocked(
+                $iContaDocumentId
+            );
+        } finally {
+            $release = $db->prepare(
+                'SELECT RELEASE_LOCK(:lock_name)'
+            );
+
+            $release->execute([
+                'lock_name' => $lockName,
+            ]);
+        }
+    }
+
+    /**
+     * Procesamiento original de la factura.
+     *
+     * Solo debe ejecutarse desde processInvoice().
+     */
+    private function processInvoiceUnlocked(
+        int $iContaDocumentId
+    ): array {
         $this->assertConfiguration();
 
         if ($iContaDocumentId <= 0) {
