@@ -75,11 +75,20 @@ if (
 }
 
 /*
- * Lista temporal de documentos autorizados.
+ * Recuperación excepcional autorizada.
  *
- * No incluir la factura de tarjeta de crédito.
+ * Documento iConta #10 -> Documento fiscal #9
+ * Venta V-00003010
+ *
+ * Documento iConta #15 -> Documento fiscal #14
+ * Venta V-00003015
+ *
+ * Motivo:
+ * Forma de pago incorrecta corregida.
+ * Facturas verificadas manualmente como inexistentes
+ * en iConta antes del reintento.
  */
-$allowedIds = [11, 12];
+$allowedIds = [10, 15];
 
 if (!in_array($id, $allowedIds, true)) {
     fwrite(
