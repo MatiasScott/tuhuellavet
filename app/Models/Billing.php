@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Core\Model;
+use PDO;
+
 
 class Billing extends Model
 {
@@ -66,22 +68,37 @@ class Billing extends Model
     public function documents(int $e): array
     {
         $s = $this->db->prepare('
-            SELECT
-                df.*,
-                v.numero AS venta_numero,
-                v.total,
-                idoc.iconta_id_documento,
-                idoc.estado AS iconta_estado
-            FROM documentos_fiscales df
-            INNER JOIN ventas v
-                ON v.id = df.venta_id
-            LEFT JOIN iconta_documentos idoc
-                ON idoc.documento_fiscal_id = df.id
-            WHERE v.entorno_id = :e
-            ORDER BY df.id DESC
+        SELECT
+            df.*,
+            v.numero AS venta_numero,
+            v.total,
+            v.estado AS venta_estado,
+
+            idoc.id AS iconta_documento_id,
+            idoc.iconta_id_documento,
+            idoc.estado AS iconta_estado,
+            idoc.ultimo_error AS iconta_ultimo_error,
+            idoc.intentos AS iconta_intentos
+
+        FROM documentos_fiscales df
+
+        INNER JOIN ventas v
+            ON v.id = df.venta_id
+
+        LEFT JOIN iconta_documentos idoc
+            ON idoc.documento_fiscal_id = df.id
+
+        WHERE v.entorno_id = :e
+            AND UPPER(COALESCE(df.estado, \'\')) <> \'ANULADO\'
+            AND UPPER(COALESCE(idoc.estado, \'\')) <> \'ANULADO\'
+        ORDER BY df.id DESC
         ');
-        $s->execute(['e' => $e]);
-        return $s->fetchAll();
+
+        $s->execute([
+            'e' => $e,
+        ]);
+
+        return $s->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function fiscalData(int $e): array

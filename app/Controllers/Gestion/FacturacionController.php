@@ -115,6 +115,21 @@ class FacturacionController extends Controller
         );
     }
 
+    public function retryInvoice(Request $request, string $id): void
+    {
+        $this->go(
+            $request,
+            function () use ($id): void {
+                (new BillingService())->retryInvoice(
+                    (int) $id,
+                    active_environment_id(),
+                    auth_id()
+                );
+            },
+            'Reintento de factura procesado correctamente.'
+        );
+    }
+
     private function go(Request $r, callable $f, string $ok): void
     {
         if (!Session::validateCsrf($r->input('_token'))) {

@@ -533,7 +533,11 @@ $router->post(
     [FacturacionController::class, 'invoice'],
     ['auth', 'environment', 'permission:facturacion.facturar']
 );
-
+$router->post(
+    '/facturacion/documentos/{id}/reintentar',
+    [FacturacionController::class, 'retryInvoice'],
+    ['auth', 'environment', 'permission:facturacion.facturar']
+);
 $router->post(
     '/facturacion/{id}/pagos',
     [FacturacionController::class, 'payment'],

@@ -150,19 +150,115 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                         <th>Estado</th>
                         <th>iConta</th>
                         <th>Total</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    <?php if (!$documents): ?><tr>
-                            <td colspan="5" class="empty-cell">No hay documentos fiscales.</td>
-                        </tr><?php endif; ?>
-                    <?php foreach ($documents as $d): ?>
+                    <?php if (!$documents): ?>
                         <tr>
-                            <td>#<?= (int)$d['id'] ?></td>
-                            <td><?= e($d['venta_numero'] ?? ('#' . $d['venta_id'])) ?></td>
-                            <td><?= e($d['estado']) ?></td>
-                            <td><?= e($d['iconta_estado'] ?? 'PENDIENTE') ?></td>
-                            <td><?= $money($d['total']) ?></td>
+                            <td colspan="6" class="empty-cell">
+                                No hay documentos fiscales.
+                            </td>
+                        </tr>
+                    <?php endif; ?>
+
+                    <?php foreach ($documents as $d): ?>
+                        <?php
+                        $fiscalState = strtoupper(
+                            (string) ($d['estado'] ?? '')
+                        );
+
+                        $icontaState = strtoupper(
+                            (string) ($d['iconta_estado'] ?? 'PENDIENTE')
+                        );
+
+                        $error = trim(
+                            (string) ($d['iconta_ultimo_error'] ?? '')
+                        );
+
+                        $canRetry =
+                            $fiscalState === 'ERROR'
+                            && $icontaState === 'ERROR'
+                            && (int) ($d['iconta_intentos'] ?? -1) === 0
+                            && empty($d['iconta_id_documento'])
+                            && !empty($d['iconta_documento_id'])
+                            && strtoupper((string) ($d['venta_estado'] ?? '')) === 'FINALIZADA'
+                            && (
+                                stripos($error, 'Persona.CodProvincia') !== false
+                                || stripos($error, 'Persona.CodPais') !== false
+                                || stripos($error, 'Persona.CodCanton') !== false
+                                || stripos($error, 'Persona.CodParroquia') !== false
+                            );
+                        ?>
+
+                        <tr>
+                            <td>#<?= (int) $d['id'] ?></td>
+
+                            <td>
+                                <?= e($d['venta_numero'] ?? ('#' . $d['venta_id'])) ?>
+                            </td>
+
+                            <td>
+                                <span class="status-pill status-<?= e(strtolower($fiscalState)) ?>">
+                                    <?= e($fiscalState) ?>
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="status-pill status-<?= e(strtolower($icontaState)) ?>">
+                                    <?= e($icontaState) ?>
+                                </span>
+
+                                <?php if ($icontaState === 'ERROR' && $error !== ''): ?>
+                                    <details style="margin-top: 8px; max-width: 420px;">
+                                        <summary style="cursor: pointer;">
+                                            Ver motivo del error
+                                        </summary>
+
+                                        <div style="margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere;">
+                                            <?= e($error) ?>
+                                        </div>
+                                    </details>
+                                <?php endif; ?>
+                            </td>
+
+                            <td>
+                                <?= $money($d['total']) ?>
+                            </td>
+                            <td>
+                                <?php if ($canRetry): ?>
+                                    <form
+                                        method="POST"
+                                        action="<?= url('/facturacion/documentos/' . (int) $d['id'] . '/reintentar') ?>"
+                                        onsubmit="return confirm('¿Deseas reintentar el envío de esta factura a iConta?');">
+                                        <input
+                                            type="hidden"
+                                            name="_token"
+                                            value="<?= e(\App\Core\Session::csrfToken()) ?>">
+
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            Reintentar envío
+                                        </button>
+                                    </form>
+                                <?php elseif ($icontaState === 'ERROR'): ?>
+                                    <span class="muted">
+                                        Requiere revisión
+                                    </span>
+                                <?php else: ?>
+                                    <span class="muted">—</span>
+                                <?php endif; ?>
+                            </td>
+
+                            <td>
+                                <?php if ($icontaState === 'ERROR'): ?>
+                                    <span class="muted">
+                                        Pendiente de reintento
+                                    </span>
+                                <?php else: ?>
+                                    <span class="muted">—</span>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

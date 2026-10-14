@@ -852,6 +852,23 @@ class IContaService
             );
         }
 
+        $requiredLocationFields = [
+            'codigo_pais' => 'país',
+            'codigo_provincia' => 'provincia',
+            'codigo_canton' => 'cantón',
+            'codigo_parroquia' => 'parroquia',
+        ];
+
+        foreach ($requiredLocationFields as $field => $label) {
+            if (trim((string) ($fiscal[$field] ?? '')) === '') {
+                throw new RuntimeException(
+                    'El propietario no tiene configurado el campo '
+                        . $label
+                        . '. Actualice su ubicación antes de sincronizar con iConta.'
+                );
+            }
+        }
+
         $personPayload = [
             'IdPersona' => $personId,
 
@@ -2729,7 +2746,9 @@ class IContaService
             df.tipo_documento,
             df.estado AS documento_estado,
 
-            v.datos_fiscales_id
+            v.datos_fiscales_id,
+            v.estado AS venta_estado,
+            v.entorno_id AS venta_entorno_id
 
         FROM iconta_documentos idoc
 
@@ -2756,6 +2775,48 @@ class IContaService
         if (!$document) {
             throw new RuntimeException(
                 'El documento pendiente de iConta no existe.'
+            );
+        }
+
+        /*
+|--------------------------------------------------------------------------
+| Validaciones de seguridad del documento fiscal
+|--------------------------------------------------------------------------
+*/
+
+        $saleState = strtoupper(
+            trim((string) ($document['venta_estado'] ?? ''))
+        );
+
+        $fiscalState = strtoupper(
+            trim((string) ($document['documento_estado'] ?? ''))
+        );
+
+        $icontaState = strtoupper(
+            trim((string) ($document['iconta_estado'] ?? ''))
+        );
+
+        if ($saleState !== 'FINALIZADA') {
+            throw new RuntimeException(
+                'No se puede generar una factura de una venta que no esté finalizada.'
+            );
+        }
+
+        if (
+            in_array($fiscalState, ['ANULADO', 'ANULADA'], true)
+            || in_array($icontaState, ['ANULADO', 'ANULADA'], true)
+        ) {
+            throw new RuntimeException(
+                'No se puede procesar un documento fiscal anulado.'
+            );
+        }
+
+        if (
+            in_array($fiscalState, ['GENERADA', 'AUTORIZADO'], true)
+            || in_array($icontaState, ['GENERADA', 'AUTORIZADO'], true)
+        ) {
+            throw new RuntimeException(
+                'El documento ya fue generado o autorizado. No se permite emitirlo nuevamente.'
             );
         }
 

@@ -1206,6 +1206,157 @@ class BillingService
         );
     }
 
+    /**
+     * Reintenta una factura existente que falló antes
+     * de iniciar su generación remota en iConta.
+     *
+     * Nunca crea otro documento fiscal.
+     */
+    public function retryInvoice(
+        int $fiscalDocumentId,
+        int $env,
+        int $by
+    ): void {
+        if ($fiscalDocumentId <= 0 || $env <= 0 || $by <= 0) {
+            throw new RuntimeException(
+                'Los datos del reintento fiscal no son válidos.'
+            );
+        }
+
+        $db = Database::connection();
+
+        $stmt = $db->prepare(
+            '
+        SELECT
+            df.id AS documento_fiscal_id,
+            df.tipo_documento,
+            df.estado AS estado_fiscal,
+            v.id AS venta_id,
+            v.estado AS estado_venta,
+            v.entorno_id,
+            e.permite_facturacion_real,
+            idoc.id AS iconta_documento_id,
+            idoc.estado AS estado_iconta,
+            idoc.iconta_id_documento,
+            idoc.intentos,
+            idoc.ultimo_error,
+            idoc.enviado_at
+
+        FROM documentos_fiscales df
+
+        INNER JOIN ventas v
+            ON v.id = df.venta_id
+
+        INNER JOIN entornos e
+            ON e.id = v.entorno_id
+
+        INNER JOIN iconta_documentos idoc
+            ON idoc.documento_fiscal_id = df.id
+
+        WHERE df.id = :documento
+          AND v.entorno_id = :entorno
+
+        LIMIT 1
+        '
+        );
+
+        $stmt->execute([
+            'documento' => $fiscalDocumentId,
+            'entorno' => $env,
+        ]);
+
+        $document = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$document) {
+            throw new RuntimeException(
+                'No se encontró el documento fiscal en el entorno activo.'
+            );
+        }
+
+        if (
+            strtoupper(trim((string) $document['tipo_documento']))
+            !== 'FACTURA'
+        ) {
+            throw new RuntimeException(
+                'El documento no corresponde a una factura.'
+            );
+        }
+
+        if (
+            strtoupper(trim((string) $document['estado_venta']))
+            !== 'FINALIZADA'
+        ) {
+            throw new RuntimeException(
+                'La venta debe estar finalizada para reintentar la factura.'
+            );
+        }
+
+        if ((int) $document['permite_facturacion_real'] !== 1) {
+            throw new RuntimeException(
+                'El entorno no permite facturación real.'
+            );
+        }
+
+        if (
+            strtoupper(trim((string) $document['estado_fiscal']))
+            !== 'ERROR'
+            ||
+            strtoupper(trim((string) $document['estado_iconta']))
+            !== 'ERROR'
+        ) {
+            throw new RuntimeException(
+                'Solo pueden reintentarse facturas en estado ERROR.'
+            );
+        }
+
+        if (
+            trim((string) ($document['iconta_id_documento'] ?? ''))
+            !== ''
+            ||
+            !empty($document['enviado_at'])
+        ) {
+            throw new RuntimeException(
+                'La factura presenta evidencia de envío previo a iConta. '
+                    . 'Debe verificarse antes de reintentar.'
+            );
+        }
+
+        if ((int) $document['intentos'] !== 0) {
+            throw new RuntimeException(
+                'La factura registra intentos de generación previos. '
+                    . 'Se requiere conciliación con iConta antes de reenviarla.'
+            );
+        }
+
+        /*
+     * Política conservadora:
+     * únicamente errores conocidos de validación de persona
+     * anteriores a la llamada de generación.
+     */
+        $error = (string) ($document['ultimo_error'] ?? '');
+
+        $isPersonValidationError =
+            stripos($error, 'Persona.CodProvincia') !== false
+            || stripos($error, 'Persona.CodPais') !== false
+            || stripos($error, 'Persona.CodCanton') !== false
+            || stripos($error, 'Persona.CodParroquia') !== false;
+
+        if (!$isPersonValidationError) {
+            throw new RuntimeException(
+                'El error anterior no está autorizado para reintento automático. '
+                    . 'Se requiere revisión del documento.'
+            );
+        }
+
+        /*
+     * El servicio existente gestiona el bloqueo de ejecución,
+     * sincroniza la persona y procesa la misma factura local.
+     */
+        (new IContaService())->processInvoice(
+            (int) $document['iconta_documento_id']
+        );
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Facturación fiscal
