@@ -2741,6 +2741,7 @@ class IContaService
             idoc.iconta_id_documento,
             idoc.estado AS iconta_estado,
             idoc.intentos,
+            idoc.enviado_at,
 
             df.venta_id,
             df.tipo_documento,
@@ -2849,6 +2850,17 @@ class IContaService
         if ($existingRemoteId !== '') {
             throw new RuntimeException(
                 'El documento ya tiene una factura asociada en iConta.'
+            );
+        }
+
+        // Revalidar bajo el bloqueo evita reenvíos de solicitudes simultáneas.
+        if (
+            (int) ($document['intentos'] ?? -1) !== 0
+            || !empty($document['enviado_at'])
+        ) {
+            throw new RuntimeException(
+                'La factura registra evidencia de generación o envío previo. '
+                    . 'Se requiere conciliación con iConta antes de reenviarla.'
             );
         }
 

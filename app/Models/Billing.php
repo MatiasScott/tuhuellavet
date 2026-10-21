@@ -73,17 +73,22 @@ class Billing extends Model
             v.numero AS venta_numero,
             v.total,
             v.estado AS venta_estado,
+            e.permite_facturacion_real,
 
             idoc.id AS iconta_documento_id,
             idoc.iconta_id_documento,
             idoc.estado AS iconta_estado,
             idoc.ultimo_error AS iconta_ultimo_error,
-            idoc.intentos AS iconta_intentos
+            idoc.intentos AS iconta_intentos,
+            idoc.enviado_at AS iconta_enviado_at
 
         FROM documentos_fiscales df
 
         INNER JOIN ventas v
             ON v.id = df.venta_id
+
+        INNER JOIN entornos e
+            ON e.id = v.entorno_id
 
         LEFT JOIN iconta_documentos idoc
             ON idoc.documento_fiscal_id = df.id

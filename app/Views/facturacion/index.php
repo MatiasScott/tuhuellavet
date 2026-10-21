@@ -177,19 +177,8 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                             (string) ($d['iconta_ultimo_error'] ?? '')
                         );
 
-                        $canRetry =
-                            $fiscalState === 'ERROR'
-                            && $icontaState === 'ERROR'
-                            && (int) ($d['iconta_intentos'] ?? -1) === 0
-                            && empty($d['iconta_id_documento'])
-                            && !empty($d['iconta_documento_id'])
-                            && strtoupper((string) ($d['venta_estado'] ?? '')) === 'FINALIZADA'
-                            && (
-                                stripos($error, 'Persona.CodProvincia') !== false
-                                || stripos($error, 'Persona.CodPais') !== false
-                                || stripos($error, 'Persona.CodCanton') !== false
-                                || stripos($error, 'Persona.CodParroquia') !== false
-                            );
+                        $canRetry = can('facturacion.facturar')
+                            && \App\Services\BillingService::canRetryInvoice($d);
                         ?>
 
                         <tr>
@@ -213,7 +202,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                 <?php if ($icontaState === 'ERROR' && $error !== ''): ?>
                                     <details style="margin-top: 8px; max-width: 420px;">
                                         <summary style="cursor: pointer;">
-                                            Ver motivo del error
+                                            Ver motivo del último intento
                                         </summary>
 
                                         <div style="margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere;">
@@ -250,15 +239,6 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                 <?php endif; ?>
                             </td>
 
-                            <td>
-                                <?php if ($icontaState === 'ERROR'): ?>
-                                    <span class="muted">
-                                        Pendiente de reintento
-                                    </span>
-                                <?php else: ?>
-                                    <span class="muted">—</span>
-                                <?php endif; ?>
-                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

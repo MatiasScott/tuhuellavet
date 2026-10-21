@@ -1206,6 +1206,25 @@ class BillingService
         );
     }
 
+    public static function canRetryInvoice(array $document): bool
+    {
+        if (
+            strtoupper(trim((string) ($document['tipo_documento'] ?? ''))) !== 'FACTURA'
+            || strtoupper(trim((string) ($document['estado'] ?? ''))) !== 'ERROR'
+            || strtoupper(trim((string) ($document['iconta_estado'] ?? ''))) !== 'ERROR'
+            || strtoupper(trim((string) ($document['venta_estado'] ?? ''))) !== 'FINALIZADA'
+            || (int) ($document['permite_facturacion_real'] ?? 0) !== 1
+            || (int) ($document['iconta_intentos'] ?? -1) !== 0
+            || trim((string) ($document['iconta_id_documento'] ?? '')) !== ''
+            || !empty($document['iconta_enviado_at'])
+            || (int) ($document['iconta_documento_id'] ?? 0) <= 0
+        ) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Reintenta una factura existente que falló antes
      * de iniciar su generación remota en iConta.
@@ -1230,17 +1249,17 @@ class BillingService
         SELECT
             df.id AS documento_fiscal_id,
             df.tipo_documento,
-            df.estado AS estado_fiscal,
+            df.estado,
             v.id AS venta_id,
-            v.estado AS estado_venta,
+            v.estado AS venta_estado,
             v.entorno_id,
             e.permite_facturacion_real,
             idoc.id AS iconta_documento_id,
-            idoc.estado AS estado_iconta,
+            idoc.estado AS iconta_estado,
             idoc.iconta_id_documento,
-            idoc.intentos,
-            idoc.ultimo_error,
-            idoc.enviado_at
+            idoc.intentos AS iconta_intentos,
+            idoc.ultimo_error AS iconta_ultimo_error,
+            idoc.enviado_at AS iconta_enviado_at
 
         FROM documentos_fiscales df
 
@@ -1283,7 +1302,7 @@ class BillingService
         }
 
         if (
-            strtoupper(trim((string) $document['estado_venta']))
+            strtoupper(trim((string) $document['venta_estado']))
             !== 'FINALIZADA'
         ) {
             throw new RuntimeException(
@@ -1298,10 +1317,10 @@ class BillingService
         }
 
         if (
-            strtoupper(trim((string) $document['estado_fiscal']))
+            strtoupper(trim((string) $document['estado']))
             !== 'ERROR'
             ||
-            strtoupper(trim((string) $document['estado_iconta']))
+            strtoupper(trim((string) $document['iconta_estado']))
             !== 'ERROR'
         ) {
             throw new RuntimeException(
@@ -1313,7 +1332,7 @@ class BillingService
             trim((string) ($document['iconta_id_documento'] ?? ''))
             !== ''
             ||
-            !empty($document['enviado_at'])
+            !empty($document['iconta_enviado_at'])
         ) {
             throw new RuntimeException(
                 'La factura presenta evidencia de envío previo a iConta. '
@@ -1321,7 +1340,7 @@ class BillingService
             );
         }
 
-        if ((int) $document['intentos'] !== 0) {
+        if ((int) $document['iconta_intentos'] !== 0) {
             throw new RuntimeException(
                 'La factura registra intentos de generación previos. '
                     . 'Se requiere conciliación con iConta antes de reenviarla.'
@@ -1329,21 +1348,12 @@ class BillingService
         }
 
         /*
-     * Política conservadora:
-     * únicamente errores conocidos de validación de persona
-     * anteriores a la llamada de generación.
+     * La seguridad depende de no haber iniciado la generación,
+     * no del texto del error del intento anterior.
      */
-        $error = (string) ($document['ultimo_error'] ?? '');
-
-        $isPersonValidationError =
-            stripos($error, 'Persona.CodProvincia') !== false
-            || stripos($error, 'Persona.CodPais') !== false
-            || stripos($error, 'Persona.CodCanton') !== false
-            || stripos($error, 'Persona.CodParroquia') !== false;
-
-        if (!$isPersonValidationError) {
+        if (!self::canRetryInvoice($document)) {
             throw new RuntimeException(
-                'El error anterior no está autorizado para reintento automático. '
+                'El documento no cumple las condiciones para reintentar el envío. '
                     . 'Se requiere revisión del documento.'
             );
         }
