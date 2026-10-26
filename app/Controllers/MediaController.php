@@ -41,13 +41,7 @@ class MediaController extends Controller
 
         $user = auth_user();
 
-        if (
-            in_array(
-                'CLIENTE',
-                $user['roles'] ?? [],
-                true
-            )
-        ) {
+        if (($user['active_role'] ?? null) === 'CLIENTE') {
             $sql .= '
             AND EXISTS (
                 SELECT 1
@@ -68,10 +62,7 @@ class MediaController extends Controller
 
             $params['usuario']
                 = (int) $userId;
-        } elseif (
-            empty($user['is_super_admin'])
-            && !can('pacientes.ver')
-        ) {
+        } elseif (!can('pacientes.ver')) {
             http_response_code(403);
             return;
         }
@@ -145,13 +136,7 @@ class MediaController extends Controller
 
         $user = auth_user();
 
-        if (
-            in_array(
-                'CLIENTE',
-                $user['roles'] ?? [],
-                true
-            )
-        ) {
+        if (($user['active_role'] ?? null) === 'CLIENTE') {
             $sql .= '
             AND EXISTS (
                 SELECT 1
@@ -172,10 +157,7 @@ class MediaController extends Controller
 
             $params['usuario']
                 = (int) $userId;
-        } elseif (
-            empty($user['is_super_admin'])
-            && !can('pacientes.ver')
-        ) {
+        } elseif (!can('pacientes.ver')) {
             http_response_code(403);
             return;
         }
@@ -188,21 +170,44 @@ class MediaController extends Controller
         $file = $stmt->fetch();
 
         /*
-     * Utilizamos 404 también cuando el archivo existe pero no
-     * pertenece al contexto autorizado. De esta manera no revelamos
-     * la existencia de recursos de otros usuarios/entornos.
-     */
+        * Utilizamos 404 también cuando el archivo existe pero no
+        * pertenece al contexto autorizado. De esta manera no revelamos
+        * la existencia de recursos de otros usuarios/entornos.
+        */
         if (!$file) {
             http_response_code(404);
             return;
         }
 
-        $path = STORAGE_PATH
-            . '/uploads/'
-            . ltrim(
-                (string) $file['ruta_storage'],
-                '/'
-            );
+        $uploadsRoot = realpath(STORAGE_PATH . '/uploads');
+
+        $relativePath = str_replace(
+            '\\',
+            '/',
+            (string) $file['ruta_storage']
+        );
+
+        $relativePath = ltrim($relativePath, '/');
+
+        $filePath = realpath(
+            STORAGE_PATH . '/uploads/' . $relativePath
+        );
+
+        // Verificar que el archivo exista dentro del directorio autorizado.
+        if (
+            $uploadsRoot === false
+            || $filePath === false
+            || !str_starts_with(
+                $filePath,
+                $uploadsRoot . DIRECTORY_SEPARATOR
+            )
+            || !is_file($filePath)
+        ) {
+            http_response_code(404);
+            return;
+        }
+
+        $path = $filePath;
 
         if (!is_file($path)) {
             http_response_code(404);

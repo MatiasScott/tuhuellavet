@@ -153,9 +153,30 @@
                     <div class="avatar">👤</div>
                     <div>
                         <strong><?= e(auth_user()['name'] ?? 'Usuario') ?></strong>
-                        <span><?= e(implode(', ', auth_user()['roles'] ?? [])) ?></span>
+                        <span>
+                            <?= e(
+                                ucwords(
+                                    strtolower(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            auth_user()['active_role'] ?? 'Sin perfil'
+                                        )
+                                    )
+                                )
+                            ) ?>
+                        </span>
                     </div>
                 </div>
+
+                <?php if (count(auth_user()['roles'] ?? []) > 1): ?>
+                    <a
+                        href="<?= e(url('/seleccionar-rol')) ?>"
+                        class="btn btn-ghost"
+                        title="Cambiar perfil de usuario">
+                        🔄 Cambiar perfil
+                    </a>
+                <?php endif; ?>
                 <form action="<?= url('/logout') ?>" method="POST"><?= csrf_field() ?>
                     <button class="btn btn-ghost">Salir</button>
                 </form>

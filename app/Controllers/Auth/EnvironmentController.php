@@ -13,19 +13,35 @@ class EnvironmentController extends Controller
     public function index(Request $request): void
     {
         $user = auth_user();
+
         $environments = !empty($user['is_super_admin'])
             ? (new Environment())->allActive()
             : (new Environment())->forUser((int)$user['id']);
 
-        if (count($environments) === 1) {
-            (new AuthService())->selectEnvironment((int)$environments[0]['id']);
-            $this->redirect('/dashboard');
+        // Si solo existe un entorno, seleccionarlo automáticamente
+        // únicamente cuando todavía no haya uno activo.
+        if (
+            count($environments) === 1
+            && active_environment_id() === null
+        ) {
+            if (
+                (new AuthService())->selectEnvironment(
+                    (int)$environments[0]['id']
+                )
+            ) {
+                $this->redirect('/seleccionar-rol');
+                return;
+            }
         }
 
-        $this->view('auth/select-environment', [
-            'environments' => $environments,
-            'error' => Session::pullFlash('error'),
-        ], 'layouts/auth');
+        $this->view(
+            'auth/select-environment',
+            [
+                'environments' => $environments,
+                'error' => Session::pullFlash('error'),
+            ],
+            'layouts/auth'
+        );
     }
 
     public function select(Request $request): void
@@ -39,8 +55,9 @@ class EnvironmentController extends Controller
         if (!(new AuthService())->selectEnvironment((int)$request->input('entorno_id'))) {
             Session::flash('error', 'No tienes acceso al entorno seleccionado.');
             $this->redirect('/seleccionar-entorno');
+            return;
         }
 
-        $this->redirect('/dashboard');
+        $this->redirect('/seleccionar-rol');
     }
 }

@@ -29,52 +29,97 @@ class EnvironmentMiddleware
 
         $permissions = new PermissionService();
 
-        if (
-            $permissions->hasGlobalSuperAdmin(
-                (int) $userId
-            )
-        ) {
+        $isSuperAdmin = $permissions->hasGlobalSuperAdmin(
+            (int) $userId
+        );
+
+        // Los usuarios normales deben tener acceso al entorno.
+        // El superadministrador tiene autorización global.
+        if (!$isSuperAdmin) {
+            $db = Database::connection();
+
+            $stmt = $db->prepare(
+                '
+        SELECT COUNT(*)
+        FROM usuarios_entornos_roles uer
+
+        INNER JOIN usuarios u
+            ON u.id = uer.usuario_id
+
+        INNER JOIN entornos e
+            ON e.id = uer.entorno_id
+
+        INNER JOIN roles r
+            ON r.id = uer.rol_id
+
+        WHERE uer.usuario_id = :usuario
+          AND uer.entorno_id = :entorno
+
+          AND u.activo = 1
+          AND u.deleted_at IS NULL
+
+          AND e.activo = 1
+          AND e.deleted_at IS NULL
+
+          AND r.activo = 1
+        '
+            );
+
+            $stmt->execute([
+                'usuario' => (int) $userId,
+                'entorno' => (int) $environmentId,
+            ]);
+
+            if ((int) $stmt->fetchColumn() === 0) {
+                http_response_code(403);
+                echo 'Entorno no autorizado.';
+                exit;
+            }
+        }
+
+        // Permitir acceder al selector sin un perfil activo.
+        // Esto evita redirecciones circulares.
+        if ($request->uri() === '/seleccionar-rol') {
             return;
         }
 
-        $db = Database::connection();
+        // Verificar el perfil activo contra los roles actuales de la BD.
+        $user = auth_user();
 
-        $stmt = $db->prepare(
-            '
-            SELECT COUNT(*)
+        $activeRole = $user['active_role'] ?? null;
 
-            FROM usuarios_entornos_roles uer
+        $availableRoles = $isSuperAdmin
+            ? ['SUPER_ADMINISTRADOR']
+            : $permissions->rolesForEnvironment(
+                (int)$userId,
+                (int)$environmentId
+            );
 
-            INNER JOIN usuarios u
-                ON u.id = uer.usuario_id
-
-            INNER JOIN entornos e
-                ON e.id = uer.entorno_id
-
-            INNER JOIN roles r
-                ON r.id = uer.rol_id
-
-            WHERE uer.usuario_id = :usuario
-              AND uer.entorno_id = :entorno
-
-              AND u.activo = 1
-              AND u.deleted_at IS NULL
-
-              AND e.activo = 1
-              AND e.deleted_at IS NULL
-
-              AND r.activo = 1
-            '
+        // Sincronizar los permisos vigentes del perfil activo.
+        $currentPermissions = $permissions->permissionsForRole(
+            (int)$userId,
+            (int)$environmentId,
+            (string)$activeRole
         );
 
-        $stmt->execute([
-            'usuario' => (int) $userId,
-            'entorno' => (int) $environmentId,
-        ]);
+        if (($user['permissions'] ?? []) !== $currentPermissions) {
+            $user['permissions'] = $currentPermissions;
 
-        if ((int) $stmt->fetchColumn() === 0) {
-            http_response_code(403);
-            echo 'Entorno no autorizado.';
+            \App\Core\Session::put('auth_user', $user);
+        }
+
+        // Si el rol fue retirado, invalidamos los permisos anteriores.
+        if (
+            !$activeRole ||
+            !in_array($activeRole, $availableRoles, true)
+        ) {
+            $user['roles'] = $availableRoles;
+            $user['active_role'] = null;
+            $user['permissions'] = [];
+
+            \App\Core\Session::put('auth_user', $user);
+
+            header('Location: ' . url('/seleccionar-rol'));
             exit;
         }
     }

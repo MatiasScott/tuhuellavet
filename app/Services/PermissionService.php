@@ -54,6 +54,67 @@ class PermissionService
         return array_column($stmt->fetchAll(), 'codigo');
     }
 
+    /**
+     * Obtiene los permisos de un rol específico,
+     * verificando que esté asignado al usuario
+     * dentro del entorno seleccionado.
+     */
+    public function permissionsForRole(
+        int $userId,
+        int $environmentId,
+        string $roleCode
+    ): array {
+        $db = Database::connection();
+
+        if (
+            $roleCode === 'SUPER_ADMINISTRADOR'
+            && $this->hasGlobalSuperAdmin($userId)
+        ) {
+            return array_column(
+                $db->query(
+                    "SELECT codigo
+                 FROM permisos
+                 WHERE activo = 1
+                 ORDER BY codigo"
+                )->fetchAll(),
+                'codigo'
+            );
+        }
+
+        $stmt = $db->prepare(
+            "SELECT DISTINCT p.codigo
+         FROM usuarios_entornos_roles uer
+
+         INNER JOIN roles r
+             ON r.id = uer.rol_id
+             AND r.activo = 1
+
+         INNER JOIN rol_permisos rp
+             ON rp.rol_id = r.id
+
+         INNER JOIN permisos p
+             ON p.id = rp.permiso_id
+             AND p.activo = 1
+
+         WHERE uer.usuario_id = :usuario
+           AND uer.entorno_id = :entorno
+           AND r.codigo = :rol
+
+         ORDER BY p.codigo"
+        );
+
+        $stmt->execute([
+            'usuario' => $userId,
+            'entorno' => $environmentId,
+            'rol' => $roleCode,
+        ]);
+
+        return array_column(
+            $stmt->fetchAll(),
+            'codigo'
+        );
+    }
+
     public function syncPermissions(): void
     {
         $db = Database::connection();

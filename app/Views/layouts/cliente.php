@@ -26,7 +26,17 @@
             </div>
         </a>
         <div class="topbar-spacer"></div>
-        <a class="environment-switcher" href="<?= url('/seleccionar-entorno') ?>"><?= e(active_environment()['nombre'] ?? 'Entorno') ?> ↔</a>
+        <a class="environment-switcher" href="<?= url('/seleccionar-entorno') ?>">
+            <?= e(active_environment()['nombre'] ?? 'Entorno') ?> ↔
+        </a>
+        <?php if (count(auth_user()['roles'] ?? []) > 1): ?>
+            <a
+                href="<?= e(url('/seleccionar-rol')) ?>"
+                class="btn btn-ghost"
+                title="Cambiar perfil de usuario">
+                🔄 Cambiar perfil
+            </a>
+        <?php endif; ?>
         <form action="<?= url('/logout') ?>" method="POST">
             <?= csrf_field() ?>
             <button class="btn btn-ghost">Salir</button>

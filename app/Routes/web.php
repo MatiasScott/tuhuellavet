@@ -70,7 +70,7 @@ $router->get(
 $router->get(
     '/media/documentos/{id}',
     [MediaController::class, 'document'],
-    ['auth']
+    ['auth', 'environment']
 );
 
 /*

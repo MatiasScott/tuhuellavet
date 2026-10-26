@@ -15,20 +15,43 @@ class DashboardController extends Controller
 {
     public function index(Request $request): void
     {
-        $roles = auth_user()['roles'] ?? [];
+        $user = auth_user();
+        $activeRole = $user['active_role'] ?? null;
 
-        if (in_array('CLIENTE', $roles, true)) {
-            $this->redirect('/cliente');
+        // Si no existe un perfil activo, mostrar el selector.
+        if ($activeRole === null) {
+            $this->redirect('/seleccionar-rol');
+            return;
         }
 
+        // Portal del cliente.
+        if ($activeRole === 'CLIENTE') {
+            $this->redirect('/cliente');
+            return;
+        }
+
+        // Portal académico.
         if (
             (active_environment()['tipo_codigo'] ?? '') === 'ACADEMICO'
-            && (
-                in_array('DOCENTE', $roles, true)
-                || in_array('ESTUDIANTE', $roles, true)
+            && in_array(
+                $activeRole,
+                ['DOCENTE', 'ESTUDIANTE'],
+                true
             )
         ) {
             $this->redirect('/academico');
+            return;
+        }
+
+        // Verificar permisos antes de consultar información clínica.
+        if (
+            !can('pacientes.ver')
+            && !can('citas.ver')
+            && !can('hospitalizacion.ver')
+        ) {
+            http_response_code(403);
+            echo 'Tu perfil no tiene permisos para acceder al dashboard clínico.';
+            return;
         }
 
         $environmentId = active_environment_id();

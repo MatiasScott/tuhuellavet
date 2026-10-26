@@ -73,8 +73,8 @@ class PortalController extends Controller
          LEFT JOIN razas r
             ON r.id = a.raza_id
          WHERE a.id = :animal
-           AND a.entorno_id = :entorno
-           AND pe.entorno_id = :entorno
+           AND a.entorno_id = :entorno_animal
+           AND pe.entorno_id = :entorno_propietario
            AND p.usuario_id = :usuario
            AND a.activo = 1
            AND a.deleted_at IS NULL
@@ -87,7 +87,8 @@ class PortalController extends Controller
         $stmt->execute([
             'animal'  => $id,
             'usuario' => auth_id(),
-            'entorno' => active_environment_id(),
+            'entorno_animal' => active_environment_id(),
+            'entorno_propietario' => active_environment_id(),
         ]);
 
         return $stmt->fetch() ?: null;

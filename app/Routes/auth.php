@@ -3,6 +3,7 @@
 use App\Controllers\Auth\LoginController;
 use App\Controllers\Auth\EnvironmentController;
 use App\Controllers\Auth\PasswordController;
+use App\Controllers\Auth\RoleController;
 
 /** @var \App\Core\Router $router */
 
@@ -81,4 +82,20 @@ $router->post(
     '/logout',
     [LoginController::class, 'logout'],
     ['auth']
+);
+
+// ==========================================
+// 4. SELECCIÓN Y CAMBIO DE PERFIL
+// ==========================================
+
+$router->get(
+    '/seleccionar-rol',
+    [RoleController::class, 'index'],
+    ['auth', 'environment']
+);
+
+$router->post(
+    '/seleccionar-rol',
+    [RoleController::class, 'select'],
+    ['auth', 'environment']
 );

@@ -8,11 +8,15 @@ abstract class Controller
     {
         if ($layout === 'layouts/admin') {
             $user = auth_user();
-            $roles = $user['roles'] ?? [];
-            $env = active_environment();
-            if (in_array('CLIENTE', $roles, true)) {
+            $activeRole = $user['active_role'] ?? null;
+            $environment = active_environment();
+
+            if ($activeRole === 'CLIENTE') {
                 $layout = 'layouts/cliente';
-            } elseif (($env['tipo_codigo'] ?? '') === 'ACADEMICO' && (in_array('DOCENTE', $roles, true) || in_array('ESTUDIANTE', $roles, true))) {
+            } elseif (
+                ($environment['tipo_codigo'] ?? '') === 'ACADEMICO'
+                && in_array($activeRole, ['DOCENTE', 'ESTUDIANTE'], true)
+            ) {
                 $layout = 'layouts/academico';
             }
         }
