@@ -415,6 +415,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const editPrice = document.getElementById("product-edit-price");
 
+  const editPurchaseCost = document.getElementById(
+    "product-edit-purchase-cost",
+  );
+
   const editTax = document.getElementById("product-edit-tax");
 
   const editPriceIncludesTax = document.getElementById(
@@ -577,6 +581,10 @@ document.addEventListener("DOMContentLoaded", function () {
        */
       if (editPrice) {
         editPrice.value = button.dataset.precio || "";
+      }
+
+      if (editPurchaseCost) {
+        editPurchaseCost.value = button.dataset.costoCompra || "";
       }
 
       if (editTax) {

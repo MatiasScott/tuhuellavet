@@ -29,6 +29,7 @@ class Inventory extends Model
             p.vacuna_id,
 
             p.precio_venta,
+            p.costo_compra,
             p.precio_incluye_impuesto,
             p.impuesto_tarifa_id,
 

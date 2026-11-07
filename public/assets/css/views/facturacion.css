@@ -369,3 +369,87 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================
+   SELECT CON BÚSQUEDA
+========================================== */
+
+.searchable-select {
+  position: relative;
+}
+
+.searchable-select-native {
+  display: none;
+}
+
+.searchable-select-input {
+  width: 100%;
+}
+
+.searchable-select-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.searchable-select-option {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.searchable-select-option:hover,
+.searchable-select-option:focus {
+  background: var(--surface-soft, #f1f5f9);
+}
+
+.searchable-select-option.is-selected {
+  background: #eef2ff;
+  font-weight: 600;
+}
+
+.searchable-select-empty {
+  padding: 0.55rem 0.75rem;
+  color: var(--text-muted, #64748b);
+  font-size: 0.85rem;
+}
+
+/* ==========================================
+   CREAR CLIENTE DESDE VENTAS
+========================================== */
+
+.sale-owner-create {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+}
+
+.sale-link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary, #2563eb);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.sale-link-button:hover {
+  opacity: 0.8;
+}

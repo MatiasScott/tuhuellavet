@@ -102,7 +102,23 @@ class PropietarioController extends Controller
             );
         }
 
-        $this->redirect('/propietarios');
+        /*
+         * El formulario rápido de "Crear cliente" del módulo
+         * de ventas necesita regresar a /facturacion.
+         * Solo se permiten destinos conocidos.
+         */
+        $redirectTo = (string) $r->input('redirect_to', '');
+
+        $allowedRedirects = [
+            '/propietarios',
+            '/facturacion',
+        ];
+
+        $this->redirect(
+            in_array($redirectTo, $allowedRedirects, true)
+                ? $redirectTo
+                : '/propietarios'
+        );
     }
 
     public function update(Request $r, string $id): void

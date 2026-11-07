@@ -46,6 +46,175 @@ document.addEventListener("DOMContentLoaded", function () {
 
   /*
   |--------------------------------------------------------------------------
+  | Select con búsqueda
+  |--------------------------------------------------------------------------
+  |
+  | Convierte un <select> nativo en un combobox con filtro de texto.
+  | El <select> original se mantiene oculto y sigue siendo el que
+  | se envía en el formulario; aquí solo cambiamos su valor y
+  | disparamos "change" para no romper la lógica existente.
+  |
+  */
+
+  function makeSearchableSelect(select, placeholder) {
+    if (!select) {
+      return null;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "searchable-select";
+
+    select.parentNode.insertBefore(wrap, select);
+    wrap.appendChild(select);
+
+    select.classList.add("searchable-select-native");
+    select.tabIndex = -1;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "searchable-select-input";
+    input.autocomplete = "off";
+    input.placeholder = placeholder;
+
+    const list = document.createElement("div");
+    list.className = "searchable-select-list";
+    list.hidden = true;
+
+    wrap.appendChild(input);
+    wrap.appendChild(list);
+
+    const normalize = (value) =>
+      String(value || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+
+    function currentLabel() {
+      const option = select.selectedOptions[0];
+
+      return option && option.value ? option.textContent.trim() : "";
+    }
+
+    function syncDisplay() {
+      input.value = currentLabel();
+    }
+
+    function close() {
+      list.hidden = true;
+      wrap.classList.remove("is-open");
+      syncDisplay();
+    }
+
+    function render(filter) {
+      const term = normalize(filter.trim());
+
+      list.innerHTML = "";
+
+      let count = 0;
+
+      Array.from(select.options).forEach((option) => {
+        /*
+         * Respetar el filtrado existente
+         * (p. ej. pacientes por propietario).
+         */
+        if (option.hidden || option.disabled) {
+          return;
+        }
+
+        const label = option.textContent.trim();
+
+        const haystack = normalize(
+          label + " " + (option.dataset.search || ""),
+        );
+
+        if (term && !haystack.includes(term)) {
+          return;
+        }
+
+        const item = document.createElement("button");
+
+        item.type = "button";
+        item.className =
+          "searchable-select-option" +
+          (option.value === select.value && option.value !== ""
+            ? " is-selected"
+            : "");
+        item.textContent = label;
+
+        item.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+
+          select.value = option.value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+
+          close();
+        });
+
+        list.appendChild(item);
+
+        count++;
+      });
+
+      if (!count) {
+        const empty = document.createElement("div");
+
+        empty.className = "searchable-select-empty";
+        empty.textContent = "Sin resultados";
+
+        list.appendChild(empty);
+      }
+    }
+
+    function open() {
+      list.hidden = false;
+      wrap.classList.add("is-open");
+      render("");
+      input.select();
+    }
+
+    input.addEventListener("focus", open);
+
+    input.addEventListener("input", () => {
+      if (list.hidden) {
+        list.hidden = false;
+        wrap.classList.add("is-open");
+      }
+
+      render(input.value);
+    });
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        close();
+        input.blur();
+      }
+
+      if (event.key === "Enter") {
+        /*
+         * Evitar enviar el formulario;
+         * seleccionar la primera opción visible.
+         */
+        event.preventDefault();
+
+        list.querySelector(".searchable-select-option")?.dispatchEvent(
+          new MouseEvent("mousedown"),
+        );
+      }
+    });
+
+    input.addEventListener("blur", () => {
+      window.setTimeout(close, 120);
+    });
+
+    select.addEventListener("change", syncDisplay);
+
+    syncDisplay();
+
+    return { sync: syncDisplay };
+  }
+
+  /*
+  |--------------------------------------------------------------------------
   | Propietario -> pacientes / datos fiscales
   |--------------------------------------------------------------------------
   */
@@ -616,6 +785,19 @@ document.addEventListener("DOMContentLoaded", function () {
   */
 
   filterCustomerFields();
+
+  /*
+   * Selects con búsqueda para propietario y paciente.
+   */
+  makeSearchableSelect(owner, "Buscar propietario…");
+
+  const patientSearchable = makeSearchableSelect(patient, "Buscar paciente…");
+
+  /*
+   * Al cambiar de propietario, el filtrado puede limpiar
+   * el paciente seleccionado: sincronizamos su visor.
+   */
+  owner?.addEventListener("change", () => patientSearchable?.sync());
 
   addLine("SERVICIO");
 });

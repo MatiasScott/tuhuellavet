@@ -6,6 +6,7 @@ use App\Core\Controller;
 use App\Core\Request;
 use App\Core\Session;
 use App\Models\Billing;
+use App\Models\Catalog;
 use App\Models\Owner;
 use App\Models\Patient;
 use App\Services\BillingService;
@@ -18,6 +19,7 @@ class FacturacionController extends Controller
         $env = active_environment_id();
         $billing = new Billing();
         $ownerModel = new Owner();
+        $catalog = new Catalog();
 
         $this->view('facturacion/index', [
             'title' => 'Ventas',
@@ -35,6 +37,8 @@ class FacturacionController extends Controller
             'services' => $billing->saleServices(),
             'paymentMethods' => $billing->paymentMethods(),
             'payments' => $billing->paymentsByEnvironment($env),
+            'identificationTypes' => $catalog->identificationTypes(),
+            'countries' => $catalog->countries(),
             'success' => Session::pullFlash('success'),
             'error' => Session::pullFlash('error'),
         ]);

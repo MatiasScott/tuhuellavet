@@ -153,6 +153,30 @@ class InventoryService
                     $salePrice = $priceRaw;
                 }
 
+                $purchaseCostRaw = trim(
+                    (string) (
+                        $data['costo_compra']
+                        ?? ''
+                    )
+                );
+
+                $purchaseCost = null;
+
+                if ($purchaseCostRaw !== '') {
+                    if (
+                        !preg_match(
+                            '/^\d{1,10}(?:\.\d{1,4})?$/',
+                            $purchaseCostRaw
+                        )
+                    ) {
+                        throw new RuntimeException(
+                            'El costo de compra debe ser un número válido con hasta cuatro decimales.'
+                        );
+                    }
+
+                    $purchaseCost = $purchaseCostRaw;
+                }
+
                 $taxRateId = !empty($data['impuesto_tarifa_id'])
                     ? (int) $data['impuesto_tarifa_id']
                     : null;
@@ -553,6 +577,7 @@ class InventoryService
                         controla_vencimiento,
 
                         precio_venta,
+                        costo_compra,
                         precio_incluye_impuesto,
                         impuesto_tarifa_id,
 
@@ -571,6 +596,7 @@ class InventoryService
                         :controla_vencimiento,
 
                         :precio_venta,
+                        :costo_compra,
                         :precio_incluye_impuesto,
                         :impuesto_tarifa_id,
 
@@ -611,6 +637,9 @@ class InventoryService
 
                     'precio_venta' =>
                     $salePrice,
+
+                    'costo_compra' =>
+                    $purchaseCost,
 
                     'precio_incluye_impuesto' =>
                     $priceIncludesTax,
@@ -898,6 +927,10 @@ class InventoryService
                         $controlsLot,
                         'controla_vencimiento' =>
                         $controlsExpiration,
+                        'precio_venta' =>
+                        $salePrice,
+                        'costo_compra' =>
+                        $purchaseCost,
                     ]
                 );
 
@@ -1012,6 +1045,36 @@ class InventoryService
             }
 
             $salePrice = $priceRaw;
+        }
+
+        /*
+     * ==========================================
+     * COSTO DE COMPRA
+     * ==========================================
+     */
+
+        $purchaseCostRaw = trim(
+            (string)(
+                $data['costo_compra']
+                ?? ''
+            )
+        );
+
+        $purchaseCost = null;
+
+        if ($purchaseCostRaw !== '') {
+            if (
+                !preg_match(
+                    '/^\d{1,10}(?:\.\d{1,4})?$/',
+                    $purchaseCostRaw
+                )
+            ) {
+                throw new RuntimeException(
+                    'El costo de compra debe ser un número válido con hasta cuatro decimales.'
+                );
+            }
+
+            $purchaseCost = $purchaseCostRaw;
         }
 
         /*
@@ -1306,6 +1369,7 @@ class InventoryService
                 controla_lote = :controla_lote,
                 controla_vencimiento = :controla_vencimiento,
                 precio_venta = :precio_venta,
+                costo_compra = :costo_compra,
                 precio_incluye_impuesto = :precio_incluye_impuesto,
                 impuesto_tarifa_id = :impuesto_tarifa_id,
                 updated_at = NOW()
@@ -1330,6 +1394,8 @@ class InventoryService
                 $controlsExpiration,
 
                 'precio_venta' => $salePrice,
+
+                'costo_compra' => $purchaseCost,
 
                 'precio_incluye_impuesto' =>
                 $priceIncludesTax,
@@ -1407,6 +1473,9 @@ class InventoryService
 
                     'precio_venta' =>
                     $salePrice,
+
+                    'costo_compra' =>
+                    $purchaseCost,
 
                     'impuesto_tarifa_id' =>
                     $taxRateId,

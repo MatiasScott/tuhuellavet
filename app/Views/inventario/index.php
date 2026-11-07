@@ -137,6 +137,7 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                         <th>Producto</th>
                         <th>Unidad</th>
                         <th>Precio</th>
+                        <th>Costo de compra</th>
                         <th>Impuesto</th>
                         <th>Acciones</th>
                     </tr>
@@ -147,7 +148,7 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                     <?php if (empty($products)): ?>
 
                         <tr>
-                            <td colspan="6">
+                            <td colspan="7">
                                 No existen productos registrados.
                             </td>
                         </tr>
@@ -215,6 +216,23 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
 
                                         $<?= number_format(
                                                 (float)$product['precio_venta'],
+                                                2
+                                            ) ?>
+
+                                    <?php else: ?>
+
+                                        <span class="muted">
+                                            Sin configurar
+                                        </span>
+
+                                    <?php endif; ?>
+                                </td>
+
+                                <td>
+                                    <?php if (($product['costo_compra'] ?? null) !== null): ?>
+
+                                        $<?= number_format(
+                                                (float)$product['costo_compra'],
                                                 2
                                             ) ?>
 
@@ -303,6 +321,11 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                                                             $product['precio_venta']
                                                                 ?? ''
                                                         ) ?>"
+
+                                        data-costo-compra="<?= e(
+                                                                $product['costo_compra']
+                                                                    ?? ''
+                                                            ) ?>"
 
                                         data-impuesto-tarifa-id="<?= e(
                                                                         $product['impuesto_tarifa_id']
@@ -598,6 +621,7 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                     </div>
                     <div class="form-grid">
                         <label><span>Precio de venta</span><input type="number" name="precio_venta" min="0" step="0.0001" placeholder="Ej. 12.50"></label>
+                        <label><span>Costo de compra</span><input type="number" name="costo_compra" min="0" step="0.0001" placeholder="Ej. 8.00"></label>
                         <label>
                             <span>Impuesto</span>
                             <select name="impuesto_tarifa_id" id="product-create-tax">
@@ -883,6 +907,18 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                             type="number"
                             name="precio_venta"
                             id="product-edit-price"
+                            min="0"
+                            step="0.0001">
+                    </label>
+
+
+                    <label>
+                        <span>Costo de compra</span>
+
+                        <input
+                            type="number"
+                            name="costo_compra"
+                            id="product-edit-purchase-cost"
                             min="0"
                             step="0.0001">
                     </label>

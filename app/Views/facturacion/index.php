@@ -2,6 +2,7 @@
 $money = static fn($value): string => '$' . number_format((float) $value, 2, '.', ',');
 ?>
 <link rel="stylesheet" href="<?= url('assets/css/views/facturacion.css') ?>">
+<link rel="stylesheet" href="<?= url('assets/css/views/propietarios.css') ?>">
 <div class="facturacion-page">
     <div class="page-heading">
         <div>
@@ -271,9 +272,15 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                             <select name="propietario_entorno_id" id="sale-owner">
                                 <option value="">Consumidor / sin propietario</option>
                                 <?php foreach ($owners as $o): ?>
-                                    <option value="<?= (int)$o['id'] ?>"><?= e(trim(($o['nombres'] ?? '') . ' ' . ($o['apellidos'] ?? ''))) ?></option>
+                                    <option value="<?= (int)$o['id'] ?>" data-search="<?= e($o['identificacion'] ?? '') ?>"><?= e(trim(($o['nombres'] ?? '') . ' ' . ($o['apellidos'] ?? ''))) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            <?php if (can('propietarios.crear')): ?>
+                                <small class="sale-owner-create">
+                                    ¿Cliente nuevo?
+                                    <button type="button" class="sale-link-button" data-modal-open="owner-quick-create">Crear cliente</button>
+                                </small>
+                            <?php endif; ?>
                         </label>
                         <label><span>Paciente</span>
                             <select name="animal_id" id="sale-patient">
@@ -1226,6 +1233,445 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 
 <?php endforeach; ?>
 
+<?php if (can('propietarios.crear')): ?>
+    <div class="modal" id="owner-quick-create">
+        <div class="modal-backdrop" data-modal-close></div>
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <div><span class="eyebrow">Clientes</span>
+                    <h2>Crear cliente</h2>
+                    <p class="muted">Registra un propietario sin salir del módulo de ventas.</p>
+                </div>
+                <button class="modal-close" type="button" data-modal-close>×</button>
+            </div>
+            <form method="POST" action="<?= url('/propietarios') ?>" class="owner-validation-form"
+                data-validation-url="<?= url('/propietarios/validar') ?>">
+                <?= csrf_field() ?>
+                <input type="hidden" name="redirect_to" value="/facturacion">
+                <div class="modal-body">
+                    <div class="form-grid">
+
+                        <!-- PRIMER NOMBRE / NOMBRES -->
+                        <label>
+                            <span>Primer nombre / Nombres *</span>
+                            <input
+                                type="text"
+                                name="nombres"
+                                maxlength="120"
+                                autocomplete="given-name"
+                                required>
+                        </label>
+
+                        <!-- SEGUNDO NOMBRE -->
+                        <label>
+                            <span>Segundo nombre</span>
+                            <input
+                                type="text"
+                                name="segundo_nombre"
+                                maxlength="120">
+                        </label>
+
+                        <!-- APELLIDO PATERNO -->
+                        <label>
+                            <span>Apellido paterno</span>
+                            <input
+                                type="text"
+                                name="apellidos"
+                                maxlength="120">
+                        </label>
+
+                        <!-- APELLIDO MATERNO -->
+                        <label>
+                            <span>Apellido materno</span>
+                            <input
+                                type="text"
+                                name="apellido_materno"
+                                maxlength="120">
+                        </label>
+
+                        <!-- TIPO DE IDENTIFICACIÓN -->
+                        <label>
+                            <span>Tipo de identificación</span>
+
+                            <select
+                                name="tipo_identificacion_id"
+                                data-owner-type>
+
+                                <option value="">
+                                    Seleccionar
+                                </option>
+
+                                <?php foreach (($identificationTypes ?? []) as $t): ?>
+                                    <option
+                                        value="<?= (int) $t['id'] ?>"
+                                        data-code="<?= e($t['codigo']) ?>">
+                                        <?= e($t['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+                        <!-- NATURAL / JURÍDICA - SOLO RUC -->
+                        <label
+                            data-owner-natural-container
+                            hidden>
+
+                            <span>Tipo de persona *</span>
+
+                            <select
+                                name="es_persona_natural"
+                                data-owner-natural
+                                disabled>
+
+                                <option value="">
+                                    Seleccionar
+                                </option>
+
+                                <option value="1">
+                                    Persona natural
+                                </option>
+
+                                <option value="0">
+                                    Persona jurídica
+                                </option>
+
+                            </select>
+                        </label>
+
+                        <!-- IDENTIFICACIÓN -->
+                        <label>
+                            <span>Identificación</span>
+
+                            <input
+                                type="text"
+                                name="identificacion"
+                                maxlength="30"
+                                autocomplete="off"
+                                data-owner-field="identificacion">
+
+                            <span
+                                class="owner-field-message"
+                                data-message-for="identificacion"
+                                aria-live="polite"></span>
+                        </label>
+
+                        <!-- CORREO -->
+                        <label>
+                            <span>Correo electrónico</span>
+
+                            <input
+                                type="email"
+                                name="email"
+                                maxlength="180"
+                                autocomplete="email"
+                                data-owner-field="email">
+
+                            <span
+                                class="owner-field-message"
+                                data-message-for="email"
+                                aria-live="polite"></span>
+                        </label>
+
+                        <!-- CELULAR -->
+                        <label>
+                            <span>Celular</span>
+
+                            <input
+                                type="tel"
+                                name="celular"
+                                maxlength="30"
+                                autocomplete="tel"
+                                data-owner-field="celular">
+
+                            <span
+                                class="owner-field-message"
+                                data-message-for="celular"
+                                aria-live="polite"></span>
+                        </label>
+
+                        <!-- TELÉFONO -->
+                        <label>
+                            <span>Teléfono</span>
+
+                            <input
+                                type="tel"
+                                name="telefono"
+                                maxlength="30">
+                        </label>
+
+                        <!-- DIRECCIÓN -->
+                        <label class="field-full">
+                            <span>Dirección</span>
+
+                            <input
+                                type="text"
+                                name="direccion"
+                                maxlength="255"
+                                autocomplete="street-address">
+                        </label>
+
+                        <!-- REFERENCIA -->
+                        <label class="field-full">
+                            <span>Referencia</span>
+
+                            <input
+                                type="text"
+                                name="referencia"
+                                maxlength="250"
+                                placeholder="Ej.: Frente al parque, casa color blanco">
+                        </label>
+
+                        <!-- PAÍS -->
+                        <label>
+                            <span>País</span>
+
+                            <select
+                                name="codigo_pais"
+                                data-location-country
+                                data-provinces-url="<?= url('/propietarios/ubicacion/provincias') ?>">
+
+                                <option value="">
+                                    Seleccionar
+                                </option>
+
+                                <?php foreach (($countries ?? []) as $country): ?>
+                                    <option
+                                        value="<?= e($country['codigo']) ?>"
+                                        <?= ($country['codigo'] ?? '') === 'ECU'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        <?= e($country['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+                        <!-- PROVINCIA -->
+                        <label>
+                            <span>Provincia</span>
+
+                            <select
+                                name="codigo_provincia"
+                                data-location-province
+                                data-cantons-url="<?= url('/propietarios/ubicacion/cantones') ?>">
+
+                                <option value="">
+                                    Seleccionar provincia
+                                </option>
+
+                            </select>
+                        </label>
+
+                        <!-- CANTÓN -->
+                        <label>
+                            <span>Cantón</span>
+
+                            <select
+                                name="codigo_canton"
+                                data-location-canton
+                                data-parishes-url="<?= url('/propietarios/ubicacion/parroquias') ?>">
+
+                                <option value="">
+                                    Seleccionar cantón
+                                </option>
+
+                            </select>
+                        </label>
+
+                        <!-- PARROQUIA -->
+                        <label>
+                            <span>Parroquia</span>
+
+                            <select
+                                name="codigo_parroquia"
+                                data-location-parish>
+
+                                <option value="">
+                                    Seleccionar parroquia
+                                </option>
+
+                            </select>
+                        </label>
+                        <div class="field-full owner-fiscal-section">
+
+                            <div class="owner-fiscal-heading">
+                                <div>
+                                    <strong>Datos de facturación</strong>
+                                    <small>
+                                        Información que podrá utilizarse para emitir
+                                        documentos fiscales.
+                                    </small>
+                                </div>
+
+                                <label class="owner-fiscal-toggle">
+                                    <input
+                                        type="checkbox"
+                                        name="crear_datos_fiscales"
+                                        value="1"
+                                        checked
+                                        data-fiscal-enabled>
+                                    <span>Crear datos fiscales</span>
+                                </label>
+                            </div>
+
+
+                            <div data-fiscal-container>
+
+                                <label class="owner-fiscal-same">
+                                    <input
+                                        type="checkbox"
+                                        name="datos_fiscales_mismos"
+                                        value="1"
+                                        checked
+                                        data-fiscal-same>
+
+                                    <span>
+                                        <strong>
+                                            Usar los mismos datos del propietario
+                                        </strong>
+
+                                        <small>
+                                            Se utilizarán la identificación, nombre,
+                                            dirección y contacto registrados arriba.
+                                        </small>
+                                    </span>
+                                </label>
+
+
+                                <div
+                                    class="form-grid owner-fiscal-fields"
+                                    data-fiscal-fields
+                                    hidden>
+
+                                    <label>
+                                        <span>Tipo de identificación *</span>
+
+                                        <select
+                                            name="fiscal_tipo_identificacion_id"
+                                            data-fiscal-input>
+                                            <option value="">
+                                                Seleccionar
+                                            </option>
+
+                                            <?php foreach (($identificationTypes ?? []) as $t): ?>
+                                                <option value="<?= (int) $t['id'] ?>">
+                                                    <?= e($t['nombre']) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+
+
+                                    <label>
+                                        <span>Identificación *</span>
+
+                                        <input
+                                            name="fiscal_identificacion"
+                                            maxlength="30"
+                                            autocomplete="off"
+                                            data-fiscal-input>
+                                    </label>
+
+
+                                    <label class="field-full">
+                                        <span>Razón social *</span>
+
+                                        <input
+                                            name="fiscal_razon_social"
+                                            maxlength="200"
+                                            autocomplete="off"
+                                            data-fiscal-input>
+                                    </label>
+
+
+                                    <label class="field-full">
+                                        <span>Dirección</span>
+
+                                        <input
+                                            name="fiscal_direccion"
+                                            maxlength="255"
+                                            data-fiscal-input>
+                                    </label>
+
+
+                                    <label>
+                                        <span>Correo de facturación</span>
+
+                                        <input
+                                            type="email"
+                                            name="fiscal_email"
+                                            maxlength="180"
+                                            autocomplete="off"
+                                            data-fiscal-input>
+                                    </label>
+
+
+                                    <label>
+                                        <span>Teléfono</span>
+
+                                        <input
+                                            name="fiscal_telefono"
+                                            maxlength="30"
+                                            autocomplete="off"
+                                            data-fiscal-input>
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                        <div class="field-full owner-access-section">
+                            <span class="owner-access-title">
+                                Acceso al portal
+                            </span>
+
+                            <label class="owner-access-option">
+                                <input
+                                    type="radio"
+                                    name="modo_acceso"
+                                    value="create"
+                                    data-owner-access="create">
+
+                                <span>
+                                    <strong>Crear o vincular cuenta de cliente</strong>
+                                    <small>
+                                        Si el correo no existe, se creará una cuenta.
+                                        Si ya existe, se vinculará sin eliminar sus otros roles.
+                                    </small>
+                                </span>
+                            </label>
+
+                            <label class="owner-access-option">
+                                <input
+                                    type="radio"
+                                    name="modo_acceso"
+                                    value="none"
+                                    checked
+                                    data-owner-access="none">
+
+                                <span>
+                                    <strong>Registrar sin acceso al portal</strong>
+                                    <small>
+                                        Se creará solamente la ficha del propietario.
+                                        Podrá habilitarse el acceso posteriormente.
+                                    </small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button>
+                    <button class="btn btn-primary">Crear cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
+
 <script type="application/json" id="sale-products-data">
     <?= json_encode(array_values($products), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>
 </script>
@@ -1234,3 +1680,8 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 </script>
 
 <script src="<?= url('/assets/js/views/facturacion.js') ?>" defer></script>
+<?php if (can('propietarios.crear')): ?>
+    <script src="<?= url('/assets/js/views/propietarios-validacion.js') ?>" defer></script>
+    <script src="<?= url('/assets/js/views/propietarios-formulario.js') ?>" defer></script>
+    <script src="<?= url('/assets/js/views/propietarios-ubicacion.js') ?>" defer></script>
+<?php endif; ?>
