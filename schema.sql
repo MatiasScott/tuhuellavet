@@ -2,6 +2,7 @@
 -- ============================================================
 -- SISTEMA INTEGRAL VETERINARIO, GANADERO Y ACADÉMICO
 -- Esquema definitivo MySQL 8 / MariaDB 10.5+
+-- Tras importar: php scripts\migrate_hacienda.php (ampliacion Hacienda Agusbella).
 -- Normalización objetivo: 1FN, 2FN, 3FN (y BCNF donde aplica)
 -- ============================================================
 
@@ -2273,6 +2274,7 @@ INSERT INTO frecuencias_administracion (codigo, nombre, intervalo_horas) VALUES
 INSERT INTO tipos_movimiento_inventario (codigo, nombre, factor) VALUES
 ('ENTRADA', 'Entrada', 1),
 ('SALIDA', 'Salida', -1),
+('DEVOLUCION_VENTA', 'Devolución por anulación de venta', 1),
 ('AJUSTE_POSITIVO', 'Ajuste positivo', 1),
 ('AJUSTE_NEGATIVO', 'Ajuste negativo', -1),
 ('CONSUMO_CLINICO', 'Consumo clínico', -1),

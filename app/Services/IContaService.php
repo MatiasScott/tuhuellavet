@@ -327,60 +327,7 @@ class IContaService
 
         $db = Database::connection();
 
-        /*
-     * 1. Obtener datos fiscales + datos generales
-     *    del propietario necesarios para iConta.
-     */
-        $stmt = $db->prepare(
-            '
-        SELECT
-            pdf.id,
-            pdf.propietario_id,
-            pdf.identificacion,
-            pdf.razon_social,
-            pdf.direccion,
-            pdf.email,
-            pdf.telefono,
-            pdf.activo,
-
-            ti.codigo AS tipo_identificacion_codigo,
-
-            p.es_persona_natural,
-            p.nombres,
-            p.segundo_nombre,
-            p.apellidos,
-            p.apellido_materno,
-            p.codigo_pais,
-            p.codigo_provincia,
-            p.codigo_canton,
-            p.codigo_parroquia,
-            p.referencia
-
-        FROM propietarios_datos_fiscales pdf
-
-        INNER JOIN propietarios p
-            ON p.id = pdf.propietario_id
-
-        INNER JOIN tipos_identificacion ti
-            ON ti.id = pdf.tipo_identificacion_id
-
-        WHERE pdf.id = :id
-
-        LIMIT 1
-        '
-        );
-
-        $stmt->execute([
-            'id' => $fiscalDataId,
-        ]);
-
-        $fiscal = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$fiscal) {
-            throw new RuntimeException(
-                'No se encontraron los datos fiscales del cliente.'
-            );
-        }
+        $fiscal = $this->loadFiscalCustomer($db, $fiscalDataId);
 
         if ((int) $fiscal['activo'] !== 1) {
             throw new RuntimeException(
@@ -772,6 +719,38 @@ class IContaService
 
             throw $e;
         }
+    }
+
+    private function loadFiscalCustomer(PDO $db, int $fiscalDataId): array
+    {
+        $stmt = $db->prepare(
+            'SELECT pdf.id, pdf.propietario_id, pdf.identificacion, pdf.razon_social,
+                    pdf.direccion, pdf.email, pdf.telefono, pdf.activo,
+                    ti.codigo AS tipo_identificacion_codigo,
+                    p.es_persona_natural, p.nombres, p.segundo_nombre, p.apellidos,
+                    p.apellido_materno, p.codigo_pais, p.codigo_provincia,
+                    p.codigo_canton, p.codigo_parroquia, p.referencia
+             FROM propietarios_datos_fiscales pdf
+             INNER JOIN propietarios p ON p.id = pdf.propietario_id
+             INNER JOIN tipos_identificacion ti ON ti.id = pdf.tipo_identificacion_id
+             WHERE pdf.id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $fiscalDataId]);
+        $fiscal = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$fiscal) {
+            throw new RuntimeException('No se encontraron los datos fiscales del cliente.');
+        }
+        return $fiscal;
+    }
+
+    public function validateInvoiceCustomer(PDO $db, int $fiscalDataId): void
+    {
+        InvoiceCustomerRequirements::assertReady($this->loadFiscalCustomer($db, $fiscalDataId));
+    }
+
+    public function validateInvoicePayload(PDO $db, int $saleId, int $fiscalDocumentId): void
+    {
+        $this->buildInvoicePayload($db, $saleId, $fiscalDocumentId);
     }
 
     private function buildPersonSavePayload(
@@ -2914,6 +2893,8 @@ class IContaService
                 $saleId,
                 $fiscalDocumentId
             );
+
+            $this->validateInvoiceCustomer($db, $fiscalDataId);
 
             /*
             * Solo después de superar todas las validaciones locales

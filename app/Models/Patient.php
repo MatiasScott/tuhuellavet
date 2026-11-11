@@ -6,6 +6,13 @@ use App\Core\Model;
 
 class Patient extends Model
 {
+    public function options(int $environmentId): array
+    {
+        $stmt = $this->db->prepare('SELECT id,codigo,nombre FROM animales WHERE entorno_id=? AND activo=1 AND deleted_at IS NULL ORDER BY nombre,id');
+        $stmt->execute([$environmentId]);
+        return $stmt->fetchAll();
+    }
+
     public function countByEnvironment(int $e): int
     {
         $s = $this->db->prepare('SELECT COUNT(*) FROM animales WHERE entorno_id=:e AND activo=1 AND deleted_at IS NULL');

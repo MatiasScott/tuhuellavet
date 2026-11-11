@@ -132,10 +132,10 @@ class ConsultaController extends Controller
             = new Catalog();
 
         $formulas
-            = (new Formula())
+            = can('formulas.calcular') ? (new Formula())
             ->publishedForEnvironment(
                 active_environment_id()
-            );
+            ) : [];
 
         $this->view(
             'consultas/show',

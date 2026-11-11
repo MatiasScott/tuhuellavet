@@ -18,6 +18,12 @@
     <?php endforeach; ?>
 </div>
 <section class="card">
+    <?php if (\App\Services\EnvironmentModules::isFarm(active_environment())): ?>
+        <h2>Reportes de Hacienda</h2>
+        <?php foreach (['produccion' => 'Producción por animal o lote', 'alimentacion' => 'Alimentación y trazabilidad de insumos'] as $module => $label): ?>
+            <?php if (can($module . '.ver')): ?><p><a class="btn btn-secondary" href="<?= url('/hacienda/' . $module) ?>"><?= e($label) ?></a></p><?php endif; ?>
+        <?php endforeach; ?>
+    <?php endif; ?>
     <div class="card-header">
         <div>
             <h2>Exportaciones</h2>

@@ -128,10 +128,11 @@
             <h2>Nuevo propietario</h2>
             <button class="modal-close" data-modal-close>×</button>
         </div>
-        <form method="POST" action="<?= url('/propietarios') ?>" class="owner-validation-form"
+        <form method="POST" action="<?= url('/propietarios') ?>" class="owner-validation-form" data-required-markers
             data-validation-url="<?= url('/propietarios/validar') ?>">
             <?= csrf_field() ?>
             <div class="modal-body">
+                <p class="muted">Los campos marcados con * son obligatorios para guardar. Algunos dependen del acceso al portal y de los datos fiscales seleccionados.</p>
                 <div class="form-grid">
 
                     <!-- PRIMER NOMBRE / NOMBRES -->
@@ -174,7 +175,7 @@
 
                     <!-- TIPO DE IDENTIFICACIÓN -->
                     <label>
-                        <span>Tipo de identificación</span>
+                        <span>Tipo de identificación *</span>
 
                         <select
                             name="tipo_identificacion_id"
@@ -224,7 +225,7 @@
 
                     <!-- IDENTIFICACIÓN -->
                     <label>
-                        <span>Identificación</span>
+                        <span>Identificación *</span>
 
                         <input
                             type="text"
@@ -241,7 +242,7 @@
 
                     <!-- CORREO -->
                     <label>
-                        <span>Correo electrónico</span>
+                        <span>Correo electrónico *</span>
 
                         <input
                             type="email"
@@ -401,6 +402,7 @@
 
 
                         <div data-fiscal-container>
+                            <p class="text-muted" data-invoice-requirements aria-live="polite"></p>
 
                             <label class="owner-fiscal-same">
                                 <input
@@ -439,7 +441,7 @@
                                         </option>
 
                                         <?php foreach ($identificationTypes as $t): ?>
-                                            <option value="<?= (int) $t['id'] ?>">
+                                            <option value="<?= (int) $t['id'] ?>" data-code="<?= e($t['codigo']) ?>">
                                                 <?= e($t['nombre']) ?>
                                             </option>
                                         <?php endforeach; ?>

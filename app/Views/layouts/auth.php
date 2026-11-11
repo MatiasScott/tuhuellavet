@@ -8,10 +8,12 @@
     <link rel="stylesheet" href="<?= asset('css/global.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/layouts.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/searchable-selects.css') ?>">
 </head>
 
 <body class="auth-body"><?= $content ?>
     <script src="<?= asset('js/global.js') ?>"></script>
+    <script src="<?= asset('js/searchable-selects.js') ?>" defer></script>
 </body>
 
 </html>

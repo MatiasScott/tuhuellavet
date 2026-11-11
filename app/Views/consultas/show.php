@@ -168,7 +168,7 @@
             </strong>
         </div>
         <div>
-            <span>Temperatura</span>
+            <span>Temperatura pulmonar / cloacal</span>
             <strong>
                 <?= $consultation['temperatura_c'] !== null
                     ? e(
@@ -208,6 +208,7 @@
             </strong>
         </div>
     </div>
+    <?php $examValues = $consultation; require __DIR__ . '/physiological-summary.php'; ?>
     <div
         class="
             clinical-symptoms
@@ -691,13 +692,14 @@
                             <input type="number" name="frecuencia_respiratoria" step="any" min="0" value="<?= e($consultation['frecuencia_respiratoria'] ?? '') ?>">
                         </label>
                         <label>
-                            <span>Temperatura °C</span>
+                            <span>Temperatura pulmonar / cloacal °C</span>
                             <input type="number" name="temperatura_c" step="any" min="0" value="<?= e($consultation['temperatura_c'] ?? '') ?>">
                         </label>
                         <label>
                             <span>TLC (segundos)</span>
                             <input type="number" name="tiempo_llenado_capilar_seg" step="any" min="0" value="<?= e($consultation['tiempo_llenado_capilar_seg'] ?? '') ?>">
                         </label>
+                        <?php $examValues = $consultation; require __DIR__ . '/physiological-fields.php'; ?>
                         <label>
                             <span>Vómitos</span>
                             <select name="vomitos">

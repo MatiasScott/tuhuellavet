@@ -37,6 +37,7 @@ $pageDescription = $pageDescription
     <link
         rel="stylesheet"
         href="<?= url('/assets/css/views/public.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/searchable-selects.css') ?>">
 </head>
 
 <body>
@@ -119,6 +120,7 @@ $pageDescription = $pageDescription
         </div>
     </footer>
 
+    <script src="<?= asset('js/searchable-selects.js') ?>" defer></script>
 </body>
 
 </html>

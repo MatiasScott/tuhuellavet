@@ -1633,6 +1633,9 @@ class BillingService
                     }
                 }
 
+                $iConta = new IContaService();
+                $iConta->validateInvoiceCustomer($db, $fiscalDataId);
+
                 /*
                 |--------------------------------------------------------------------------
                 | Documento fiscal
@@ -1661,6 +1664,8 @@ class BillingService
 
                 $documentId =
                     (int) $db->lastInsertId();
+
+                $iConta->validateInvoicePayload($db, $sale, $documentId);
 
                 /*
                 |--------------------------------------------------------------------------
@@ -2020,7 +2025,7 @@ class BillingService
         */
 
             $stmt = $db->prepare(
-                'SELECT id, codigo
+                'SELECT id, codigo, factor
              FROM tipos_movimiento_inventario
              WHERE codigo IN ("SALIDA", "DEVOLUCION_VENTA")'
             );
@@ -2030,7 +2035,7 @@ class BillingService
             $movementTypes = [];
 
             foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                $movementTypes[$row['codigo']] = (int) $row['id'];
+                $movementTypes[$row['codigo']] = $row;
             }
 
             if (empty($movementTypes['SALIDA'])) {
@@ -2039,14 +2044,13 @@ class BillingService
                 );
             }
 
-            if (empty($movementTypes['DEVOLUCION_VENTA'])) {
+            if ((int) $movementTypes['SALIDA']['factor'] !== -1) {
                 throw new RuntimeException(
-                    'No se encontró el tipo de movimiento DEVOLUCION_VENTA.'
+                    'El tipo de movimiento SALIDA debe tener factor -1.'
                 );
             }
 
-            $exitTypeId = $movementTypes['SALIDA'];
-            $returnTypeId = $movementTypes['DEVOLUCION_VENTA'];
+            $exitTypeId = (int) $movementTypes['SALIDA']['id'];
 
 
             /*
@@ -2082,6 +2086,22 @@ class BillingService
 
             $saleExits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            if ($saleExits && empty($movementTypes['DEVOLUCION_VENTA'])) {
+                throw new RuntimeException(
+                    'No se encontró el tipo de movimiento DEVOLUCION_VENTA. '
+                        . 'Un administrador debe ejecutar la migración de devolución de ventas.'
+                );
+            }
+
+            if ($saleExits && (int) $movementTypes['DEVOLUCION_VENTA']['factor'] !== 1) {
+                throw new RuntimeException(
+                    'El tipo de movimiento DEVOLUCION_VENTA debe tener factor 1.'
+                );
+            }
+
+            $returnTypeId = $saleExits
+                ? (int) $movementTypes['DEVOLUCION_VENTA']['id']
+                : null;
 
             /*
         |--------------------------------------------------------------------------

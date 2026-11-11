@@ -67,7 +67,7 @@
                     <textarea name="indicaciones_generales"></textarea>
                 </label>
                 <label>
-                    <span>Temperatura °C</span>
+                    <span>Temperatura pulmonar / cloacal °C</span>
                     <input type="number" step=".01" name="temperatura_c">
                 </label>
                 <label>
@@ -82,6 +82,7 @@
                     <span>TLC</span>
                     <input type="number" step=".01" name="tiempo_llenado_capilar_seg">
                 </label>
+                <?php $examValues = []; require dirname(__DIR__) . '/consultas/physiological-fields.php'; ?>
             </div>
             <div class="modal-footer"><button class="btn btn-primary">Ingresar paciente</button></div>
         </form>

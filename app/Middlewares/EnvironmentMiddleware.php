@@ -21,6 +21,14 @@ class EnvironmentMiddleware
             exit;
         }
 
+        if (\App\Services\EnvironmentModules::isFarm(
+            \App\Services\EnvironmentModules::find((int) $environmentId)
+        ) && preg_match('#^/(peluquerias|formulas|admin/formulas|facturacion)(/|$)#', $request->uri())) {
+            http_response_code(403);
+            echo 'Modulo no disponible en Hacienda Agusbella.';
+            exit;
+        }
+
         if (!$userId) {
             http_response_code(403);
             echo 'Usuario no autenticado.';

@@ -176,12 +176,57 @@
     const ownerId = form.dataset.ownerId || "";
 
     const accessInputs = form.querySelectorAll("[data-owner-access]");
+    const emailInput = form.querySelector('[name="email"]');
 
     function accessMode() {
       return (
         form.querySelector("[data-owner-access]:checked")?.value || "create"
       );
     }
+
+    function updateAccessRequirements() {
+      if (emailInput && accessInputs.length) {
+        emailInput.required = accessMode() === "create";
+        if (!emailInput.required) emailInput.setCustomValidity("");
+      }
+    }
+
+    updateAccessRequirements();
+
+    if (form.hasAttribute("data-required-markers")) {
+      const updateRequiredMarker = (field) => {
+        const title = field.closest("label")?.querySelector(":scope > span");
+        if (!title) return;
+        const text = title.textContent.trim().replace(/\s*\*$/, "");
+        title.textContent = text + (field.required && !field.disabled ? " *" : "");
+      };
+      const fields = form.querySelectorAll(
+        'input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]), select, textarea',
+      );
+      fields.forEach(updateRequiredMarker);
+      const observer = new MutationObserver((records) => {
+        records.forEach((record) => updateRequiredMarker(record.target));
+      });
+      fields.forEach((field) => observer.observe(field, {
+        attributes: true,
+        attributeFilter: ["required", "disabled"],
+      }));
+    }
+
+    form.addEventListener("invalid", (event) => {
+      const field = event.target;
+      if (!field.validity.valueMissing) return;
+      const label = field.closest("label")?.querySelector("span");
+      const name = label?.textContent.trim().replace(/\s*\*$/, "") || "este campo";
+      field.setCustomValidity(`Completa el campo obligatorio: ${name}.`);
+    }, true);
+    ["input", "change"].forEach((eventName) => {
+      form.addEventListener(eventName, (event) => {
+        if (event.target.validity?.customError) {
+          event.target.setCustomValidity("");
+        }
+      });
+    });
 
     const fields = ["identificacion", "email", "celular"];
 
@@ -421,6 +466,7 @@
 
     accessInputs.forEach((input) => {
       input.addEventListener("change", () => {
+        updateAccessRequirements();
         scheduleValidation("email");
       });
     });
@@ -462,6 +508,54 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const fiscalInputs = fields.querySelectorAll("[data-fiscal-input]");
+    const ownerType = form.querySelector('[name="tipo_identificacion_id"]');
+    const ownerIdentification = form.querySelector('[name="identificacion"]');
+    const fiscalType = form.querySelector('[name="fiscal_tipo_identificacion_id"]');
+    const fiscalIdentification = form.querySelector('[name="fiscal_identificacion"]');
+    const fiscalName = form.querySelector('[name="fiscal_razon_social"]');
+    const notice = form.querySelector("[data-invoice-requirements]");
+    const invoiceFields = [
+      ["codigo_pais", "país"],
+      ["codigo_provincia", "provincia"],
+      ["codigo_canton", "cantón"],
+      ["codigo_parroquia", "parroquia"],
+    ];
+
+    function updateInvoiceRequirements() {
+      if (!notice || !enabled.checked) return;
+      const missing = [];
+      const value = (name) => form.elements.namedItem(name)?.value?.trim() || "";
+      const type = same.checked ? ownerType : fiscalType;
+      const typeCode = type.selectedOptions[0]?.dataset.code || "";
+      if (!typeCode) missing.push("tipo de identificación fiscal");
+      else if (!["CEDULA", "RUC", "PASAPORTE"].includes(typeCode)) {
+        missing.push(typeCode === "CONSUMIDOR_FINAL"
+          ? "consumidor final aún no está habilitado para facturar"
+          : "tipo de identificación fiscal compatible");
+      }
+      if (!value(same.checked ? "identificacion" : "fiscal_identificacion")) {
+        missing.push("identificación fiscal");
+      }
+      if (!value(same.checked ? "nombres" : "fiscal_razon_social")) {
+        missing.push("razón social fiscal");
+      }
+      const email = form.elements.namedItem(same.checked ? "email" : "fiscal_email");
+      if (!email.value.trim() || !email.validity.valid) missing.push("correo de facturación válido");
+      invoiceFields.forEach(([name, label]) => {
+        if (!value(name)) missing.push(label);
+      });
+      const ownerCode = ownerType.selectedOptions[0]?.dataset.code || "";
+      const natural = value("es_persona_natural");
+      if (!ownerCode || (ownerCode === "RUC" && !natural)) {
+        missing.push("tipo de persona del propietario");
+      } else if (["CEDULA", "PASAPORTE"].includes(typeCode) &&
+          (ownerCode === "CONSUMIDOR_FINAL" || (ownerCode === "RUC" && natural === "0"))) {
+        missing.push("tipo de persona natural para la identificación fiscal");
+      }
+      notice.textContent = missing.length
+        ? `Para emitir facturas con esta integración, falta: ${missing.join(", ")}. Puede guardar la ficha y completar estos datos antes de facturar.`
+        : "Datos del cliente completos para la validación local de facturación.";
+    }
 
     const refresh = () => {
       const fiscalEnabled = enabled.checked;
@@ -478,17 +572,34 @@ document.addEventListener("DOMContentLoaded", () => {
         input.disabled = !fiscalEnabled || useSame;
       });
 
+      ownerType.required = fiscalEnabled && useSame;
+      ownerIdentification.required = fiscalEnabled && useSame;
+      fiscalType.required = fiscalEnabled && !useSame;
+      fiscalIdentification.required = fiscalEnabled && !useSame;
+      fiscalName.required = fiscalEnabled && !useSame;
+      [ownerType, ownerIdentification, fiscalType, fiscalIdentification, fiscalName]
+        .filter((input) => !input.required)
+        .forEach((input) => input.setCustomValidity(""));
+
       /*
        * El checkbox "usar mismos datos"
        * tampoco debe enviarse si toda la
        * sección fiscal está desactivada.
        */
       same.disabled = !fiscalEnabled;
+      updateInvoiceRequirements();
     };
 
     enabled.addEventListener("change", refresh);
 
     same.addEventListener("change", refresh);
+    form.addEventListener("input", updateInvoiceRequirements);
+    form.addEventListener("change", updateInvoiceRequirements);
+    const locationObserver = new MutationObserver(updateInvoiceRequirements);
+    invoiceFields.forEach(([name]) => {
+      const field = form.elements.namedItem(name);
+      if (field) locationObserver.observe(field, { childList: true, subtree: true, attributes: true });
+    });
 
     refresh();
   });

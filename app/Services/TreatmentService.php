@@ -15,6 +15,13 @@ class TreatmentService
         int $environmentId,
         int $createdBy
     ): int {
+        if (EnvironmentModules::isFarm(EnvironmentModules::find($environmentId))) {
+            foreach ($data['medicamentos'] ?? [] as $medication) {
+                if (!empty($medication['formula_ejecucion_id'])) {
+                    throw new RuntimeException('Las formulas estan desactivadas en Hacienda.');
+                }
+            }
+        }
         return Database::transaction(
             function (PDO $db) use (
                 $eventId,

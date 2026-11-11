@@ -127,6 +127,16 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                     </form>
                                 <?php endif; ?>
 
+                                <?php if (
+                                    can('facturacion.facturar')
+                                    && empty($s['es_simulada'])
+                                    && $s['estado'] === 'FINALIZADA'
+                                    && empty($s['datos_fiscales_id'])
+                                    && empty($s['documento_fiscal_id'])
+                                ): ?>
+                                    <small class="text-muted">Sin datos fiscales seleccionados en la venta; no se puede emitir la factura.</small>
+                                <?php endif; ?>
+
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -323,6 +333,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 
                                 <?php endforeach; ?>
                             </select>
+                            <small class="text-muted">Para facturar, selecciona los datos fiscales antes de guardar la venta. Consumidor final aún no está habilitado para iConta.</small>
                         </label>
                     </div>
                 </section>
@@ -1244,11 +1255,12 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                 </div>
                 <button class="modal-close" type="button" data-modal-close>×</button>
             </div>
-            <form method="POST" action="<?= url('/propietarios') ?>" class="owner-validation-form"
+            <form method="POST" action="<?= url('/propietarios') ?>" class="owner-validation-form" data-required-markers
                 data-validation-url="<?= url('/propietarios/validar') ?>">
                 <?= csrf_field() ?>
                 <input type="hidden" name="redirect_to" value="/facturacion">
                 <div class="modal-body">
+                    <p class="muted">Los campos marcados con * son obligatorios para guardar. Algunos dependen del acceso al portal y de los datos fiscales seleccionados.</p>
                     <div class="form-grid">
 
                         <!-- PRIMER NOMBRE / NOMBRES -->
@@ -1291,7 +1303,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 
                         <!-- TIPO DE IDENTIFICACIÓN -->
                         <label>
-                            <span>Tipo de identificación</span>
+                            <span>Tipo de identificación *</span>
 
                             <select
                                 name="tipo_identificacion_id"
@@ -1341,7 +1353,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 
                         <!-- IDENTIFICACIÓN -->
                         <label>
-                            <span>Identificación</span>
+                            <span>Identificación *</span>
 
                             <input
                                 type="text"
@@ -1358,7 +1370,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 
                         <!-- CORREO -->
                         <label>
-                            <span>Correo electrónico</span>
+                            <span>Correo electrónico *</span>
 
                             <input
                                 type="email"
@@ -1518,6 +1530,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
 
 
                             <div data-fiscal-container>
+                                <p class="text-muted" data-invoice-requirements aria-live="polite"></p>
 
                                 <label class="owner-fiscal-same">
                                     <input
@@ -1556,7 +1569,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                             </option>
 
                                             <?php foreach (($identificationTypes ?? []) as $t): ?>
-                                                <option value="<?= (int) $t['id'] ?>">
+                                                <option value="<?= (int) $t['id'] ?>" data-code="<?= e($t['codigo']) ?>">
                                                     <?= e($t['nombre']) ?>
                                                 </option>
                                             <?php endforeach; ?>

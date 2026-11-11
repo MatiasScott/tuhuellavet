@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="<?= asset('css/global.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/layouts.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/searchable-selects.css') ?>">
     <link
         rel="icon"
         type="image/png"
@@ -45,6 +46,7 @@
     <main class="portal-shell page-content"><?= $content ?></main>
     <script src="<?= asset('js/global.js') ?>"></script>
     <script src="<?= asset('js/helpers.js') ?>"></script>
+    <script src="<?= asset('js/searchable-selects.js') ?>" defer></script>
 </body>
 
 </html>

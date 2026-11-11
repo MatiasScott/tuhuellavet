@@ -2,6 +2,9 @@
 
 function can(string $p): bool
 {
+    if (!\App\Services\EnvironmentModules::allows($p, active_environment())) {
+        return false;
+    }
     $user = auth_user();
 
     if (!$user) {

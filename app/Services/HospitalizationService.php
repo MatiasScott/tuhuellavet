@@ -88,6 +88,9 @@ class HospitalizationService
 
     public function addFluid(int $event, array $d, int $env, int $by): void
     {
+        if (!empty($d['formula_ejecucion_id']) && EnvironmentModules::isFarm(EnvironmentModules::find($env))) {
+            throw new \RuntimeException('Las formulas estan desactivadas en Hacienda.');
+        }
         Database::transaction(function (PDO $db) use ($event, $d, $env, $by) {
             $h = $this->hospital($db, $event, $env, true);
             $exec = !empty($d['formula_ejecucion_id']) ? (int)$d['formula_ejecucion_id'] : null;
@@ -219,6 +222,7 @@ class HospitalizationService
 
     private function sign(PDO $db, int $h, array $d, int $u, string $f): void
     {
+        $extra = PhysiologicalExam::values($d);
         $s = $db->prepare(
             'INSERT INTO hospitalizacion_signos
             (hospitalizacion_evento_id,registrado_por,fecha_hora,temperatura_c,frecuencia_cardiaca,frecuencia_respiratoria,tiempo_llenado_capilar_seg,condicion_corporal,nivel_dolor,apetito,hidratacion,vomitos,diarrea,tos,observaciones) 
@@ -241,6 +245,11 @@ class HospitalizationService
             'to' => !empty($d['tos']) ? 1 : 0,
             'o' => trim((string)($d['observaciones_signos'] ?? $d['observaciones'] ?? '')) ?: null
         ]);
+        if ($extra) {
+            $id = (int) $db->lastInsertId();
+            $set = implode(',', array_map(static fn (string $field): string => "$field=:$field", array_keys($extra)));
+            $db->prepare("UPDATE hospitalizacion_signos SET $set WHERE id=:id")->execute($extra + ['id' => $id]);
+        }
     }
 
     private function weight(PDO $db, int $a, float $kg, int $u, string $f): void
@@ -262,6 +271,11 @@ class HospitalizationService
 
     private function hasSigns(array $d): bool
     {
+        foreach (array_keys(PhysiologicalExam::FIELDS) as $field) {
+            if (isset($d[$field]) && $d[$field] !== '') {
+                return true;
+            }
+        }
         foreach (['temperatura_c', 'frecuencia_cardiaca', 'frecuencia_respiratoria', 'nivel_dolor', 'hidratacion', 'vomitos', 'diarrea', 'tos'] as $k) if (isset($d[$k]) && $d[$k] !== '') return true;
         return false;
     }

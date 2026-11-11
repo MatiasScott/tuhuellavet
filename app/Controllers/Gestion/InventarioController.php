@@ -21,7 +21,8 @@ class InventarioController extends Controller
         $inventory = new Inventory();
         $catalog = new Catalog();
 
-        $this->view('inventario/index', [
+        $farm = \App\Services\EnvironmentModules::isFarm(active_environment());
+        $this->view($farm ? 'hacienda/inventory' : 'inventario/index', [
             'title' => 'Inventario',
 
             'inventories' => $inventory->inventories($environmentId),
@@ -30,10 +31,10 @@ class InventarioController extends Controller
             'products' => $inventory->products(),
             'lots' => $inventory->lots($environmentId),
 
-            'movementTypes' => $catalog->inventoryMovementTypes(),
+            'movementTypes' => $farm ? array_values(array_filter($catalog->inventoryMovementTypes(), static fn (array $type): bool => in_array($type['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_ENTRADA', 'AJUSTE_SALIDA'], true))) : $catalog->inventoryMovementTypes(),
             'productCategories' => $catalog->productCategories(),
             'units' => $catalog->measurementUnits(),
-            'taxRates' => $catalog->taxRates(),
+            'taxRates' => $farm ? [] : $catalog->taxRates(),
 
             'success' => Session::pullFlash('success'),
             'error' => Session::pullFlash('error'),
@@ -135,6 +136,13 @@ class InventarioController extends Controller
         }
 
         try {
+            if (\App\Services\EnvironmentModules::isFarm(active_environment())) {
+                $types = (new Catalog())->inventoryMovementTypes();
+                $type = array_values(array_filter($types, static fn (array $row): bool => (int) $row['id'] === (int) $r->input('tipo_movimiento_id')));
+                if (!$type || !in_array($type[0]['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_ENTRADA', 'AJUSTE_SALIDA'], true) || $r->input('referencia_tipo') || $r->input('referencia_id')) {
+                    throw new \RuntimeException('Utilice movimientos operativos; los consumos se confirman desde Alimentacion.');
+                }
+            }
             (new InventoryService())->movement(
                 $r->all(),
                 active_environment_id(),

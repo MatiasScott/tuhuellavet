@@ -14,7 +14,7 @@ class NotificacionController extends Controller
         $s = Database::connection()
         ->prepare(
             '
-            SELECT n.*,tn.nombre AS tipo,cn.nombre AS canal 
+            SELECT n.*,tn.nombre AS tipo,cn.nombre AS canal,cn.codigo AS canal_codigo
             FROM notificaciones n 
             JOIN tipos_notificacion tn ON tn.id=n.tipo_notificacion_id 
             JOIN canales_notificacion cn ON cn.id=n.canal_id 
@@ -23,7 +23,14 @@ class NotificacionController extends Controller
             LIMIT 300
             ');
         $s->execute(['e' => active_environment_id()]);
-        $this->view('notificaciones/index', ['title' => 'Notificaciones', 'notifications' => $s->fetchAll()]);
+        $this->view('notificaciones/index', [
+            'title' => 'Notificaciones',
+            'notifications' => $s->fetchAll(),
+            'dailyCronEnabled' => filter_var(
+                $_ENV['NOTIFICATIONS_DAILY_CRON_ENABLED'] ?? false,
+                FILTER_VALIDATE_BOOL
+            ),
+        ]);
     }
 
     public function process(

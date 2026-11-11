@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="<?= asset('css/global.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/layouts.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/searchable-selects.css') ?>">
     <link
         rel="icon"
         type="image/png"
@@ -84,6 +85,11 @@
                     </a>
                 <?php endif; ?>
                 <div class="nav-label">Gestión</div>
+                <?php foreach (['lotes_animales' => ['lotes', 'Lotes animales', '🐄'], 'produccion' => ['produccion', 'Producción', '🥚'], 'genealogia' => ['genealogia', 'Genealogía', '🌳'], 'alimentacion' => ['alimentacion', 'Alimentación', '🌾']] as $module => [$path, $label, $icon]): ?>
+                    <?php if (can($module . '.ver')): ?>
+                        <a href="<?= url('/hacienda/' . $path) ?>" class="nav-item"><span aria-hidden="true"><?= e($icon) ?></span> <span><?= e($label) ?></span></a>
+                    <?php endif; ?>
+                <?php endforeach; ?>
                 <?php if (can('formulas.ver')): ?>
                     <a href="<?= url('/formulas') ?>" class="nav-item">
                         🧮 <span>Fórmulas</span>
@@ -186,6 +192,7 @@
     </div>
     <script src="<?= asset('js/global.js') ?>"></script>
     <script src="<?= asset('js/helpers.js') ?>"></script>
+    <script src="<?= asset('js/searchable-selects.js') ?>" defer></script>
 </body>
 
 </html>

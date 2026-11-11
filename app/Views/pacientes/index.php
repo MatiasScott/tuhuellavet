@@ -4,6 +4,14 @@
         <h1>Pacientes</h1>
         <p>Expediente y seguimiento de animales.</p>
     </div>
+    <?php if (\App\Services\EnvironmentModules::isFarm(active_environment())): ?>
+        <label><span>Tipo de registro</span>
+            <select aria-label="Tipo de registro" onchange="if(this.value) location.href=this.value">
+                <option value="">Animal individual</option>
+                <?php if (can('lotes_animales.ver')): ?><option value="<?= e(url('/hacienda/lotes')) ?>">Por lotes</option><?php endif; ?>
+            </select>
+        </label>
+    <?php endif; ?>
     <?php if (can('pacientes.crear')): ?>
         <button class="btn btn-primary" data-modal-open="patient-create">＋ Nuevo paciente</button>
     <?php endif; ?>
@@ -44,7 +52,12 @@
         <form method="POST" action="<?= url('/pacientes') ?>" enctype="multipart/form-data">
             <?= csrf_field() ?>
             <div class="modal-body">
+                <p class="muted">Registra la especie y, en Hacienda, el método de identificación y el origen.</p>
                 <div class="form-grid">
+                    <?php if (\App\Services\EnvironmentModules::isFarm(active_environment())): ?>
+                        <label><span>Método de identificación *</span><input name="metodo_identificacion" maxlength="150" required placeholder="Arete, microchip, marca…"></label>
+                        <label><span>Origen *</span><input name="origen" maxlength="150" required></label>
+                    <?php endif; ?>
                     <label>
                         <span>Nombre</span>
                         <input name="nombre">
@@ -139,6 +152,15 @@
         if (!speciesSelect || !breedSelect) {
             return;
         }
+
+        speciesSelect.addEventListener('invalid', function() {
+            if (speciesSelect.validity.valueMissing) {
+                speciesSelect.setCustomValidity('Selecciona la especie del paciente.');
+            }
+        });
+        speciesSelect.addEventListener('change', function() {
+            speciesSelect.setCustomValidity('');
+        });
 
         // Guardar todas las razas antes de filtrar.
         const allBreeds = Array.from(breedSelect.options)

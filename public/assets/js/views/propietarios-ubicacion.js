@@ -185,6 +185,7 @@
       }
 
       province.value = savedProvince;
+      window.SearchableSelects?.sync(province);
 
       if (!province.value) {
         return;
@@ -197,6 +198,7 @@
       }
 
       canton.value = savedCanton;
+      window.SearchableSelects?.sync(canton);
 
       if (!canton.value) {
         return;
@@ -206,6 +208,7 @@
 
       if (savedParish) {
         parish.value = savedParish;
+        window.SearchableSelects?.sync(parish);
       }
     }
 

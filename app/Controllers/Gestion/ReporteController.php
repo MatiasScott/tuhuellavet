@@ -17,6 +17,9 @@ class ReporteController extends Controller
         $e = active_environment_id();
         $stats = [];
         foreach (['Pacientes' => 'SELECT COUNT(*) FROM animales WHERE entorno_id=:e AND activo=1 AND deleted_at IS NULL', 'Consultas' => 'SELECT COUNT(*) FROM eventos_clinicos ec JOIN animales a ON a.id=ec.animal_id JOIN tipos_evento_clinico t ON t.id=ec.tipo_evento_id WHERE a.entorno_id=:e AND t.codigo="CONSULTA_EXTERNA"', 'Hospitalizaciones' => 'SELECT COUNT(*) FROM hospitalizaciones h JOIN eventos_clinicos ec ON ec.id=h.evento_clinico_id JOIN animales a ON a.id=ec.animal_id WHERE a.entorno_id=:e', 'Ventas' => 'SELECT COUNT(*) FROM ventas WHERE entorno_id=:e'] as $k => $sql) {
+            if ($k === 'Ventas' && \App\Services\EnvironmentModules::isFarm(active_environment())) {
+                continue;
+            }
             $s = $db->prepare($sql);
             $s->execute(['e' => $e]);
             $stats[$k] = (int)$s->fetchColumn();

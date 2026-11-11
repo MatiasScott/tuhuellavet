@@ -15,6 +15,14 @@ class Inventory extends Model
 
     public function products(): array
     {
+        if (\App\Services\EnvironmentModules::isFarm(active_environment())) {
+            $stmt = $this->db->prepare('SELECT p.*,u.simbolo AS unidad,u.nombre AS unidad_nombre,c.nombre AS categoria_nombre
+                FROM productos p JOIN unidades_medida u ON u.id=p.unidad_base_id
+                LEFT JOIN categorias_producto c ON c.id=p.categoria_producto_id
+                WHERE p.entorno_id=? AND p.activo=1 AND p.deleted_at IS NULL ORDER BY p.nombre');
+            $stmt->execute([active_environment_id()]);
+            return $stmt->fetchAll();
+        }
         $sql = '
         SELECT
             p.id,
@@ -62,6 +70,7 @@ class Inventory extends Model
             ON i.id = it.impuesto_id
 
         WHERE p.activo = 1
+          AND p.entorno_id IS NULL
           AND p.deleted_at IS NULL
 
         ORDER BY p.nombre
@@ -128,6 +137,11 @@ class Inventory extends Model
 
     public function lots(int $environmentId): array
     {
+        if (\App\Services\EnvironmentModules::isFarm(\App\Services\EnvironmentModules::find($environmentId))) {
+            $stmt = $this->db->prepare('SELECT lp.id,lp.producto_id,lp.numero_lote,lp.fecha_vencimiento FROM lotes_producto lp JOIN productos p ON p.id=lp.producto_id WHERE p.entorno_id=? AND p.activo=1 AND p.deleted_at IS NULL ORDER BY lp.numero_lote');
+            $stmt->execute([$environmentId]);
+            return $stmt->fetchAll();
+        }
         $sql = '
         SELECT
             lp.id,
@@ -139,6 +153,7 @@ class Inventory extends Model
             ON p.id = lp.producto_id
         WHERE p.activo = 1
           AND p.deleted_at IS NULL
+          AND p.entorno_id IS NULL
         ORDER BY
             lp.fecha_vencimiento,
             lp.numero_lote

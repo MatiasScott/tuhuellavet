@@ -262,11 +262,17 @@ class ConsultationService
     }
 
 
-    private function createClinicalExam(
+    public function createClinicalExam(
         PDO $db,
         int $eventId,
         array $data
     ): void {
+        $extra = PhysiologicalExam::values($data);
+        foreach (['temperatura_c', 'tiempo_llenado_capilar_seg'] as $field) {
+            if (isset($data[$field]) && $data[$field] !== '' && (!is_scalar($data[$field]) || !preg_match('/^\d{1,3}(?:\.\d{1,2})?$/D', (string) $data[$field]))) {
+                throw new RuntimeException('Constante numerica no valida: ' . $field . '.');
+            }
+        }
         $stmt = $db->prepare(
             '
             INSERT INTO examenes_clinicos_generales
@@ -382,6 +388,11 @@ class ConsultationService
             )
                 ?: null,
         ]);
+        if ($extra) {
+            $set = implode(',', array_map(static fn (string $field): string => "$field=:$field", array_keys($extra)));
+            $stmt = $db->prepare("UPDATE examenes_clinicos_generales SET $set WHERE evento_clinico_id=:evento");
+            $stmt->execute($extra + ['evento' => $eventId]);
+        }
     }
 
 
@@ -619,7 +630,7 @@ class ConsultationService
         $textFields = ['alimentacion', 'historial_reproductivo', 'ganglios_linfaticos', 'condicion_corporal', 'observaciones'];
         $numberFields = ['frecuencia_cardiaca', 'frecuencia_respiratoria', 'temperatura_c', 'tiempo_llenado_capilar_seg'];
         $booleanFields = ['vomitos', 'diarrea', 'tos'];
-        $changes = [];
+        $changes = PhysiologicalExam::values($data);
         foreach ($textFields as $field) {
             $input = $field === 'observaciones' ? 'examen_observaciones' : $field;
             if (array_key_exists($input, $data)) {

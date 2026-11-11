@@ -68,6 +68,7 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                     <th>FR</th>
                     <th>Dolor</th>
                     <th>Hidratación</th>
+                    <th>Constantes fisiológicas</th>
                 </tr>
             </thead>
             <tbody><?php foreach ($signs as $s): ?><tr>
@@ -77,6 +78,7 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <td><?= e($s['frecuencia_respiratoria'] ?? '—') ?></td>
                         <td><?= e($s['nivel_dolor'] ?? '—') ?></td>
                         <td><?= e($s['hidratacion'] ?? '—') ?></td>
+                        <td><?php $examValues = $s; require dirname(__DIR__) . '/consultas/physiological-summary.php'; ?></td>
                     </tr><?php endforeach; ?></tbody>
         </table>
     </div>
@@ -345,7 +347,7 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <input type="number" step=".001" name="peso_kg">
                     </label>
                     <label>
-                        <span>Temperatura</span>
+                        <span>Temperatura pulmonar / cloacal °C</span>
                         <input type="number" step=".01" name="temperatura_c">
                     </label>
                     <label>
@@ -368,6 +370,7 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <span>Hidratación</span>
                         <input name="hidratacion">
                     </label>
+                    <?php $examValues = []; require dirname(__DIR__) . '/consultas/physiological-fields.php'; ?>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-primary">Guardar</button>
@@ -440,6 +443,7 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <span>Velocidad ml/h</span>
                         <input type="number" step=".001" name="velocidad_ml_hora">
                     </label>
+                    <?php if (can('formulas.calcular')): ?>
                     <div class="field-full formula-fluid-block">
                         <span class="field-label">Fórmula médica</span>
                         <div class="inline-actions">
@@ -463,6 +467,7 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                             <button type="button" class="btn btn-primary" id="fluid-formula-calculate">Calcular</button>
                         </div>
                     </div>
+                    <?php endif; ?>
                     <label class="field-full">
                         <span>Observaciones</span>
                         <textarea name="observaciones"></textarea>

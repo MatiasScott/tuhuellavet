@@ -22,6 +22,7 @@ use App\Controllers\MediaController;
 use App\Controllers\Auth\PublicController;
 
 /** @var \App\Core\Router $router */
+require __DIR__ . '/hacienda.php';
 
 /*
 |--------------------------------------------------------------------------

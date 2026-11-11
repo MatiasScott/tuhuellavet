@@ -82,7 +82,7 @@
                         <textarea name="antecedentes"></textarea>
                     </label>
                     <label>
-                        <span>Temperatura °C</span>
+                        <span>Temperatura pulmonar / cloacal °C</span>
                         <input type="number" step=".01" name="temperatura_c">
                     </label>
                     <label>
@@ -101,6 +101,7 @@
                         <span>Peso kg</span>
                         <input type="number" step=".001" name="peso_kg">
                     </label>
+                    <?php $examValues = []; require __DIR__ . '/physiological-fields.php'; ?>
                     <label>
                         <span>Condición corporal</span>
                         <input name="condicion_corporal">

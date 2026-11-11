@@ -36,6 +36,8 @@ class ClinicalHistory extends Model
                    CONCAT(u.nombres," ",u.apellidos) AS responsable_nombre,
                    ce.motivo_consulta,ce.anamnesis,ce.antecedentes,ce.recomendaciones,
                    ecg.temperatura_c,ecg.frecuencia_cardiaca,ecg.frecuencia_respiratoria,
+                   ecg.sonido,ecg.ritmo_cardiaco,ecg.mucosas,ecg.llenado_capilar,
+                   ecg.retorno_pliegue_cutaneo,ecg.deshidratacion,ecg.presion_arterial,ecg.saturacion_oxigeno,
                    vac.id AS vacunacion_id,vac.dosis AS vacuna_dosis,vac.lote AS vacuna_lote,vac.fecha_revacunacion,
                    v.nombre AS vacuna_nombre,uv.simbolo AS vacuna_unidad,
                    desp.id AS desparasitacion_id,desp.dosis AS desparasitacion_dosis,desp.proxima_desparasitacion,

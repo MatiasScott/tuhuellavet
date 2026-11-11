@@ -89,6 +89,10 @@ $hasWeight = isset($patient['peso_actual'])
 ===================================================== -->
 
 <div class="metric-grid">
+    <?php if (\App\Services\EnvironmentModules::isFarm(active_environment())): ?>
+        <div class="metric-card"><span>Identificación</span><strong><?= e($patient['metodo_identificacion'] ?? 'Pendiente') ?></strong></div>
+        <div class="metric-card"><span>Origen</span><strong><?= e($patient['origen'] ?? 'Pendiente') ?></strong></div>
+    <?php endif; ?>
     <div class="metric-card">
         <span>Peso actual</span>
         <strong>
@@ -218,6 +222,7 @@ $hasWeight = isset($patient['peso_actual'])
                     <p>
                         <?= e($event['titulo'] ?? '') ?>
                     </p>
+                    <?php $examValues = $event; require dirname(__DIR__) . '/consultas/physiological-summary.php'; ?>
                     <?php if (
                         ($event['tipo_codigo'] ?? '')
                         === 'HOSPITALIZACION'
@@ -263,6 +268,10 @@ $hasWeight = isset($patient['peso_actual'])
                     value="PUT">
                 <div class="modal-body">
                     <div class="form-grid">
+                        <?php if (\App\Services\EnvironmentModules::isFarm(active_environment())): ?>
+                            <label><span>Método de identificación *</span><input name="metodo_identificacion" maxlength="150" required value="<?= e($patient['metodo_identificacion'] ?? '') ?>"></label>
+                            <label><span>Origen *</span><input name="origen" maxlength="150" required value="<?= e($patient['origen'] ?? '') ?>"></label>
+                        <?php endif; ?>
                         <!-- Nombre -->
                         <label>
                             <span>Nombre</span>

@@ -29,6 +29,8 @@ class Consultation extends Model
                 eg.frecuencia_cardiaca,
                 eg.frecuencia_respiratoria,
                 eg.temperatura_c,
+                eg.sonido,eg.ritmo_cardiaco,eg.mucosas,eg.llenado_capilar,
+                eg.retorno_pliegue_cutaneo,eg.deshidratacion,eg.presion_arterial,eg.saturacion_oxigeno,
                 eg.tiempo_llenado_capilar_seg,
                 eg.ganglios_linfaticos,
                 eg.condicion_corporal,

@@ -69,6 +69,7 @@ class InventoryService
         int $environmentId,
         int $createdBy
     ): int {
+        $this->assertFarmCommercialFields($data, $environmentId);
         return Database::transaction(
             function (PDO $db) use (
                 $data,
@@ -400,12 +401,14 @@ class InventoryService
                 SELECT id
                 FROM productos
                 WHERE codigo = :codigo
+                  AND catalogo_entorno_id = :catalogo
                 LIMIT 1
                 '
                 );
 
                 $stmt->execute([
                     'codigo' => $code,
+                    'catalogo' => EnvironmentModules::isFarm(EnvironmentModules::find($environmentId)) ? $environmentId : 0,
                 ]);
 
                 if ($stmt->fetchColumn()) {
@@ -566,6 +569,7 @@ class InventoryService
                     '
                     INSERT INTO productos
                     (
+                        entorno_id,
                         categoria_producto_id,
                         codigo,
                         nombre,
@@ -585,6 +589,7 @@ class InventoryService
                     )
                     VALUES
                     (
+                        :entorno_producto,
                         :categoria,
                         :codigo,
                         :nombre,
@@ -606,6 +611,7 @@ class InventoryService
                 );
 
                 $stmt->execute([
+                    'entorno_producto' => EnvironmentModules::isFarm(EnvironmentModules::find($environmentId)) ? $environmentId : null,
                     'categoria' =>
                     $categoryId,
 
@@ -945,6 +951,8 @@ class InventoryService
         int $environmentId,
         int $updatedBy
     ): void {
+        $this->assertProductScope($productId, $environmentId);
+        $this->assertFarmCommercialFields($data, $environmentId);
         if ($productId <= 0) {
             throw new RuntimeException(
                 'El producto seleccionado no es válido.'
@@ -1153,11 +1161,11 @@ class InventoryService
             }
         }
 
-        $db = Database::connection();
-
-        $db->beginTransaction();
-
-        try {
+        Database::transaction(function (PDO $db) use (
+            $productId, $environmentId, $updatedBy, $categoryId, $code, $name,
+            $description, $unitId, $controlsLot, $controlsExpiration, $salePrice,
+            $purchaseCost, $priceIncludesTax, $taxRateId, $minimumStock, $maximumStock
+        ): void {
             /*
          * ==========================================
          * PRODUCTO ACTUAL
@@ -1243,6 +1251,7 @@ class InventoryService
             SELECT id
             FROM productos
             WHERE codigo = :codigo
+              AND catalogo_entorno_id = :catalogo
               AND id <> :id
               AND deleted_at IS NULL
             LIMIT 1
@@ -1251,6 +1260,7 @@ class InventoryService
 
             $stmt->execute([
                 'codigo' => $code,
+                'catalogo' => EnvironmentModules::isFarm(EnvironmentModules::find($environmentId)) ? $environmentId : 0,
                 'id' => $productId,
             ]);
 
@@ -1491,14 +1501,7 @@ class InventoryService
                 ]
             );
 
-            $db->commit();
-        } catch (Throwable $e) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
-
-            throw $e;
-        }
+        });
     }
 
     public function movement(
@@ -1556,6 +1559,7 @@ class InventoryService
                     $db,
                     $productId
                 );
+                $this->assertProductScope($productId, $environmentId);
 
                 $movementType =
                     $this->movementType(
@@ -1838,6 +1842,7 @@ class InventoryService
               AND activo = 1
               AND deleted_at IS NULL
             LIMIT 1
+            FOR UPDATE
             '
         );
 
@@ -1854,6 +1859,35 @@ class InventoryService
         }
 
         return $product;
+    }
+
+    public function assertProductScope(int $productId, int $environmentId): void
+    {
+        if ($productId <= 0) {
+            throw new RuntimeException('El producto es obligatorio.');
+        }
+        $stmt = Database::connection()->prepare('SELECT entorno_id FROM productos WHERE id=? AND deleted_at IS NULL');
+        $stmt->execute([$productId]);
+        $row = $stmt->fetch();
+        $farm = EnvironmentModules::isFarm(EnvironmentModules::find($environmentId));
+        if (!$row) {
+            throw new RuntimeException('Producto no válido.');
+        }
+        if ($farm ? (int) $row['entorno_id'] !== $environmentId : $row['entorno_id'] !== null && (int) $row['entorno_id'] !== $environmentId) {
+            throw new RuntimeException('El producto no pertenece al catalogo de este entorno.');
+        }
+    }
+
+    private function assertFarmCommercialFields(array $data, int $environmentId): void
+    {
+        if (!EnvironmentModules::isFarm(EnvironmentModules::find($environmentId))) {
+            return;
+        }
+        foreach (['precio_venta', 'impuesto_tarifa_id', 'precio_incluye_impuesto'] as $field) {
+            if (!empty($data[$field])) {
+                throw new RuntimeException('Hacienda administra insumos sin datos de venta o impuestos comerciales.');
+            }
+        }
     }
 
     private function movementType(
@@ -2017,6 +2051,7 @@ class InventoryService
         int $environmentId,
         int $createdBy
     ): int {
+        $this->assertProductScope((int) ($data['producto_id'] ?? 0), $environmentId);
         return Database::transaction(
             function (PDO $db) use (
                 $data,
@@ -2254,6 +2289,7 @@ class InventoryService
         int $environmentId,
         int $createdBy
     ): void {
+        $this->assertProductScope($productId, $environmentId);
         Database::transaction(
             function (PDO $db) use (
                 $inventoryId,
@@ -3310,6 +3346,9 @@ class InventoryService
                     throw new RuntimeException(
                         'Movimiento de inventario no encontrado.'
                     );
+                }
+                if ($original['referencia_tipo'] === 'ALIMENTACION') {
+                    throw new RuntimeException('El consumo de alimentacion no puede revertirse como movimiento manual.');
                 }
 
                 /*

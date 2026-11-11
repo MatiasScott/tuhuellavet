@@ -20,6 +20,7 @@ class PatientService
             $env,
             $by
         ) {
+            $identification = $this->identification($d, $env);
             // Validar especie y raza.
             $speciesId = (int) ($d['especie_id'] ?? 0);
 
@@ -42,6 +43,8 @@ class PatientService
             $stmt = $db->prepare(
                 'INSERT INTO animales (
                     entorno_id,
+                    metodo_identificacion,
+                    origen,
                     propietario_entorno_id,
                     especie_id,
                     raza_id,
@@ -57,6 +60,8 @@ class PatientService
                     activo
                 ) VALUES (
                     :e,
+                    :metodo_identificacion,
+                    :origen,
                     :p,
                     :es,
                     :r,
@@ -74,6 +79,8 @@ class PatientService
             );
 
             $stmt->execute([
+                'metodo_identificacion' => $identification['metodo_identificacion'],
+                'origen' => $identification['origen'],
                 'e'  => $env,
                 'p'  => $ownerId,
                 'es' => $speciesId,
@@ -206,6 +213,17 @@ class PatientService
         int $env,
         int $by
     ): void {
+        Database::transaction(function (PDO $db) use ($id, $d, $env, $by): void {
+            if (EnvironmentModules::isFarm(EnvironmentModules::find($env))) {
+                $stmt = $db->prepare('SELECT id FROM entornos WHERE id=? FOR UPDATE');
+                $stmt->execute([$env]);
+            }
+            $this->updateRecord($id, $d, $env, $by);
+        });
+    }
+
+    private function updateRecord(int $id, array $d, int $env, int $by): void
+    {
         $db = Database::connection();
 
         // 1. Buscar el paciente únicamente en el entorno activo.
@@ -230,6 +248,7 @@ class PatientService
                 'Paciente no encontrado.'
             );
         }
+        $identification = $this->identification($d + $old, $env);
 
         // 2. Validar propietario.
         $ownerId = !empty($d['propietario_entorno_id'])
@@ -244,6 +263,23 @@ class PatientService
         );
 
         $this->validateSpecies($db, $speciesId);
+
+        if (EnvironmentModules::isFarm(EnvironmentModules::find($env))) {
+            $stmt = $db->prepare('SELECT paciente_id,padre_id,madre_id FROM genealogia WHERE entorno_id=? AND (paciente_id=? OR padre_id=? OR madre_id=?)');
+            $stmt->execute([$env, $id, $id, $id]);
+            $relations = $stmt->fetchAll();
+            if ($relations && $speciesId !== (int) $old['especie_id']) {
+                throw new RuntimeException('Revise el registro genealogico antes de cambiar la especie.');
+            }
+            $sex = $db->prepare('SELECT codigo FROM sexos_animales WHERE id=?');
+            $sex->execute([!empty($d['sexo_id']) ? (int) $d['sexo_id'] : null]);
+            $sexCode = $sex->fetchColumn();
+            foreach ($relations as $relation) {
+                if (((int) $relation['padre_id'] === $id && $sexCode !== 'MACHO') || ((int) $relation['madre_id'] === $id && $sexCode !== 'HEMBRA')) {
+                    throw new RuntimeException('El sexo debe ser compatible con el parentesco genealogico registrado.');
+                }
+            }
+        }
 
         // 4. Validar raza y su relación con la especie.
         $breedId = !empty($d['raza_id'])
@@ -263,6 +299,8 @@ class PatientService
             'UPDATE animales
              SET
                 propietario_entorno_id = :p,
+                metodo_identificacion = :metodo_identificacion,
+                origen = :origen,
                 especie_id = :es,
                 raza_id = :r,
                 sexo_id = :s,
@@ -280,6 +318,8 @@ class PatientService
         );
 
         $updateStmt->execute([
+            'metodo_identificacion' => $identification['metodo_identificacion'],
+            'origen' => $identification['origen'],
             'p'   => $ownerId,
             'es'  => $speciesId,
             'r'   => $breedId,
@@ -325,6 +365,24 @@ class PatientService
             $old,
             $d
         );
+    }
+
+    private function identification(array $data, int $environmentId): array
+    {
+        $required = EnvironmentModules::isFarm(EnvironmentModules::find($environmentId));
+        $values = [];
+        foreach (['metodo_identificacion', 'origen'] as $field) {
+            $value = $data[$field] ?? '';
+            if (!is_scalar($value) && $value !== null) {
+                throw new RuntimeException('Valor no valido para ' . $field . '.');
+            }
+            $value = trim((string) $value);
+            if (($required && $value === '') || mb_strlen($value) > 150) {
+                throw new RuntimeException('Identificacion y origen son obligatorios en Hacienda (maximo 150 caracteres).');
+            }
+            $values[$field] = $value === '' ? null : $value;
+        }
+        return $values;
     }
 
     public function addWeight(
