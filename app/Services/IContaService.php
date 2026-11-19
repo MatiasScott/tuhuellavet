@@ -753,6 +753,11 @@ class IContaService
         $this->buildInvoicePayload($db, $saleId, $fiscalDocumentId);
     }
 
+    public function validateInvoiceSaleDetails(PDO $db, int $saleId): void
+    {
+        $this->buildInvoiceDetails($this->invoiceSaleDetails($db, $saleId));
+    }
+
     private function buildPersonSavePayload(
         array $fiscal,
         int $personId = 0

@@ -187,6 +187,29 @@ La documentación de iConta ofrece ejemplos para [guardar personas](https://apic
 y [generar facturas](https://apiconta.apidog.io/generar-factura-27818612e0),
 pero no indica claramente la obligatoriedad de cada campo en esos ejemplos.
 
+### Diagnóstico de una venta bloqueada (solo lectura)
+
+Desde la raíz del proyecto en el servidor, ejecutar:
+
+```console
+php scripts/diagnose_iconta_invoice.php VET-177
+php scripts/diagnose_iconta_invoice.php VET-177 ID_VENTA
+```
+
+El primer comando lista los productos con ese código por entorno y las últimas
+20 ventas que lo contienen. En el segundo, sustituir `ID_VENTA` por el `id`
+numérico mostrado en la lista, no por el número comercial `V-...`.
+El informe compara la configuración actual del producto con los detalles
+guardados de la venta y muestra totales, pagos vigentes y evidencia local de
+envío. Ejecuta la validación fiscal local de los detalles incluso si aún no
+existe documento fiscal. Si existe, también valida el payload completo sin
+contactar con iConta. Si no existe, lo indica sin crear uno.
+Todo se consulta en una transacción de solo lectura: no emite, reintenta,
+anula ni cambia productos, ventas o pagos. No imprime datos personales del
+cliente, credenciales ni payloads. La ausencia de evidencia local no confirma
+que no exista un comprobante remoto; comprobarlo en iConta antes de recuperar
+una factura.
+
 ## Notificaciones
 
 Los procedimientos clínicos únicamente encolan notificaciones. El envío se procesa fuera del `POST` para que guardar una vacuna/desparasitación no dependa de servicios externos.

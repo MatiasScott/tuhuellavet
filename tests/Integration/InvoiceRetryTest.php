@@ -218,6 +218,58 @@ class InvoiceRetryTest extends TestCase
         $this->assertFalse(BillingService::canRetryInvoice([]));
     }
 
+    #[DataProvider('includedTaxDiagnostics')]
+    public function testReadOnlyDetailDiagnosticUsesStoredFiscalValues(
+        int $quantity,
+        float $base,
+        float $tax,
+        float $total,
+        ?string $expectedError
+    ): void {
+        $detail = [
+            'codigo_item' => 'VET-177',
+            'descripcion' => 'Producto de prueba',
+            'cantidad' => $quantity,
+            'precio_unitario' => 0.63,
+            'precio_incluye_impuesto' => 1,
+            'impuesto_codigo' => 'IVA',
+            'impuesto_porcentaje' => 15,
+            'base_imponible' => $base,
+            'impuesto' => $tax,
+            'total' => $total,
+            'descuento' => 0,
+            'subtotal' => $total,
+        ];
+        $statement = $this->createMock(PDOStatement::class);
+        $statement->expects($this->once())->method('execute')->with(['venta' => 42]);
+        $statement->method('fetchAll')->willReturn([$detail]);
+        $db = $this->createMock(PDO::class);
+        $db->expects($this->once())->method('prepare')
+            ->with($this->stringContains('FROM venta_detalles vd'))
+            ->willReturn($statement);
+        $db->expects($this->never())->method('exec');
+        $db->expects($this->never())->method('beginTransaction');
+
+        if ($expectedError !== null) {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage($expectedError);
+        }
+
+        (new IContaService())->validateInvoiceSaleDetails($db, 42);
+    }
+
+    public static function includedTaxDiagnostics(): array
+    {
+        return [
+            'una unidad conciliable' => [1, 0.55, 0.08, 0.63, null],
+            'dos unidades con diferencia de redondeo' => [
+                2, 1.10, 0.16, 1.26,
+                'Tu Huella Vet: base 1.10, IVA 0.16, total 1.26. '
+                    . 'iConta calcularía: base 1.10, IVA 0.17, total 1.27.',
+            ],
+        ];
+    }
+
     #[DataProvider('viewRetryCases')]
     public function testViewShowsRetryOnlyWhenAllowed(
         array $changes,
