@@ -631,6 +631,7 @@ document.addEventListener("DOMContentLoaded", function () {
       updateEditMaximumStock();
       updateEditLotControls();
       updateEditTaxState();
+      window.SearchableSelects?.sync(editForm);
 
       openProductEditModal();
     });

@@ -210,6 +210,11 @@ cliente, credenciales ni payloads. La ausencia de evidencia local no confirma
 que no exista un comprobante remoto; comprobarlo en iConta antes de recuperar
 una factura.
 
+Al editar un producto, los selectores de búsqueda se sincronizan después de
+cargar sus valores guardados, incluido el impuesto. El precio con IVA incluido
+es independiente de la tarifa: si el precio publicado es final, debe estar
+marcada la opción «El precio de venta incluye impuesto».
+
 ## Notificaciones
 
 Los procedimientos clínicos únicamente encolan notificaciones. El envío se procesa fuera del `POST` para que guardar una vacuna/desparasitación no dependa de servicios externos.
