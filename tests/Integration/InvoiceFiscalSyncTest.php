@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use RuntimeException;
+use ReflectionMethod;
 
 final class InvoiceFiscalSyncTest extends TestCase
 {
@@ -137,5 +138,195 @@ final class InvoiceFiscalSyncTest extends TestCase
         self::assertStringContainsString('FROM iconta_documentos idoc', $sql);
         self::assertStringContainsString('WHERE idoc.id = :id', $sql);
         return $statement;
+    }
+
+    public function testAuditRemovesBinaryContent(): void
+    {
+        $service = $this->service();
+
+        $method = new ReflectionMethod(
+            $service,
+            'buildSriAuditResponse'
+        );
+
+        $pdf = '%PDF-contenido-de-prueba';
+        $xml = '<factura>Prueba</factura>';
+
+        $response = [
+            'EstadoFactura' => 'AUTORIZADO',
+            'Autorizacion' => '123456789',
+            'observacion' => 'Comprobante autorizado',
+            'factura_ride' => [
+                'archivo' => base64_encode($pdf),
+            ],
+            'factura_xml' => [
+                'archivo' => base64_encode($xml),
+            ],
+            'campo_desconocido' => [
+                'archivo' => base64_encode($pdf),
+            ],
+        ];
+
+        $audit = $method->invoke(
+            $service,
+            $response,
+            10,
+            11,
+            [
+                'nombre_archivo' => 'RIDE.pdf',
+                'contenido' => $pdf,
+            ],
+            [
+                'nombre_archivo' => 'FACTURA.xml',
+                'contenido' => $xml,
+            ]
+        );
+
+        $this->assertSame(
+            'AUTORIZADO',
+            $audit['EstadoFactura']
+        );
+
+        $this->assertSame(
+            '123456789',
+            $audit['Autorizacion']
+        );
+
+        $this->assertArrayNotHasKey(
+            'factura_ride',
+            $audit
+        );
+
+        $this->assertArrayNotHasKey(
+            'factura_xml',
+            $audit
+        );
+
+        $this->assertArrayNotHasKey(
+            'campo_desconocido',
+            $audit
+        );
+
+        $json = json_encode(
+            $audit,
+            JSON_THROW_ON_ERROR
+        );
+
+        $this->assertStringNotContainsString(
+            base64_encode($pdf),
+            $json
+        );
+
+        $this->assertStringNotContainsString(
+            base64_encode($xml),
+            $json
+        );
+
+        $this->assertSame(
+            10,
+            $audit['archivos_fiscales']['ride']['archivo_id']
+        );
+
+        $this->assertSame(
+            strlen($pdf),
+            $audit['archivos_fiscales']['ride']['tamano_bytes']
+        );
+
+        $this->assertSame(
+            hash('sha256', $pdf),
+            $audit['archivos_fiscales']['ride']['hash_sha256']
+        );
+
+        $this->assertSame(
+            hash('sha256', $xml),
+            $audit['archivos_fiscales']['xml']['hash_sha256']
+        );
+    }
+
+    public function testAuditPreservesExistingFileReferences(): void
+    {
+        $service = $this->service();
+
+        $method = new ReflectionMethod(
+            $service,
+            'buildSriAuditResponse'
+        );
+
+        $audit = $method->invoke(
+            $service,
+            ['EstadoFactura' => 'AUTORIZADO'],
+            20,
+            21,
+            null,
+            null
+        );
+
+        $this->assertSame(
+            20,
+            $audit['archivos_fiscales']['ride']['archivo_id']
+        );
+
+        $this->assertSame(
+            21,
+            $audit['archivos_fiscales']['xml']['archivo_id']
+        );
+
+        $this->assertFalse(
+            $audit['archivos_fiscales']['ride']['recuperado_en_consulta']
+        );
+
+        $this->assertFalse(
+            $audit['archivos_fiscales']['xml']['recuperado_en_consulta']
+        );
+
+        $this->assertArrayNotHasKey(
+            'hash_sha256',
+            $audit['archivos_fiscales']['ride']
+        );
+    }
+
+    public function testAuditPreservesExternalCancellation(): void
+    {
+        $service = $this->service();
+
+        $method = new ReflectionMethod(
+            $service,
+            'buildSriAuditResponse'
+        );
+
+        $audit = $method->invoke(
+            $service,
+            [
+                'EstadoFactura' => 'ANULADO',
+                'observacion' => 'Anulación externa en el SRI',
+                'Autorizacion' => null,
+            ],
+            null,
+            null,
+            null,
+            null
+        );
+
+        $this->assertSame(
+            'ANULADO',
+            $audit['EstadoFactura']
+        );
+
+        $this->assertSame(
+            'Anulación externa en el SRI',
+            $audit['observacion']
+        );
+
+        $this->assertNull(
+            $audit['Autorizacion']
+        );
+
+        $this->assertNull(
+            $audit['archivos_fiscales']['ride']['archivo_id']
+        );
+
+        $this->assertNull(
+            $audit['archivos_fiscales']['xml']['archivo_id']
+        );
     }
 }

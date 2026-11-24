@@ -4090,7 +4090,13 @@ class IContaService
                     $status,
                     '/api/external/factura/estado',
                     $requestPayload,
-                    $response,
+                    $this->buildSriAuditResponse(
+                        $response,
+                        $pdfId,
+                        $xmlId,
+                        $rideData,
+                        $xmlData
+                    ),
                     true,
                     null
                 );
@@ -4371,6 +4377,97 @@ class IContaService
             'nombre_archivo' => $fileName,
             'contenido' => $content,
         ];
+    }
+
+    /**
+     * Construye una respuesta de auditoría fiscal sin almacenar
+     * nuevamente el contenido binario de los archivos.
+     */
+    private function buildSriAuditResponse(
+        array $response,
+        ?int $pdfId,
+        ?int $xmlId,
+        ?array $rideData,
+        ?array $xmlData
+    ): array {
+
+        $audit = [];
+
+        $allowedFields = [
+            'estado_factura',
+            'EstadoFactura',
+            'estadoFactura',
+            'observacion',
+            'autorizacion',
+            'Autorizacion',
+            'sF_ExisteError',
+            'sF_Error',
+            'SF_ExisteError',
+            'SF_Error',
+        ];
+
+        foreach ($allowedFields as $field) {
+
+            if (
+                array_key_exists($field, $response)
+                && (
+                    is_scalar($response[$field])
+                    || $response[$field] === null
+                )
+            ) {
+                $audit[$field] = $response[$field];
+            }
+        }
+
+        $audit['archivos_fiscales'] = [
+            'ride' => $this->buildSriFileAudit(
+                $pdfId,
+                $rideData
+            ),
+            'xml' => $this->buildSriFileAudit(
+                $xmlId,
+                $xmlData
+            ),
+        ];
+
+        $audit['version_auditoria'] = 1;
+
+        return $audit;
+    }
+
+    /**
+     * Registra metadatos del archivo sin duplicar su contenido.
+     */
+    private function buildSriFileAudit(
+        ?int $fileId,
+        ?array $fileData
+    ): array {
+
+        $metadata = [
+            'archivo_id' => $fileId,
+            'recuperado_en_consulta' => $fileData !== null,
+        ];
+
+        if ($fileData === null) {
+            return $metadata;
+        }
+
+        $content = (string) (
+            $fileData['contenido'] ?? ''
+        );
+
+        $metadata['nombre_archivo'] = (string) (
+            $fileData['nombre_archivo'] ?? ''
+        );
+
+        $metadata['tamano_bytes'] = strlen($content);
+
+        $metadata['hash_sha256'] = hash(
+            'sha256',
+            $content
+        );
+
+        return $metadata;
     }
 
     /**
