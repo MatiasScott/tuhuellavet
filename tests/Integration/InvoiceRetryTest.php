@@ -174,7 +174,16 @@ class InvoiceRetryTest extends TestCase
         string $email
     ): void {
         $service = new IContaService();
-        $build = new ReflectionMethod($service, 'buildPersonSavePayload');
+
+        (new ReflectionProperty(
+            $service,
+            'clientSegmentId'
+        ))->setValue($service, 1);
+
+        $build = new ReflectionMethod(
+            $service,
+            'buildPersonSavePayload'
+        );
         $fiscal = [
             'identificacion' => '9999999999',
             'tipo_identificacion_codigo' => 'CEDULA',
@@ -263,7 +272,10 @@ class InvoiceRetryTest extends TestCase
         return [
             'una unidad conciliable' => [1, 0.55, 0.08, 0.63, null],
             'dos unidades con diferencia de redondeo' => [
-                2, 1.10, 0.16, 1.26,
+                2,
+                1.10,
+                0.16,
+                1.26,
                 'Tu Huella Vet: base 1.10, IVA 0.16, total 1.26. '
                     . 'iConta calcularía: base 1.10, IVA 0.17, total 1.27.',
             ],
@@ -286,8 +298,22 @@ class InvoiceRetryTest extends TestCase
                 . 'antes de sincronizar con iConta.',
         ], $changes);
         $session = $_SESSION ?? [];
+
         $_SESSION['auth_user'] = [
-            'permissions' => $hasPermission ? ['facturacion.facturar'] : [],
+            'id' => 1,
+            'name' => 'Usuario QA',
+            'email' => 'qa@example.test',
+            'is_super_admin' => false,
+
+            'roles' => [
+                'ADMINISTRADOR',
+            ],
+
+            'active_role' => 'ADMINISTRADOR',
+
+            'permissions' => $hasPermission
+                ? ['facturacion.facturar']
+                : [],
         ];
 
         $sales = $owners = $patients = $products = $services = [];
@@ -344,7 +370,9 @@ class InvoiceRetryTest extends TestCase
             'generacion iniciada' => [['iconta_intentos' => 1], true, false],
             'id remoto' => [['iconta_id_documento' => '123'], true, false],
             'envio previo' => [
-                ['iconta_enviado_at' => '2026-10-21 10:00:00'], true, false,
+                ['iconta_enviado_at' => '2026-10-21 10:00:00'],
+                true,
+                false,
             ],
             'entorno no fiscal' => [['permite_facturacion_real' => 0], true, false],
         ];
