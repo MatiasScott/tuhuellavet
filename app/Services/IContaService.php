@@ -3608,13 +3608,70 @@ class IContaService
     }
 
     /**
+     * Sincroniza el estado fiscal de un documento existente.
+     *
+     * Comparte el bloqueo exclusivo utilizado por processInvoice()
+     * para evitar operaciones concurrentes sobre el mismo documento.
+     *
+     * No genera facturas ni realiza envíos al SRI.
+     */
+    public function syncInvoiceSriStatus(
+        int $iContaDocumentId
+    ): array {
+
+        $this->assertConfiguration();
+
+        if ($iContaDocumentId <= 0) {
+            throw new RuntimeException(
+                'El documento de iConta indicado no es válido.'
+            );
+        }
+
+        $db = Database::connection();
+
+        $lockName = 'thv_iconta_invoice_'
+            . $iContaDocumentId;
+
+        $stmt = $db->prepare(
+            'SELECT GET_LOCK(:lock_name, 10)'
+        );
+
+        $stmt->execute([
+            'lock_name' => $lockName,
+        ]);
+
+        if ((int) $stmt->fetchColumn() !== 1) {
+            throw new RuntimeException(
+                'El documento fiscal está siendo procesado. '
+                    . 'Intente nuevamente en unos momentos.'
+            );
+        }
+
+        try {
+
+            return $this->syncInvoiceSriStatusUnlocked(
+                $iContaDocumentId
+            );
+        } finally {
+
+            $release = $db->prepare(
+                'SELECT RELEASE_LOCK(:lock_name)'
+            );
+
+            $release->execute([
+                'lock_name' => $lockName,
+            ]);
+        }
+    }
+
+    /**
      * Consulta el estado SRI de una factura y sincroniza
      * su estado, autorización, RIDE y XML.
      *
      * Los archivos solamente se solicitan cuando iConta
      * informa que la factura está AUTORIZADA.
      */
-    public function syncInvoiceSriStatus(
+    private function syncInvoiceSriStatusUnlocked(
         int $iContaDocumentId
     ): array {
         $this->assertConfiguration();
@@ -4476,7 +4533,6 @@ class IContaService
                 'ICONTA_API_KEY no está configurado.'
             );
         }
-
     }
 
     private function extractErrorMessage(array $response): string
