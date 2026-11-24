@@ -15,6 +15,7 @@ class IContaService
     private int $timeout;
     private bool $enabled;
     private string $environment;
+    private int $clientSegmentId;
 
     public function __construct()
     {
@@ -44,6 +45,10 @@ class IContaService
 
         $this->environment = strtolower(
             trim((string) ($_ENV['ICONTA_ENVIRONMENT'] ?? 'test'))
+        );
+
+        $this->clientSegmentId = (int) (
+            $_ENV['ICONTA_CLIENT_SEGMENT_ID'] ?? 0
         );
     }
 
@@ -853,6 +858,12 @@ class IContaService
             }
         }
 
+        if ($this->clientSegmentId <= 0) {
+            throw new RuntimeException(
+                'ICONTA_CLIENT_SEGMENT_ID no está configurado.'
+            );
+        }
+
         $personPayload = [
             'IdPersona' => $personId,
 
@@ -960,7 +971,7 @@ class IContaService
              * Segmento:
              * 5347 = SIN SEGMENTAR.
              */
-                'IdSegmento' => 5347,
+                'IdSegmento' => $this->clientSegmentId,
 
                 /*
              * Estado activo de cliente en iConta.
@@ -4465,6 +4476,7 @@ class IContaService
                 'ICONTA_API_KEY no está configurado.'
             );
         }
+
     }
 
     private function extractErrorMessage(array $response): string

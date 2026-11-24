@@ -26,5 +26,9 @@ return [
         'api_key' => $_ENV['ICONTA_API_KEY'] ?? '',
 
         'timeout' => (int) ($_ENV['ICONTA_TIMEOUT'] ?? 30),
+
+        'client_segment_id' => (int) (
+            $_ENV['ICONTA_CLIENT_SEGMENT_ID'] ?? 0
+        ),
     ],
 ];

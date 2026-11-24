@@ -25,3 +25,26 @@ composer.phar
 
 # Script temporal de integración: revisar antes de publicar
 /test_contifico.php
+
+# Configuracion privada de identificaciones
+/app/Config/identification_exceptions.php
+
+# Seguridad de variables de entorno
+.env.*
+!.env.example
+
+# Respaldos y archivos temporales
+*.bak*
+*.backup*
+*.old
+*.patch
+*.tar
+*.tar.gz
+*.tgz
+/backups/
+
+# Configuracion privada de despliegue
+/docker-compose.yml
+/docker-compose.yaml
+/compose.yml
+/compose.yaml

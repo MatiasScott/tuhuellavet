@@ -398,6 +398,37 @@ class PropietarioController extends Controller
         }
 
         // =========================================================
+        // 3. VALIDACIÓN DE IDENTIFICACIÓN
+        // =========================================================
+
+        if ($field === 'identificacion') {
+            $typeId = (int) $r->input('tipo_identificacion_id', 0);
+
+            if (!in_array($typeId, [1, 2, 3, 4], true)) {
+                $this->json([
+                    'ok' => true,
+                    'exists' => false,
+                    'status' => 'invalid_format',
+                    'message' => 'Seleccione un tipo de identificación válido.',
+                ]);
+                return;
+            }
+
+            if (
+                $typeId === 1
+                && !\App\Services\IdentificationValidator::validateCedula($value)
+            ) {
+                $this->json([
+                    'ok' => true,
+                    'exists' => false,
+                    'status' => 'invalid_format',
+                    'message' => 'La cédula ecuatoriana no es válida.',
+                ]);
+                return;
+            }
+        }
+
+        // =========================================================
         // 3. IDENTIFICACIÓN Y CELULAR
         // =========================================================
 

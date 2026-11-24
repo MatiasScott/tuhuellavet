@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Configuracion privada
+app/Config/identification_exceptions.php
+
+# Dependencias locales
+vendor
+node_modules
+**/node_modules
+
+# Almacenamiento persistente
+storage/**
+
+# Respaldos
+backups
+**/backups
+**/*.bak*
+**/*.backup*
+**/*.old
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.tgz
+**/*.7z
+**/*.rar
+**/*.patch
+
+# Bases de datos
+**/*.sql
+!scripts/migrations/
+!scripts/migrations/**/*.sql
+
+# Desarrollo y pruebas
+tests
+docs
+phpunit.xml
+composer.phar
+.idea
+.vscode
+**/.DS_Store
+**/Thumbs.db
+qa105_referencias.txt
+test_contifico.php
+
+# Infraestructura local
+docker-compose.yml
+docker-compose.yaml
+compose.yml
+compose.yaml

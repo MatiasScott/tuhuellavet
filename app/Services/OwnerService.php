@@ -67,6 +67,16 @@ class OwnerService
                 ? (int) $d['tipo_identificacion_id']
                 : null;
 
+            if (
+                $identificationTypeId === 1
+                && $identification !== null
+                && !IdentificationValidator::validateCedula($identification)
+            ) {
+                throw new RuntimeException(
+                    'La cédula ecuatoriana no es válida.'
+                );
+            }
+
             $secondName = $this->nullableString(
                 $d['segundo_nombre'] ?? null
             );
@@ -764,6 +774,16 @@ class OwnerService
                     : null
                 )
                 : $old['tipo_identificacion_id'];
+
+            if (
+                (int) $identificationTypeId === 1
+                && $identification !== null
+                && !IdentificationValidator::validateCedula($identification)
+            ) {
+                throw new RuntimeException(
+                    'La cédula ecuatoriana no es válida.'
+                );
+            }
 
             $secondName = $this->nullableString(
                 $d['segundo_nombre']

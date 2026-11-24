@@ -328,7 +328,12 @@
 
       const format = validarFormato(field, value, type);
 
-      if (!format.valido) {
+      if (
+        !format.valido &&
+        !(field === "identificacion" &&
+          type === "CEDULA" &&
+          /^[0-9]{10}$/.test(value))
+      ) {
         setMessage(field, "error", format.mensaje);
 
         return;
@@ -345,6 +350,13 @@
 
         url.searchParams.set("campo", field);
         url.searchParams.set("valor", value);
+
+        if (field === "identificacion") {
+          url.searchParams.set(
+            "tipo_identificacion_id",
+            typeSelect?.value || ""
+          );
+        }
 
         if (field === "email") {
           url.searchParams.set("modo_acceso", accessMode());
@@ -376,6 +388,11 @@
 
         if (!data.ok) {
           throw new Error(data.message || "Error de validación.");
+        }
+
+        if (data.status === "invalid_format") {
+          setMessage(field, "error", data.message);
+          return;
         }
 
         if (data.status === "existing_owner") {
@@ -429,7 +446,12 @@
 
       const format = validarFormato(field, value, tipoDocumento());
 
-      if (!format.valido) {
+      if (
+        !format.valido &&
+        !(field === "identificacion" &&
+          tipoDocumento() === "CEDULA" &&
+          /^[0-9]{10}$/.test(value))
+      ) {
         setMessage(field, "error", format.mensaje);
 
         return;
