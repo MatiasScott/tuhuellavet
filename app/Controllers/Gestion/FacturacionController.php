@@ -134,6 +134,35 @@ class FacturacionController extends Controller
         );
     }
 
+    public function syncFiscal(Request $r, string $id): void
+    {
+        $this->go($r, function () use ($id): void {
+            if (!can('facturacion.facturar') || !can('ventas.ver') || !ctype_digit($id)) {
+                throw new \RuntimeException('Operación fiscal no permitida.');
+            }
+            $d = \App\Services\FiscalDocumentAccess::document((int)$id, (int)active_environment_id());
+            if (!$d || !\App\Services\FiscalDocumentAccess::canSync($d)) {
+                throw new \RuntimeException('Documento fiscal no disponible para sincronización.');
+            }
+            (new \App\Services\IContaService())->syncInvoiceSriStatus((int)$d['iconta_documento_id'], false, (int)active_environment_id());
+        }, 'Estado fiscal consultado correctamente.');
+    }
+
+    public function downloadFiscal(Request $r, string $id, string $kind): void
+    {
+        if (!can('ventas.ver') || !can('facturacion.facturar') || !ctype_digit($id)) {
+            http_response_code(403); return;
+        }
+        $d = \App\Services\FiscalDocumentAccess::document((int)$id, (int)active_environment_id());
+        $file = $d ? \App\Services\FiscalDocumentAccess::file($d, $kind) : null;
+        if (!$file) { http_response_code(404); return; }
+        header('Content-Type: ' . $file['mime']);
+        header('Content-Disposition: attachment; filename="' . $file['name'] . '"');
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-store');
+        readfile($file['path']);
+    }
+
     private function go(Request $r, callable $f, string $ok): void
     {
         if (!Session::validateCsrf($r->input('_token'))) {

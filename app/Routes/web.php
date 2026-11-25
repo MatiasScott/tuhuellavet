@@ -540,6 +540,16 @@ $router->post(
     ['auth', 'environment', 'permission:facturacion.facturar']
 );
 $router->post(
+    '/facturacion/documentos/{id}/sincronizar',
+    [FacturacionController::class, 'syncFiscal'],
+    ['auth', 'environment', 'permission:facturacion.facturar']
+);
+$router->get(
+    '/facturacion/documentos/{id}/descargar/{kind}',
+    [FacturacionController::class, 'downloadFiscal'],
+    ['auth', 'environment', 'permission:facturacion.facturar']
+);
+$router->post(
     '/facturacion/{id}/pagos',
     [FacturacionController::class, 'payment'],
     ['auth', 'environment', 'permission:ventas.editar']

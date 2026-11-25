@@ -3616,7 +3616,7 @@ class IContaService
      * No genera facturas ni realiza envíos al SRI.
      */
     public function syncInvoiceSriStatus(
-        int $iContaDocumentId, bool $scheduled = false
+        int $iContaDocumentId, bool $scheduled = false, ?int $manualEnvironment = null
     ): array {
 
         $this->assertConfiguration();
@@ -3649,6 +3649,15 @@ class IContaService
 
         try {
 
+            if ($manualEnvironment !== null) {
+                $q = $db->prepare('SELECT documento_fiscal_id FROM iconta_documentos WHERE id=:id');
+                $q->execute(['id'=>$iContaDocumentId]);
+                $d = FiscalDocumentAccess::document((int)$q->fetchColumn(), $manualEnvironment);
+                if (!$d || (int)$d['iconta_documento_id'] !== $iContaDocumentId || !FiscalDocumentAccess::canSync($d)) {
+                    throw new RuntimeException('Documento fiscal no disponible para sincronización.');
+                }
+                return $this->syncInvoiceSriStatusUnlocked($iContaDocumentId, true);
+            }
             if (!$scheduled) {
                 return $this->syncInvoiceSriStatusUnlocked($iContaDocumentId);
             }

@@ -227,6 +227,19 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                 <?= $money($d['total']) ?>
                             </td>
                             <td>
+                                <?php if (can('ventas.ver') && can('facturacion.facturar')): ?>
+                                    <?php foreach (['ride'=>'archivo_pdf_id','xml'=>'archivo_xml_id'] as $kind=>$field): ?>
+                                        <?php if (!empty($d[$field]) && $d['tipo_documento'] === 'FACTURA'): ?>
+                                            <a class="btn btn-sm" href="<?= e(url('/facturacion/documentos/' . (int)$d['id'] . '/descargar/' . $kind)) ?>">Descargar <?= strtoupper($kind) ?></a>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                    <?php if (\App\Services\FiscalDocumentAccess::canSync($d)): ?>
+                                        <form method="POST" action="<?= e(url('/facturacion/documentos/' . (int)$d['id'] . '/sincronizar')) ?>">
+                                            <input type="hidden" name="_token" value="<?= e(\App\Core\Session::csrfToken()) ?>">
+                                            <button type="submit" class="btn btn-sm">Sincronizar estado</button>
+                                        </form>
+                                    <?php endif; ?>
+                                <?php endif; ?>
                                 <?php if ($canRetry): ?>
                                     <form
                                         method="POST"

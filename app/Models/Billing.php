@@ -73,6 +73,7 @@ class Billing extends Model
             v.numero AS venta_numero,
             v.total,
             v.estado AS venta_estado,
+            v.es_simulada,
             e.permite_facturacion_real,
 
             idoc.id AS iconta_documento_id,
