@@ -1544,6 +1544,47 @@ class IContaService
     /**
      * Construye los detalles que se enviarán a iConta.
      */
+    /** Modelo candidato: base con redondeo intermedio e IVA acumulado por tarifa.
+     * No representa una especificación confirmada por el proveedor.
+     */
+    private function aggregateCandidate(array $d, float $original, float $discount): float
+    {
+        $q = round((float)$d['cantidad'], 2);
+        $rate = (float)$d['impuesto_porcentaje'];
+        $factor = $this->isTrue($d['precio_incluye_impuesto'] ?? false) ? 1 + $rate / 100 : 1;
+        $subtotal = (float)$d['subtotal'];
+        $rebate = (float)$d['descuento'];
+        $base = (float)$d['base_imponible'];
+        $tax = (float)$d['impuesto'];
+        $total = (float)$d['total'];
+        $same = static fn(float $a, float $b): bool => abs($a - $b) < .005;
+        if ($q <= 0 || !$same($q, (float)$d['cantidad']) || !in_array($rate, [0.0, 15.0], true)
+            || !$same(round($q * (float)$d['precio_unitario'], 2), $subtotal)
+            || !$same($base + $tax, $total) || $rebate < 0 || $rebate >= $subtotal) {
+            throw new RuntimeException('Snapshot fiscal incompatible con conciliación acumulada.');
+        }
+        $valid = static function(float $u) use ($q,$factor,$subtotal,$rebate,$base,$tax,$rate,$discount,$same): bool {
+            $gross = $u * $q;
+            $raw = $gross * (1 - $discount / 100);
+            $rounded = round($gross, 2) - round(round($gross, 2) * $discount / 100, 2);
+            return $u > 0 && $same(round($gross * $factor, 2), $subtotal)
+                && $same(round($gross * $factor * $discount / 100, 2), $rebate)
+                && $same(round($raw, 2), $base) && $same(round($raw * $rate / 100, 2), $tax)
+                && $same($rounded, $base);
+        };
+        if ($valid($original)) return $original;
+        $lo = max(1, (int)ceil(($subtotal - .005) / ($q * $factor) * 1000000));
+        $hi = (int)floor(($subtotal + .005) / ($q * $factor) * 1000000);
+        $best = null;
+        // Búsqueda acotada; si no encuentra representación, falla antes de contactar la API.
+        for ($i = 0; $i <= 2000 && $hi >= $lo; $i++) {
+            $u = round(($lo + round(($hi - $lo) * $i / 2000)) / 1000000, 6);
+            if ($valid($u) && ($best === null || abs($u-$original) < abs($best-$original))) $best = $u;
+        }
+        if ($best === null) throw new RuntimeException('No existe candidato fiscal validado para '.$d['codigo_item'].'.');
+        return $best;
+    }
+
     private function buildInvoiceDetails(array $details): array
     {
         if ($details === []) {
@@ -1553,6 +1594,8 @@ class IContaService
         }
 
         $result = [];
+        $aggregate = filter_var($_ENV['ICONTA_EXPERIMENTAL_AGGREGATE_ROUNDING'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $groups = [];
 
         foreach ($details as $detail) {
             if (!is_array($detail)) {
@@ -1617,6 +1660,12 @@ class IContaService
             $discountPercentage =
                 $this->invoiceDiscountPercentage($detail);
 
+            if ($aggregate) {
+                $unitPrice = $this->aggregateCandidate($detail, $unitPrice, $discountPercentage);
+                $key = (string)(float)$detail['impuesto_porcentaje'];
+                $groups[$key]['base'] = ($groups[$key]['base'] ?? 0) + (float)$detail['base_imponible'];
+                $groups[$key]['tax'] = ($groups[$key]['tax'] ?? 0) + (float)$detail['impuesto'];
+            } else {
             try {
                 $this->validateInvoiceDetailReconciliation($detail, $unitPrice, $discountPercentage);
             } catch (RuntimeException $original) {
@@ -1625,6 +1674,8 @@ class IContaService
                     throw $original;
                 }
                 $unitPrice = $this->reconcileIncludedTaxUnitPrice($detail, $discountPercentage, $original);
+            }
+
             }
 
             $taxCode = strtoupper(
@@ -1737,6 +1788,12 @@ class IContaService
             throw new RuntimeException(
                 'No existen detalles válidos para enviar a iConta.'
             );
+        }
+
+        foreach ($groups as $rate => $group) {
+            if (abs(round(round($group['base'], 2) * (float)$rate / 100, 2) - $group['tax']) >= .005) {
+                throw new RuntimeException('IVA acumulado no coincide con el snapshot fiscal; no se enviará la factura.');
+            }
         }
 
         return $result;
