@@ -1299,7 +1299,8 @@ class IContaService
     private function validateInvoiceDetailReconciliation(
         array $detail,
         float $unitPrice,
-        float $discountPercentage
+        float $discountPercentage,
+        bool $precise = false
     ): void {
         $quantity = round(
             (float) ($detail['cantidad'] ?? 0),
@@ -1354,27 +1355,34 @@ class IContaService
          * Reconstruimos el importe utilizando los mismos
          * datos que se enviarán a iConta.
          */
-        $grossBase = round(
-            $unitPrice * $quantity,
-            2
-        );
+        if ($precise) {
+            $rawBase = $unitPrice * $quantity * (1 - $discountPercentage / 100);
+            $remoteBase = round($rawBase, 2);
+            $remoteTax = round($rawBase * $taxRate / 100, 2);
+        } else {
+            $grossBase = round(
+                $unitPrice * $quantity,
+                2
+            );
 
-        $discountAmount = round(
-            $grossBase
-                * ($discountPercentage / 100),
-            2
-        );
+            $discountAmount = round(
+                $grossBase
+                    * ($discountPercentage / 100),
+                2
+            );
 
-        $remoteBase = round(
-            $grossBase - $discountAmount,
-            2
-        );
+            $remoteBase = round(
+                $grossBase - $discountAmount,
+                2
+            );
 
-        $remoteTax = round(
-            $remoteBase
-                * ($taxRate / 100),
-            2
-        );
+            $remoteTax = round(
+                $remoteBase
+                    * ($taxRate / 100),
+                2
+            );
+
+        }
 
         $remoteTotal = round(
             $remoteBase + $remoteTax,
@@ -1427,7 +1435,7 @@ class IContaService
                     . number_format($localTax, 2, '.', '')
                     . ', total '
                     . number_format($localTotal, 2, '.', '')
-                    . '. iConta calcularía: base '
+                    . ($precise ? '. Simulación precisa: base ' : '. iConta calcularía: base ')
                     . number_format($remoteBase, 2, '.', '')
                     . ', IVA '
                     . number_format($remoteTax, 2, '.', '')
@@ -1498,6 +1506,39 @@ class IContaService
         }
 
         return round($percentage, 6);
+    }
+
+    private function reconcileIncludedTaxUnitPrice(array $detail, float $discountPercentage, RuntimeException $original): float
+    {
+        $quantity = round((float) ($detail['cantidad'] ?? 0), 2);
+        $price = round((float) ($detail['precio_unitario'] ?? 0), 4);
+        $rate = round((float) ($detail['impuesto_porcentaje'] ?? 0), 4);
+        $subtotal = round((float) ($detail['subtotal'] ?? 0), 2);
+        $discount = round((float) ($detail['descuento'] ?? 0), 2);
+        $total = round($subtotal - $discount, 2);
+        $base = round($total / 1.15, 2);
+        $tax = round($total - $base, 2);
+        if (!$this->isTrue($detail['precio_incluye_impuesto'] ?? false)
+            || $rate !== 15.0 || $quantity <= 0 || $price <= 0 || $total <= 0
+            || $discount < 0 || $discountPercentage < 0 || $discountPercentage >= 100
+            || abs(round($quantity * $price, 2) - $subtotal) >= 0.005
+            || abs($base - (float) ($detail['base_imponible'] ?? -1)) >= 0.005
+            || abs($tax - (float) ($detail['impuesto'] ?? -1)) >= 0.005
+            || abs($total - (float) ($detail['total'] ?? -1)) >= 0.005) {
+            throw $original;
+        }
+        $candidate = round($subtotal / ($quantity * 1.15), 6);
+        if ($candidate <= 0) {
+            throw $original;
+        }
+        // Reconstruct the commercial subtotal and discount as well as fiscal amounts.
+        $gross = $candidate * $quantity * 1.15;
+        if (abs(round($gross, 2) - $subtotal) >= 0.005
+            || abs(round($gross * $discountPercentage / 100, 2) - $discount) >= 0.005) {
+            throw $original;
+        }
+        $this->validateInvoiceDetailReconciliation($detail, $candidate, $discountPercentage, true);
+        return $candidate;
     }
 
     /**
@@ -1576,11 +1617,15 @@ class IContaService
             $discountPercentage =
                 $this->invoiceDiscountPercentage($detail);
 
-            $this->validateInvoiceDetailReconciliation(
-                $detail,
-                $unitPrice,
-                $discountPercentage
-            );
+            try {
+                $this->validateInvoiceDetailReconciliation($detail, $unitPrice, $discountPercentage);
+            } catch (RuntimeException $original) {
+                // Experimental: preserve the established payload whenever it reconciles.
+                if (!filter_var($_ENV['ICONTA_EXPERIMENTAL_PRECISE_ROUNDING'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+                    throw $original;
+                }
+                $unitPrice = $this->reconcileIncludedTaxUnitPrice($detail, $discountPercentage, $original);
+            }
 
             $taxCode = strtoupper(
                 trim(
