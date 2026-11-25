@@ -2766,7 +2766,7 @@ class IContaService
      * Evita que dos procesos PHP intenten emitir simultáneamente
      * el mismo documento fiscal.
      */
-    public function processInvoice(int $iContaDocumentId): array
+    public function processInvoice(int $iContaDocumentId, ?array $recovery = null): array
     {
         $this->assertConfiguration();
 
@@ -2796,7 +2796,7 @@ class IContaService
 
         try {
             return $this->processInvoiceUnlocked(
-                $iContaDocumentId
+                $iContaDocumentId, $recovery
             );
         } finally {
             $release = $db->prepare(
@@ -2814,8 +2814,33 @@ class IContaService
      *
      * Solo debe ejecutarse desde processInvoice().
      */
+    public static function assertRejectedRecovery(array $d, array $approval): void
+    {
+        if (PHP_SAPI !== 'cli' || ($_ENV['APP_ENV'] ?? '') !== 'production'
+            || !filter_var($_ENV['ICONTA_EXPERIMENTAL_AGGREGATE_ROUNDING'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            || !filter_var($_ENV['ICONTA_MANUAL_RECOVERY_ENABLED'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            || ($approval['confirmed'] ?? false) !== true
+            || trim((string)($approval['reference'] ?? '')) === ''
+            || strlen((string)$approval['reference']) > 500
+            || (int)($d['intentos'] ?? -1) !== 1
+            || ($d['iconta_estado'] ?? '') !== 'ERROR' || ($d['documento_estado'] ?? '') !== 'ERROR'
+            || ($d['venta_estado'] ?? '') !== 'FINALIZADA' || ($d['tipo_documento'] ?? '') !== 'FACTURA'
+            || (int)($d['es_simulada'] ?? 1) !== 0 || (int)($d['permite_facturacion_real'] ?? 0) !== 1
+            || (int)($approval['fiscal_id'] ?? 0) !== (int)($d['documento_fiscal_id'] ?? -1)
+            || (int)($approval['environment_id'] ?? 0) !== (int)($d['venta_entorno_id'] ?? -1)
+            || !preg_match('/^iConta reportó un error: Las formas de cobro superan el valor total de la venta\. Total Pagos:[0-9]+\.[0-9]{2} Total Factura: [0-9]+\.[0-9]{2}$/uD', (string)($d['ultimo_error'] ?? ''))
+            || empty($d['request_payload'])) {
+            throw new RuntimeException('Recuperación fiscal no autorizada o no elegible.');
+        }
+        foreach (['iconta_id_documento','enviado_at','response_payload','numero_documento','clave_acceso','autorizacion','archivo_pdf_id','archivo_xml_id'] as $field) {
+            if (!array_key_exists($field, $d) || !empty($d[$field])) {
+                throw new RuntimeException('Existe evidencia fiscal previa o falta información: '.$field);
+            }
+        }
+    }
+
     private function processInvoiceUnlocked(
-        int $iContaDocumentId
+        int $iContaDocumentId, ?array $recovery = null
     ): array {
         $this->assertConfiguration();
 
@@ -2838,7 +2863,9 @@ class IContaService
             idoc.iconta_id_documento,
             idoc.estado AS iconta_estado,
             idoc.intentos,
-            idoc.enviado_at,
+            idoc.enviado_at, idoc.ultimo_error, idoc.request_payload, idoc.response_payload,
+            df.numero_documento, df.clave_acceso, df.autorizacion, df.archivo_pdf_id, df.archivo_xml_id,
+            v.es_simulada, e.permite_facturacion_real,
 
             df.venta_id,
             df.tipo_documento,
@@ -2856,6 +2883,7 @@ class IContaService
         INNER JOIN ventas v
             ON v.id = df.venta_id
 
+        INNER JOIN entornos e ON e.id = v.entorno_id
         WHERE idoc.id = :id
 
         LIMIT 1
@@ -2951,7 +2979,9 @@ class IContaService
         }
 
         // Revalidar bajo el bloqueo evita reenvíos de solicitudes simultáneas.
-        if (
+        if ($recovery !== null) {
+            self::assertRejectedRecovery($document, $recovery);
+        } elseif (
             (int) ($document['intentos'] ?? -1) !== 0
             || !empty($document['enviado_at'])
         ) {
@@ -3013,6 +3043,19 @@ class IContaService
             );
 
             $this->validateInvoiceCustomer($db, $fiscalDataId);
+            if ($recovery !== null) {
+                $previous = json_decode((string)$document['request_payload'], true, 512, JSON_THROW_ON_ERROR);
+                if (($previous['id_sistema'] ?? null) !== ($payload['id_sistema'] ?? null)
+                    || ($previous['detalles'] ?? null) === ($payload['detalles'] ?? null)
+                    || ($previous['pagos'] ?? null) !== ($payload['pagos'] ?? null)) {
+                    throw new RuntimeException('La recuperación exige mismo identificador y pagos, y detalles corregidos.');
+                }
+                $this->logDocumentEvent($iContaDocumentId, 'RECUPERACION_PREVIA', 'ERROR',
+                    '/api/external/factura/genera', $previous,
+                    ['referencia_proveedor' => $recovery['reference'], 'intentos' => (int)$document['intentos']],
+                    false, (string)$document['ultimo_error']);
+            }
+
 
             /*
             * Solo después de superar todas las validaciones locales
@@ -3157,6 +3200,7 @@ class IContaService
                 'response' => $response,
             ];
         } catch (\Throwable $e) {
+            if ($recovery !== null && !$attemptIncremented) { throw $e; }
             /*
          * Registramos el error sin destruir el documento.
          *
