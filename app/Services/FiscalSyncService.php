@@ -101,6 +101,25 @@ final class FiscalSyncService
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public static function assertTransition(string $fiscal, string $remoteLocal, string $incoming): void
+    {
+        $allowed = ['GENERADA', 'POR_FIRMAR', 'ESPERA_ENVIO', 'ENVIADA_SRI', 'ESPERA_AUTORIZACION', 'NEGADO', 'AUTORIZADO', 'ANULADO'];
+        $incoming = strtoupper(trim($incoming));
+        if (!in_array($incoming, $allowed, true)) {
+            throw new \RuntimeException('Estado fiscal remoto no reconocido.');
+        }
+        foreach ([$fiscal, $remoteLocal] as $previous) {
+            $previous = strtoupper(trim($previous));
+            if (!in_array($previous, $allowed, true)) {
+                throw new \RuntimeException('Estado fiscal local requiere conciliación.');
+            }
+            if (($previous === 'ANULADO' && $incoming !== 'ANULADO')
+                || ($previous === 'AUTORIZADO' && !in_array($incoming, ['AUTORIZADO', 'ANULADO'], true))) {
+                throw new \RuntimeException('Transición fiscal bloqueada: ' . $previous . ' -> ' . $incoming);
+            }
+        }
+    }
+
     /**
      * Intervalo normal entre consultas satisfactorias.
      */

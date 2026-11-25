@@ -1406,6 +1406,7 @@ class BillingService
                       AND v.entorno_id = :entorno
 
                     LIMIT 1
+                    FOR UPDATE
                     '
                 );
 
@@ -1555,6 +1556,7 @@ class BillingService
                       AND tipo_documento = "FACTURA"
 
                     LIMIT 1
+                    FOR UPDATE
                     '
                 );
 

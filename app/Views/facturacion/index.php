@@ -241,6 +241,8 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                             Reintentar envío
                                         </button>
                                     </form>
+                                <?php elseif ($fiscalState === 'ANULADO' || $icontaState === 'ANULADO'): ?>
+                                    <span class="muted">Anulación fiscal; no reemitir</span>
                                 <?php elseif ($icontaState === 'ERROR'): ?>
                                     <span class="muted">
                                         Requiere revisión

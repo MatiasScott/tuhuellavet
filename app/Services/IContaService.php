@@ -3805,6 +3805,12 @@ class IContaService
                 )
             );
 
+            FiscalSyncService::assertTransition(
+                (string) $document['documento_estado'],
+                (string) $document['iconta_estado'],
+                $status
+            );
+
             $authorization = trim(
                 (string) (
                     $response['Autorizacion']
@@ -3954,6 +3960,15 @@ class IContaService
              * A partir de aquí toda la persistencia SQL participa
              * en una única transacción.
              */
+            $previousAuthorization = trim((string) ($document['autorizacion'] ?? ''));
+            if ($previousAuthorization !== '' && $authorization !== ''
+                && $previousAuthorization !== $authorization) {
+                throw new RuntimeException('La autorización fiscal existente no coincide con iConta. Requiere revisión.');
+            }
+            if ($status !== 'AUTORIZADO') {
+                $authorization = '';
+            }
+
             $db->beginTransaction();
 
             try {

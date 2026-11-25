@@ -94,8 +94,6 @@ class Billing extends Model
             ON idoc.documento_fiscal_id = df.id
 
         WHERE v.entorno_id = :e
-            AND UPPER(COALESCE(df.estado, \'\')) <> \'ANULADO\'
-            AND UPPER(COALESCE(idoc.estado, \'\')) <> \'ANULADO\'
         ORDER BY df.id DESC
         ');
 
