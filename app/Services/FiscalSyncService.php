@@ -15,7 +15,7 @@ final class FiscalSyncService
      * No realiza consultas a iConta ni modifica registros.
      */
     public function pendingDocuments(
-        int $limit = 20
+        int $limit = 20, ?int $documentId = null
     ): array {
 
         $limit = max(1, min(100, $limit));
@@ -62,7 +62,8 @@ final class FiscalSyncService
               AND TRIM(idoc.iconta_id_documento)
                   REGEXP '[1-9]'
 
-              AND df.estado <> 'ANULADO'
+              AND df.estado IN ('GENERADA','POR_FIRMAR','ESPERA_ENVIO','ENVIADA_SRI','ESPERA_AUTORIZACION','NEGADO','AUTORIZADO')
+              AND (:filter_all = 1 OR idoc.id = :filter_id)
 
               AND idoc.estado IN (
                   'GENERADA',
@@ -90,6 +91,8 @@ final class FiscalSyncService
             "
         );
 
+        $stmt->bindValue(':filter_all', $documentId === null ? 1 : 0, PDO::PARAM_INT);
+        $stmt->bindValue(':filter_id', $documentId ?? 0, PDO::PARAM_INT);
         $stmt->bindValue(
             ':limite',
             $limit,

@@ -1,77 +1,35 @@
 <?php
-
 declare(strict_types=1);
-
-use App\Services\FiscalSyncService;
-
-if (PHP_SAPI !== 'cli') {
-    http_response_code(403);
-    exit("Este script solo puede ejecutarse desde CLI.\n");
-}
-
+if (PHP_SAPI !== 'cli') { http_response_code(403); exit(1); }
 require dirname(__DIR__) . '/bootstrap/app.php';
-
-if (!in_array('--dry-run', $argv, true)) {
-    fwrite(
-        STDERR,
-        "Worker en desarrollo. Utilice --dry-run.\n"
-    );
-
-    exit(1);
-}
-
+use App\Services\FiscalSyncService;
+use App\Services\IContaService;
+use App\Core\Database;
+$mode = $argv[1] ?? '--dry-run';
+if (!in_array($mode, ['--dry-run','--execute'], true) || count($argv)>2) { fwrite(STDERR,"Uso: --dry-run o --execute\n"); exit(1); }
+$execute = $mode === '--execute';
+if ($execute && (strtolower((string) ($_ENV['APP_ENV'] ?? '')) !== 'production' || strtolower((string) ($_ENV['ICONTA_SRI_SYNC_ENABLED'] ?? 'false')) !== 'true' || strtolower((string) ($_ENV['ICONTA_ENABLED'] ?? 'false')) !== 'true')) { fwrite(STDERR,"Ejecucion bloqueada: requiere produccion y habilitacion explicita.\n"); exit(1); }
+$locked=false; $failed=0; $ok=0; $skipped=0;
 try {
-
-    $service = new FiscalSyncService();
-
-    $documents = $service->pendingDocuments(20);
-
-    echo "========================================\n";
-    echo "AXXIS - SINCRONIZACION FISCAL\n";
-    echo "MODO DIAGNOSTICO - SOLO LECTURA\n";
-    echo "========================================\n";
-
-    echo 'Documentos elegibles: '
-        . count($documents)
-        . PHP_EOL;
-
-    foreach ($documents as $document) {
-
-        echo PHP_EOL;
-
-        echo 'Documento iConta: '
-            . $document['id']
-            . PHP_EOL;
-
-        echo 'Venta: '
-            . $document['venta_numero']
-            . PHP_EOL;
-
-        echo 'Estado: '
-            . $document['estado']
-            . PHP_EOL;
-
-        echo 'ID remoto: '
-            . $document['iconta_id_documento']
-            . PHP_EOL;
-
-        echo 'Errores consecutivos: '
-            . $document['errores_consulta_sri']
-            . PHP_EOL;
+    if ($execute) {
+        $db=Database::connection();
+        $locked=(int)$db->query("SELECT GET_LOCK('thv_iconta_sri_worker',0)")->fetchColumn()===1;
+        if (!$locked) { echo "Worker ocupado.\n"; exit(0); }
     }
-
-    echo PHP_EOL;
-    echo "Consultas realizadas a iConta: 0\n";
-    echo "Registros modificados: 0\n";
-
-    exit(0);
-
-} catch (Throwable $e) {
-
-    fwrite(
-        STDERR,
-        'ERROR: ' . $e->getMessage() . PHP_EOL
-    );
-
-    exit(1);
-}
+    $rows=(new FiscalSyncService())->pendingDocuments(20);
+    echo ($execute ? 'EJECUCION FISCAL' : 'MODO DIAGNOSTICO - SOLO LECTURA')."\nDocumentos elegibles: ".count($rows)."\n";
+    foreach ($rows as $row) {
+        $id=(int)$row['id'];
+        echo "Documento $id | ".$row['venta_numero'].' | '.$row['estado']."\n";
+        if (!$execute) continue;
+        try {
+            $result=(new IContaService())->syncInvoiceSriStatus($id,true);
+            if (!empty($result['omitido'])) { ++$skipped; continue; }
+            ++$ok; echo 'Estado: '.$result['estado']."\n";
+        } catch (Throwable $e) { ++$failed; fwrite(STDERR,"Documento $id: fallo de sincronizacion; revisar auditoria.\n"); }
+        sleep(2);
+    }
+    echo $execute ? "Exitosos: $ok | Fallidos: $failed | Omitidos: $skipped\n" : "Consultas realizadas a iConta: 0\nRegistros modificados: 0\n";
+} catch (Throwable $e) { ++$failed; fwrite(STDERR,"Error del worker: ".$e->getMessage()."\n"); }
+finally { if ($locked) $db->query("SELECT RELEASE_LOCK('thv_iconta_sri_worker')"); }
+exit($failed ? 1 : 0);

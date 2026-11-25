@@ -3616,7 +3616,7 @@ class IContaService
      * No genera facturas ni realiza envíos al SRI.
      */
     public function syncInvoiceSriStatus(
-        int $iContaDocumentId
+        int $iContaDocumentId, bool $scheduled = false
     ): array {
 
         $this->assertConfiguration();
@@ -3649,9 +3649,22 @@ class IContaService
 
         try {
 
-            return $this->syncInvoiceSriStatusUnlocked(
-                $iContaDocumentId
-            );
+            if (!$scheduled) {
+                return $this->syncInvoiceSriStatusUnlocked($iContaDocumentId);
+            }
+            $eligible = (new FiscalSyncService())->pendingDocuments(1, $iContaDocumentId);
+            if (!$eligible) {
+                return ['omitido' => true];
+            }
+            try {
+                return $this->syncInvoiceSriStatusUnlocked($iContaDocumentId, true);
+            } catch (\Throwable $e) {
+                $errors = min(65535, (int) $eligible[0]['errores_consulta_sri'] + 1);
+                $minutes = FiscalSyncService::retryIntervalMinutes($errors);
+                $failure = $db->prepare('UPDATE iconta_documentos SET ultima_consulta_sri_at = NOW(), proxima_consulta_sri_at = TIMESTAMPADD(MINUTE, :minutes, NOW()), errores_consulta_sri = :errors, ultimo_error_consulta_sri = :error WHERE id = :id');
+                $failure->execute(['minutes' => $minutes, 'errors' => $errors, 'error' => mb_substr($e->getMessage(), 0, 2000), 'id' => $iContaDocumentId]);
+                throw $e;
+            }
         } finally {
 
             $release = $db->prepare(
@@ -3672,7 +3685,7 @@ class IContaService
      * informa que la factura está AUTORIZADA.
      */
     private function syncInvoiceSriStatusUnlocked(
-        int $iContaDocumentId
+        int $iContaDocumentId, bool $scheduled = false
     ): array {
         $this->assertConfiguration();
 
@@ -3915,6 +3928,9 @@ class IContaService
                             );
                         }
 
+                        if ($authorization !== '' && $authorization !== $fileAuthorization) {
+                            throw new RuntimeException('Autorizaciones inconsistentes entre consultas de iConta.');
+                        }
                         $authorization = $fileAuthorization;
                     }
 
@@ -4116,6 +4132,13 @@ class IContaService
                     null
                 );
 
+                if ($scheduled) {
+                    $minutes = FiscalSyncService::nextIntervalMinutes($status, $pdfId, $xmlId);
+                    $schedule = $db->prepare('UPDATE iconta_documentos SET ultima_consulta_sri_at = NOW(), consulta_sri_exitosa_at = NOW(), proxima_consulta_sri_at = TIMESTAMPADD(MINUTE, :minutes, NOW()), errores_consulta_sri = 0, ultimo_error_consulta_sri = NULL WHERE id = :id');
+                    $schedule->bindValue(':minutes', $minutes, $minutes === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                    $schedule->bindValue(':id', $iContaDocumentId, PDO::PARAM_INT);
+                    $schedule->execute();
+                }
                 $db->commit();
 
                 /*
