@@ -96,7 +96,7 @@ class OwnerFlowTest extends TestCase
                 'apellidos' => 'Sin Acceso',
                 'email' => 'qa.owner.noaccess@example.test',
                 'celular' => '0999999999',
-                'crear_acceso' => 0,
+                'modo_acceso' => 'none',
             ],
             $this->environmentId,
             $this->superAdminId
@@ -158,7 +158,7 @@ class OwnerFlowTest extends TestCase
                 'apellidos' => 'Cliente',
                 'email' => $email,
                 'celular' => '0999999999',
-                'crear_acceso' => 1,
+                'modo_acceso' => 'create',
                 'password_temporal' => 'Qa#12345678',
             ],
             $this->environmentId,

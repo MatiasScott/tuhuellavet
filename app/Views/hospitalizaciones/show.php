@@ -78,7 +78,8 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <td><?= e($s['frecuencia_respiratoria'] ?? '—') ?></td>
                         <td><?= e($s['nivel_dolor'] ?? '—') ?></td>
                         <td><?= e($s['hidratacion'] ?? '—') ?></td>
-                        <td><?php $examValues = $s; require dirname(__DIR__) . '/consultas/physiological-summary.php'; ?></td>
+                        <td><?php $examValues = $s;
+                            require dirname(__DIR__) . '/consultas/physiological-summary.php'; ?></td>
                     </tr><?php endforeach; ?></tbody>
         </table>
     </div>
@@ -113,8 +114,57 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
         <?php endif; ?>
     </div>
     <?php foreach ($treatments as $t): ?>
+
+        <?php
+        $treatmentCancelled = !empty($t['anulado_at']);
+        ?>
+
         <div class="soft-panel mb-1">
-            <strong><?= e($t['tipo_nombre']) ?></strong>
+
+            <div class="card-header">
+
+                <strong>
+                    <?= e($t['tipo_nombre']) ?>
+                </strong>
+
+                <?php if ($active && !$treatmentCancelled): ?>
+
+                    <button
+                        type="button"
+                        class="btn btn-danger btn-sm"
+                        data-modal-open="h-cancel-treatment"
+                        data-cancel-treatment="<?= (int)$t['id'] ?>">
+
+                        Anular tratamiento
+
+                    </button>
+
+                <?php endif; ?>
+
+            </div>
+
+            <?php if ($treatmentCancelled): ?>
+
+                <div class="soft-panel mb-1">
+
+                    <strong>Tratamiento anulado</strong>
+
+                    <p>
+                        Fecha:
+                        <?= e(date(
+                            'd/m/Y H:i',
+                            strtotime($t['anulado_at'])
+                        )) ?>
+                    </p>
+
+                    <p>
+                        Motivo:
+                        <?= e($t['motivo_anulacion'] ?? '') ?>
+                    </p>
+
+                </div>
+
+            <?php endif; ?>
             <p><?= e($t['instrucciones_generales'] ?? '') ?></p>
             <?php foreach ($t['medications'] as $m): ?>
                 <?php
@@ -149,11 +199,11 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                             <?php endif; ?>
                         </div>
 
-                        <?php if ($active): ?>
+                        <?php if ($active && !$treatmentCancelled): ?>
                             <button
                                 type="button"
-                                class="btn btn-secondary btn-sm
-                                data-modal-open=" h-apply-medication""
+                                class="btn btn-secondary btn-sm"
+                                data-modal-open="h-apply-medication"
                                 data-apply-med="<?= (int)$m['id'] ?>"
                                 data-med-name="<?= e($m['farmaco_nombre']) ?>"
                                 data-med-dose="<?= e($m['dosis_cantidad'] ?? '') ?>"
@@ -370,7 +420,8 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <span>Hidratación</span>
                         <input name="hidratacion">
                     </label>
-                    <?php $examValues = []; require dirname(__DIR__) . '/consultas/physiological-fields.php'; ?>
+                    <?php $examValues = [];
+                    require dirname(__DIR__) . '/consultas/physiological-fields.php'; ?>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-primary">Guardar</button>
@@ -444,29 +495,29 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         <input type="number" step=".001" name="velocidad_ml_hora">
                     </label>
                     <?php if (can('formulas.calcular')): ?>
-                    <div class="field-full formula-fluid-block">
-                        <span class="field-label">Fórmula médica</span>
-                        <div class="inline-actions">
-                            <select id="fluid-formula-version">
-                                <option value="">Seleccionar fórmula</option>
-                                <?php foreach ($formulas as $formula): ?>
-                                    <option value="<?= (int)$formula['formula_version_id'] ?>"><?= e($formula['nombre']) ?> · v<?= e($formula['numero_version']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <button type="button" class="btn btn-secondary" id="fluid-formula-load">Cargar fórmula</button>
-                        </div>
-                        <input type="hidden" name="formula_ejecucion_id" id="fluid-formula-execution-id">
-                        <div id="fluid-formula-panel" class="formula-calculator-panel" hidden>
-                            <h3 id="fluid-formula-name">Fórmula</h3>
-                            <div id="fluid-formula-variables" class="form-grid"></div>
-                            <div id="fluid-formula-result" class="formula-calculator-result" hidden>
-                                <span>Resultado</span>
-                                <strong id="fluid-formula-result-value"></strong>
+                        <div class="field-full formula-fluid-block">
+                            <span class="field-label">Fórmula médica</span>
+                            <div class="inline-actions">
+                                <select id="fluid-formula-version">
+                                    <option value="">Seleccionar fórmula</option>
+                                    <?php foreach ($formulas as $formula): ?>
+                                        <option value="<?= (int)$formula['formula_version_id'] ?>"><?= e($formula['nombre']) ?> · v<?= e($formula['numero_version']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <button type="button" class="btn btn-secondary" id="fluid-formula-load">Cargar fórmula</button>
                             </div>
-                            <button type="button" class="btn btn-primary" id="fluid-formula-calculate">Calcular</button>
+                            <input type="hidden" name="formula_ejecucion_id" id="fluid-formula-execution-id">
+                            <div id="fluid-formula-panel" class="formula-calculator-panel" hidden>
+                                <h3 id="fluid-formula-name">Fórmula</h3>
+                                <div id="fluid-formula-variables" class="form-grid"></div>
+                                <div id="fluid-formula-result" class="formula-calculator-result" hidden>
+                                    <span>Resultado</span>
+                                    <strong id="fluid-formula-result-value"></strong>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="fluid-formula-calculate">Calcular</button>
+                            </div>
                         </div>
-                    </div>
                     <?php endif; ?>
                     <label class="field-full">
                         <span>Observaciones</span>
@@ -551,6 +602,35 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                                                 <?= e($d['nombre']) ?>
                                             </option>
                                         <?php endforeach; ?>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Presentación farmacológica</span>
+
+                                    <select
+                                        name="medicamentos[0][presentacion_id]"
+                                        data-medication-field="presentacion_id">
+
+                                        <option value="">
+                                            Seleccionar presentación
+                                        </option>
+
+                                        <?php foreach ($presentations as $presentation): ?>
+
+                                            <option
+                                                value="<?= (int)$presentation['id'] ?>"
+                                                data-farmaco-id="<?= (int)$presentation['farmaco_id'] ?>">
+
+                                                <?= e($presentation['nombre_comercial']) ?>
+
+                                                <?php if (!empty($presentation['forma'])): ?>
+                                                    · <?= e($presentation['forma']) ?>
+                                                <?php endif; ?>
+
+                                            </option>
+
+                                        <?php endforeach; ?>
+
                                     </select>
                                 </label>
                                 <label>
@@ -688,6 +768,9 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
                         </select>
                     </label>
 
+                    <?php $clinicalKind = 'medication';
+                    $clinicalPreferred = 'Hospitalización';
+                    require APP_PATH . '/Views/inventario/clinical_consumption.php'; ?>
                     <label class="field-full">
                         <span>
                             Observaciones
@@ -721,6 +804,83 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
             </form>
 
         </div>
+    </div>
+    <div class="modal" id="h-cancel-treatment">
+
+        <div class="modal-dialog">
+
+            <div class="modal-header">
+
+                <h3>Anular tratamiento clínico</h3>
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-modal-close>
+                    ×
+                </button>
+
+            </div>
+
+            <form
+                method="POST"
+                id="cancel-treatment-form"
+                data-action-base="<?= e(url(
+                                        '/hospitalizaciones/' .
+                                            $eventId .
+                                            '/tratamientos'
+                                    )) ?>">
+
+                <?= csrf_field() ?>
+
+                <div class="modal-body">
+
+                    <p>
+                        El tratamiento quedará anulado y se
+                        conservará en la historia clínica.
+                    </p>
+
+                    <div class="soft-panel mb-1">
+                        Si existen aplicaciones vigentes,
+                        deberás anularlas primero.
+                    </div>
+
+                    <label>
+
+                        Motivo de anulación *
+
+                        <textarea
+                            name="motivo"
+                            id="cancel-treatment-reason"
+                            rows="4"
+                            required
+                            placeholder="Indica el motivo de la anulación..."></textarea>
+
+                    </label>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-modal-close>
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger">
+                        Confirmar anulación
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
     </div>
     <div class="modal" id="h-cancel-application">
 
@@ -843,6 +1003,15 @@ $eventId = (int)$hospitalization['evento_clinico_id']; ?>
             </form>
         </div>
     </div><?php endif; ?>
+<?php
+$supplyEventId = $eventId;
+$supplyRoute = 'hospitalizaciones';
+$supplyType = 'HOSPITALIZACION_INSUMO';
+$supplyPreferred = 'Hospitalización';
+$supplyPermission = 'hospitalizacion.editar';
+$supplyCanCreate = $active;
+require APP_PATH . '/Views/inventario/clinical_supplies.php';
+?>
 <script>
     window.HospitalizationData = <?= json_encode([
                                         'eventId' => $eventId,

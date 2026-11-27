@@ -125,6 +125,18 @@ class InventoryService
                     : 0;
 
                 /*
+                * El vencimiento requiere control de lotes.
+                */
+                if (
+                    $controlsExpiration === 1
+                    && $controlsLot !== 1
+                ) {
+                    throw new RuntimeException(
+                        'Un producto que controla vencimiento también debe controlar lote.'
+                    );
+                }
+
+                /*
                 * ==========================================
                 * DATOS COMERCIALES / FACTURACIÓN
                 * ==========================================
@@ -185,6 +197,18 @@ class InventoryService
                 $priceIncludesTax = !empty($data['precio_incluye_impuesto'])
                     ? 1
                     : 0;
+
+                /*
+                * El vencimiento se controla por lote.
+                */
+                if (
+                    $controlsExpiration === 1
+                    && $controlsLot !== 1
+                ) {
+                    throw new RuntimeException(
+                        'Un producto que controla vencimiento también debe controlar lote.'
+                    );
+                }
 
                 /*
                 * DATOS DEL LOTE Y EXISTENCIAS INICIALES
@@ -365,17 +389,6 @@ class InventoryService
                     );
                 }
 
-                /*
-             * El vencimiento se controla por lote.
-             */
-                if (
-                    $controlsExpiration === 1
-                    && $controlsLot !== 1
-                ) {
-                    throw new RuntimeException(
-                        'Un producto que controla vencimiento también debe controlar lote.'
-                    );
-                }
 
                 /*
              * Un producto físico no debe representar
@@ -1162,9 +1175,23 @@ class InventoryService
         }
 
         Database::transaction(function (PDO $db) use (
-            $productId, $environmentId, $updatedBy, $categoryId, $code, $name,
-            $description, $unitId, $controlsLot, $controlsExpiration, $salePrice,
-            $purchaseCost, $priceIncludesTax, $taxRateId, $minimumStock, $maximumStock
+            $productId,
+            $environmentId,
+            $updatedBy,
+            $categoryId,
+            $code,
+            $name,
+            $description,
+            $unitId,
+            $controlsLot,
+            $controlsExpiration,
+            $salePrice,
+            $purchaseCost,
+            $priceIncludesTax,
+            $taxRateId,
+            $minimumStock,
+            $maximumStock,
+            $data
         ): void {
             /*
          * ==========================================
@@ -1194,6 +1221,59 @@ class InventoryService
                 throw new RuntimeException(
                     'El producto no existe.'
                 );
+            }
+
+            $vaccineId = $before['vacuna_id'] ?? null;
+            $drugPresentationId = $before['farmaco_presentacion_id'] ?? null;
+
+            $clinicalFields = [
+                'vacuna_id' => 'vacunas',
+                'farmaco_presentacion_id' => 'farmaco_presentaciones',
+            ];
+
+            foreach ($clinicalFields as $field => $table) {
+                if (!array_key_exists($field, $data)) {
+                    continue;
+                }
+
+                $raw = trim((string)$data[$field]);
+                $selectedId = null;
+
+                if ($raw !== '') {
+                    $selectedId = filter_var(
+                        $raw,
+                        FILTER_VALIDATE_INT,
+                        ['options' => ['min_range' => 1]]
+                    );
+
+                    if ($selectedId === false) {
+                        throw new RuntimeException(
+                            'La asociación clínica seleccionada no es válida.'
+                        );
+                    }
+
+                    $clinicalStmt = $db->prepare("
+            SELECT id
+            FROM {$table}
+            WHERE id = ?
+              AND activo = 1
+            LIMIT 1
+        ");
+
+                    $clinicalStmt->execute([$selectedId]);
+
+                    if (!$clinicalStmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'La asociación clínica seleccionada no está disponible.'
+                        );
+                    }
+                }
+
+                if ($field === 'vacuna_id') {
+                    $vaccineId = $selectedId;
+                } else {
+                    $drugPresentationId = $selectedId;
+                }
             }
 
             /*
@@ -1382,6 +1462,8 @@ class InventoryService
                 costo_compra = :costo_compra,
                 precio_incluye_impuesto = :precio_incluye_impuesto,
                 impuesto_tarifa_id = :impuesto_tarifa_id,
+                vacuna_id = :vacuna,
+                farmaco_presentacion_id = :farmaco_presentacion,
                 updated_at = NOW()
             WHERE id = :id
             '
@@ -1412,6 +1494,9 @@ class InventoryService
 
                 'impuesto_tarifa_id' =>
                 $taxRateId,
+
+                'vacuna' => $vaccineId,
+                'farmaco_presentacion' => $drugPresentationId,
 
                 'id' => $productId,
             ]);
@@ -1500,7 +1585,6 @@ class InventoryService
                     $maximumStock,
                 ]
             );
-
         });
     }
 
@@ -3048,6 +3132,10 @@ class InventoryService
                         [
                             'MEDICAMENTO_APLICACION',
                             'VACUNACION',
+                            'DESPARASITACION',
+                            'CONSULTA_INSUMO',
+                            'CIRUGIA_INSUMO',
+                            'HOSPITALIZACION_INSUMO',
                         ],
                         true
                     )
@@ -3071,13 +3159,29 @@ class InventoryService
                         $referenceId,
                         $environmentId
                     );
-                } else {
+                } elseif ($referenceType === 'VACUNACION') {
                     $this->assertVaccineProductMatch(
                         $db,
                         $productId,
                         $referenceId,
                         $environmentId
                     );
+                } elseif ($referenceType === 'DESPARASITACION') {
+                    $this->assertDewormingProductMatch(
+                        $db,
+                        $productId,
+                        $referenceId,
+                        $environmentId
+                    );
+                }
+
+                if (in_array($referenceType, ['CONSULTA_INSUMO', 'CIRUGIA_INSUMO', 'HOSPITALIZACION_INSUMO'], true)) {
+                    $this->assertClinicalSupplyEvent($db, $referenceType, $referenceId, $environmentId);
+                    if ($referenceType === 'HOSPITALIZACION_INSUMO') {
+                        $state = $db->prepare("SELECT eh.codigo FROM hospitalizaciones h JOIN estados_hospitalizacion eh ON eh.id=h.estado_hospitalizacion_id WHERE h.evento_clinico_id=? FOR UPDATE");
+                        $state->execute([$referenceId]);
+                        if ($state->fetchColumn() !== 'ACTIVA') throw new RuntimeException('La hospitalización no está activa.');
+                    }
                 }
 
                 $stmt = $db->prepare(
@@ -3140,6 +3244,84 @@ class InventoryService
                 );
             }
         );
+    }
+
+    private function assertDewormingProductMatch(
+        PDO $db,
+        int $productId,
+        int $dewormingId,
+        int $environmentId
+    ): void {
+        $stmt = $db->prepare("
+        SELECT p.id
+        FROM desparasitaciones d
+
+        INNER JOIN eventos_clinicos ec
+            ON ec.id = d.evento_clinico_id
+
+        INNER JOIN animales a
+            ON a.id = ec.animal_id
+
+        INNER JOIN farmaco_presentaciones fp
+            ON fp.farmaco_id = d.farmaco_id
+
+        INNER JOIN productos p
+            ON p.farmaco_presentacion_id = fp.id
+
+        WHERE d.id = ?
+          AND p.id = ?
+          AND a.entorno_id = ?
+          AND a.deleted_at IS NULL
+          AND ec.anulado_at IS NULL
+          AND fp.activo = 1
+          AND p.activo = 1
+          AND p.deleted_at IS NULL
+          AND (
+              p.entorno_id IS NULL
+              OR p.entorno_id = a.entorno_id
+          )
+
+        LIMIT 1
+        FOR UPDATE
+    ");
+
+        $stmt->execute([
+            $dewormingId,
+            $productId,
+            $environmentId,
+        ]);
+
+        if (!$stmt->fetchColumn()) {
+            throw new RuntimeException(
+                'El producto físico no corresponde al fármaco '
+                    . 'seleccionado para la desparasitación.'
+            );
+        }
+    }
+
+    private function assertClinicalSupplyEvent(PDO $db, string $type, int $id, int $environmentId): void
+    {
+        $table = match ($type) {
+            'CONSULTA_INSUMO' => 'consultas_externas',
+            'CIRUGIA_INSUMO' => 'cirugias',
+            'HOSPITALIZACION_INSUMO' => 'hospitalizaciones',
+            default => throw new RuntimeException('Referencia clínica inválida.'),
+        };
+        $stmt = $db->prepare("SELECT ec.id FROM eventos_clinicos ec JOIN {$table} c ON c.evento_clinico_id=ec.id JOIN animales a ON a.id=ec.animal_id WHERE ec.id=? AND a.entorno_id=? AND a.deleted_at IS NULL AND ec.anulado_at IS NULL FOR UPDATE");
+        $stmt->execute([$id, $environmentId]);
+        if (!$stmt->fetchColumn()) throw new RuntimeException('Evento clínico inexistente, anulado o fuera del entorno.');
+    }
+
+    public function reverseClinicalSupply(string $type, int $eventId, int $movementId, int $environmentId, int $userId, string $reason): int
+    {
+        if (trim($reason) === '') throw new RuntimeException('Indique el motivo del reverso.');
+        return Database::transaction(function (PDO $db) use ($type, $eventId, $movementId, $environmentId, $userId, $reason): int {
+            $this->assertClinicalSupplyEvent($db, $type, $eventId, $environmentId);
+            $stmt = $db->prepare("SELECT mi.id FROM movimientos_inventario mi JOIN inventarios i ON i.id=mi.inventario_id JOIN tipos_movimiento_inventario tm ON tm.id=mi.tipo_movimiento_id WHERE mi.id=? AND mi.referencia_tipo=? AND mi.referencia_id=? AND i.entorno_id=? AND tm.codigo='CONSUMO_CLINICO' FOR UPDATE");
+            $stmt->execute([$movementId, $type, $eventId, $environmentId]);
+            if (!$stmt->fetchColumn()) throw new RuntimeException('Consumo no pertenece al evento.');
+            return $this->reverseMovement($movementId, $environmentId, $userId, $reason);
+        });
     }
 
     private function assertMedicationProductMatch(
@@ -3360,6 +3542,13 @@ class InventoryService
                 ) {
                     throw new RuntimeException(
                         'El movimiento no pertenece al entorno actual.'
+                    );
+                }
+
+                if ($original['tipo_codigo'] === 'CONSUMO_CLINICO') {
+                    ClinicalBillingService::assertNotBilled(
+                        $db,
+                        $movementId
                     );
                 }
 
@@ -4134,6 +4323,7 @@ class InventoryService
                         [
                             'MEDICAMENTO_APLICACION',
                             'VACUNACION',
+                            'DESPARASITACION',
                         ],
                         true
                     )

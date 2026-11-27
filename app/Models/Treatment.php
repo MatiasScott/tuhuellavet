@@ -19,6 +19,9 @@ class Treatment extends Model
                 t.fecha_fin,
                 t.instrucciones_generales,
                 t.observaciones,
+                t.anulado_at,
+                t.anulado_por,
+                t.motivo_anulacion,
                 tt.codigo
                     AS tipo_codigo,
                 tt.nombre

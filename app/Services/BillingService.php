@@ -24,6 +24,57 @@ class BillingService
      *      descuento
      * - Cada detalle conserva un snapshot tributario.
      */
+    public function assignFiscalData(int $saleId, int $fiscalId, int $env, int $by, bool $consumerFinal = false): void
+    {
+        if (min($saleId, $env, $by) <= 0 || (!$consumerFinal && $fiscalId <= 0) || ($consumerFinal && $fiscalId !== 0)) {
+            throw new RuntimeException('Datos de asignación inválidos.');
+        }
+        Database::transaction(function (PDO $db) use ($saleId, $fiscalId, $env, $by, $consumerFinal): void {
+            $q = $db->prepare('SELECT v.* FROM ventas v JOIN entornos e ON e.id=v.entorno_id WHERE v.id=? AND v.entorno_id=? AND e.activo=1 AND e.deleted_at IS NULL AND e.es_productivo=1 AND e.permite_facturacion_real=1 FOR UPDATE');
+            $q->execute([$saleId, $env]);
+            $sale = $q->fetch(PDO::FETCH_ASSOC);
+            if (!$sale || $sale['estado'] !== 'FINALIZADA' || (int)$sale['es_simulada'] !== 0) {
+                throw new RuntimeException('Venta no disponible para asignación fiscal.');
+            }
+            $q = $db->prepare('SELECT id FROM documentos_fiscales WHERE venta_id=? FOR UPDATE');
+            $q->execute([$saleId]);
+            if ($q->fetchColumn() !== false) {
+                throw new RuntimeException('La venta ya tiene un documento fiscal.');
+            }
+            if ($consumerFinal) {
+                $before = ['datos_fiscales_id' => $sale['datos_fiscales_id'], 'consumidor_final' => (int)$sale['consumidor_final']];
+                $q = $db->prepare('UPDATE ventas SET datos_fiscales_id=NULL, consumidor_final=1 WHERE id=? AND entorno_id=?');
+                $q->execute([$saleId, $env]);
+                (new AuditService())->log($by, $env, 'facturacion', 'ASIGNAR_DATOS_FISCALES', 'ventas', $saleId, $before, ['datos_fiscales_id' => null, 'consumidor_final' => 1]);
+                return;
+            }
+            $q = $db->prepare("SELECT pe.id FROM propietarios_datos_fiscales f JOIN propietarios p ON p.id=f.propietario_id JOIN propietarios_entornos pe ON pe.propietario_id=p.id JOIN tipos_identificacion t ON t.id=f.tipo_identificacion_id WHERE f.id=? AND pe.entorno_id=? AND f.activo=1 AND p.activo=1 AND p.deleted_at IS NULL AND pe.activo=1 AND t.codigo IN ('CEDULA','RUC','PASAPORTE') FOR UPDATE");
+            $q->execute([$fiscalId, $env]);
+            $owners = $q->fetchAll(PDO::FETCH_COLUMN);
+            if (count($owners) !== 1) {
+                throw new RuntimeException('Datos fiscales no disponibles en este entorno.');
+            }
+            $owner = (int)$owners[0];
+            if ($sale['animal_id'] !== null) {
+                $this->validatePatient($db, (int)$sale['animal_id'], $env, $owner);
+            }
+            $before = ['propietario_entorno_id' => $sale['propietario_entorno_id'], 'datos_fiscales_id' => $sale['datos_fiscales_id'], 'consumidor_final' => (int)$sale['consumidor_final']];
+            $after = ['propietario_entorno_id' => $owner, 'datos_fiscales_id' => $fiscalId, 'consumidor_final' => 0];
+            if ((int)$before['propietario_entorno_id'] === $owner && (int)$before['datos_fiscales_id'] === $fiscalId && !$before['consumidor_final']) return;
+            $q = $db->prepare('UPDATE ventas SET propietario_entorno_id=?, datos_fiscales_id=?, consumidor_final=0 WHERE id=? AND entorno_id=?');
+            $q->execute([$owner, $fiscalId, $saleId, $env]);
+            (new AuditService())->log($by, $env, 'facturacion', 'ASIGNAR_DATOS_FISCALES', 'ventas', $saleId, $before, $after);
+        });
+    }
+
+    public static function parseConsumerFinal(mixed $value): bool
+    {
+        if (!in_array($value, ['0', '1', 0, 1], true)) {
+            throw new RuntimeException('Modalidad fiscal inválida.');
+        }
+        return (string)$value === '1';
+    }
+
     public function createSale(
         array $data,
         int $env,
@@ -104,6 +155,13 @@ class BillingService
                     );
                 }
 
+                $consumerFinal = self::parseConsumerFinal($data['consumidor_final'] ?? '0');
+                if ($consumerFinal && (empty($environment['es_productivo']) || empty($environment['permite_facturacion_real']))) {
+                    throw new RuntimeException('Consumidor final no disponible en este entorno.');
+                }
+                if ($consumerFinal && $fiscalDataId !== null) {
+                    throw new RuntimeException('Selecciona una sola modalidad fiscal.');
+                }
                 if ($fiscalDataId !== null) {
                     if ($ownerEnvironmentId === null) {
                         throw new RuntimeException(
@@ -126,6 +184,9 @@ class BillingService
 
                 $preparedLines = [];
 
+                $clinicalBilling = new ClinicalBillingService();
+                $usedClinicalMovements = [];
+
                 $subtotal = 0.00;
                 $discount = 0.00;
                 $tax = 0.00;
@@ -135,6 +196,55 @@ class BillingService
 
                     if (!is_array($line)) {
                         continue;
+                    }
+
+                    $clinicalMovement = null;
+                    $clinicalMovementId = null;
+
+                    if (
+                        isset($line['consumo_clinico_id'])
+                        && $line['consumo_clinico_id'] !== ''
+                    ) {
+                        $clinicalMovementId = filter_var(
+                            $line['consumo_clinico_id'],
+                            FILTER_VALIDATE_INT,
+                            ['options' => ['min_range' => 1]]
+                        );
+
+                        if ($clinicalMovementId === false) {
+                            throw new RuntimeException(
+                                'Consumo clínico no válido.'
+                            );
+                        }
+
+                        if (isset($usedClinicalMovements[$clinicalMovementId])) {
+                            throw new RuntimeException(
+                                'No puedes facturar dos veces el mismo consumo clínico.'
+                            );
+                        }
+
+                        if (
+                            !empty($line['servicio_id'])
+                            || !empty($line['producto_id'])
+                            || !empty($line['inventario_id'])
+                        ) {
+                            throw new RuntimeException(
+                                'El consumo clínico no puede combinarse con otro origen.'
+                            );
+                        }
+
+                        $clinicalMovement = $clinicalBilling->lockAvailable(
+                            $db,
+                            $clinicalMovementId,
+                            $env,
+                            $animalId,
+                            $ownerEnvironmentId
+                        );
+
+                        $usedClinicalMovements[$clinicalMovementId] = true;
+
+                        $line['producto_id'] = (int) $clinicalMovement['producto_id'];
+                        $line['cantidad'] = $clinicalMovement['cantidad'];
                     }
 
                     /*
@@ -192,7 +302,32 @@ class BillingService
                     |--------------------------------------------------------------------------
                     */
 
-                    if ($productId !== null) {
+                    $inventoryId = null;
+
+                    if ($clinicalMovement !== null) {
+                        $inventoryId = (int) $clinicalMovement['inventario_id'];
+
+                        $item = $this->product(
+                            $db,
+                            (int) $clinicalMovement['producto_id']
+                        );
+                    } elseif ($productId !== null) {
+                        $rawInventory = $line['inventario_id'] ?? null;
+                        if ($rawInventory === null || $rawInventory === '') {
+                            // Compatibilidad con llamadas existentes: solo si hay un único origen habilitado.
+                            $origins = $db->prepare('SELECT ip.inventario_id FROM inventario_productos ip JOIN inventarios i ON i.id=ip.inventario_id WHERE ip.producto_id=? AND ip.activo=1 AND i.activo=1 AND i.entorno_id=? ORDER BY ip.inventario_id FOR UPDATE');
+                            $origins->execute([$productId, $env]);
+                            $ids = $origins->fetchAll(PDO::FETCH_COLUMN);
+                            if (count($ids) !== 1) {
+                                throw new RuntimeException('Selecciona el inventario de salida del producto.');
+                            }
+                            $inventoryId = (int) $ids[0];
+                        } else {
+                            $inventoryId = filter_var($rawInventory, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+                            if ($inventoryId === false) {
+                                throw new RuntimeException('Inventario de salida no válido.');
+                            }
+                        }
                         $item = $this->product(
                             $db,
                             $productId
@@ -371,6 +506,7 @@ class BillingService
 
                         'producto_id'
                         => $productId,
+                        'inventario_id' => $inventoryId,
 
                         'impuesto_tarifa_id'
                         => (int) $item['impuesto_tarifa_id'],
@@ -410,6 +546,9 @@ class BillingService
 
                         'total'
                         => $lineTotal,
+
+                        'consumo_clinico_id'
+                        => $clinicalMovementId,
                     ];
 
                     /*
@@ -498,6 +637,7 @@ class BillingService
                         propietario_entorno_id,
                         animal_id,
                         datos_fiscales_id,
+                        consumidor_final,
                         fecha,
                         subtotal,
                         descuento,
@@ -515,6 +655,7 @@ class BillingService
                         :propietario,
                         :animal,
                         :datos_fiscales,
+                        :consumidor_final,
                         NOW(),
                         :subtotal,
                         :descuento,
@@ -544,6 +685,7 @@ class BillingService
 
                     'datos_fiscales'
                     => $fiscalDataId,
+                    'consumidor_final' => (int)$consumerFinal,
 
                     'subtotal'
                     => $subtotal,
@@ -677,6 +819,18 @@ class BillingService
                         'total'
                         => $line['total'],
                     ]);
+
+                    $detailId = (int) $db->lastInsertId();
+
+                    if ($line['consumo_clinico_id'] !== null) {
+                        $clinicalBilling->link(
+                            $db,
+                            $detailId,
+                            (int) $line['consumo_clinico_id'],
+                            (float) $line['cantidad'],
+                            $by
+                        );
+                    }
                 }
 
                 /*
@@ -691,7 +845,10 @@ class BillingService
                 */
 
                 foreach ($preparedLines as $line) {
-                    if ($line['producto_id'] === null) {
+                    if (
+                        $line['producto_id'] === null
+                        || $line['consumo_clinico_id'] !== null
+                    ) {
                         continue;
                     }
 
@@ -701,7 +858,8 @@ class BillingService
                         (float) $line['cantidad'],
                         $env,
                         $saleId,
-                        $by
+                        $by,
+                        $line['inventario_id']
                     );
                 }
 
@@ -744,6 +902,7 @@ class BillingService
 
                         'es_simulada'
                         => $simulated,
+                        'consumidor_final' => (int)$consumerFinal,
                     ]
                 );
 
@@ -1448,6 +1607,9 @@ class BillingService
 |--------------------------------------------------------------------------
 */
 
+                if (!empty($saleRow['consumidor_final'])) {
+                    throw new RuntimeException('Emisión de consumidor final pendiente de habilitación fiscal.');
+                }
                 $fiscalDataId = (int) (
                     $saleRow['datos_fiscales_id']
                     ?? 0
@@ -1959,10 +2121,10 @@ class BillingService
 
 
             /*
-        |--------------------------------------------------------------------------
-        | 2. No permitir anular si existen pagos vigentes
-        |--------------------------------------------------------------------------
-        */
+            |--------------------------------------------------------------------------
+            | 2. No permitir anular si existen pagos vigentes
+            |--------------------------------------------------------------------------
+            */
 
             $stmt = $db->prepare(
                 'SELECT
@@ -2213,10 +2375,10 @@ class BillingService
 
 
             /*
-        |--------------------------------------------------------------------------
-        | 7. Marcar venta como ANULADA
-        |--------------------------------------------------------------------------
-        */
+            |--------------------------------------------------------------------------
+            | 7. Marcar venta como ANULADA
+            |--------------------------------------------------------------------------
+            */
 
             $stmt = $db->prepare(
                 'UPDATE ventas
@@ -2236,12 +2398,20 @@ class BillingService
                 'entorno' => $environmentId,
             ]);
 
+            (new ClinicalBillingService())->releaseSale(
+                $db,
+                $saleId,
+                $environmentId,
+                $cancelledBy,
+                $reason
+            );
+
 
             /*
-        |--------------------------------------------------------------------------
-        | 8. Auditoría
-        |--------------------------------------------------------------------------
-        */
+            |--------------------------------------------------------------------------
+            | 8. Auditoría
+            |--------------------------------------------------------------------------
+            */
 
             (new AuditService())->log(
                 $cancelledBy,
@@ -2557,7 +2727,8 @@ class BillingService
         float $quantity,
         int $env,
         int $saleId,
-        int $by
+        int $by,
+        int $inventoryId
     ): void {
         $quantity = round($quantity, 4);
 
@@ -2579,7 +2750,8 @@ class BillingService
                 $quantity,
                 $env,
                 $saleId,
-                $by
+                $by,
+                $inventoryId
             );
 
             return;
@@ -2591,7 +2763,8 @@ class BillingService
             $quantity,
             $env,
             $saleId,
-            $by
+            $by,
+            $inventoryId
         );
     }
 
@@ -2669,7 +2842,8 @@ class BillingService
         float $quantity,
         int $env,
         int $saleId,
-        int $by
+        int $by,
+        int $inventoryId
     ): void {
         /*
          * Bloqueamos las filas inventario_producto del producto.
@@ -2687,6 +2861,7 @@ class BillingService
                 ON i.id = ip.inventario_id
 
             WHERE i.entorno_id = :entorno
+              AND i.id = :inventario
               AND i.activo = 1
               AND ip.producto_id = :producto
               AND ip.activo = 1
@@ -2699,6 +2874,7 @@ class BillingService
 
         $lock->execute([
             'entorno' => $env,
+            'inventario' => $inventoryId,
             'producto' => (int) $product['id'],
         ]);
 
@@ -2759,6 +2935,7 @@ class BillingService
                AND lp.producto_id = mi.producto_id
 
             WHERE i.entorno_id = :entorno
+              AND i.id = :inventario
               AND i.activo = 1
               AND mi.producto_id = :producto
               AND mi.lote_id IS NOT NULL
@@ -2789,6 +2966,7 @@ class BillingService
 
         $stmt->execute([
             'entorno' => $env,
+            'inventario' => $inventoryId,
             'producto' => (int) $product['id'],
         ]);
 
@@ -2877,7 +3055,8 @@ class BillingService
         float $quantity,
         int $env,
         int $saleId,
-        int $by
+        int $by,
+        int $inventoryId
     ): void {
         /*
          * Igual que en FEFO, bloqueamos la relación
@@ -2895,6 +3074,7 @@ class BillingService
                 ON i.id = ip.inventario_id
 
             WHERE i.entorno_id = :entorno
+              AND i.id = :inventario
               AND i.activo = 1
               AND ip.producto_id = :producto
               AND ip.activo = 1
@@ -2907,6 +3087,7 @@ class BillingService
 
         $lock->execute([
             'entorno' => $env,
+            'inventario' => $inventoryId,
             'producto' => (int) $product['id'],
         ]);
 
@@ -2953,6 +3134,7 @@ class BillingService
                AND ip.activo = 1
 
             WHERE i.entorno_id = :entorno
+              AND i.id = :inventario
               AND i.activo = 1
               AND mi.producto_id = :producto
 
@@ -2968,6 +3150,7 @@ class BillingService
 
         $stmt->execute([
             'entorno' => $env,
+            'inventario' => $inventoryId,
             'producto' => (int) $product['id'],
         ]);
 

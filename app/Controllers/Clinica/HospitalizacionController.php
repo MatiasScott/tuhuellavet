@@ -16,6 +16,23 @@ use Throwable;
 
 class HospitalizacionController extends Controller
 {
+    public function supplies(Request $r, string $id): void
+    {
+        $this->go($r, function () use ($r, $id): void {
+            $service = new \App\Services\InventoryService();
+            if ($r->input('revertir_id')) {
+                $service->reverseClinicalSupply('HOSPITALIZACION_INSUMO', (int)$id, (int)$r->input('revertir_id'), active_environment_id(), auth_id(), (string)$r->input('motivo'));
+                return;
+            }
+            $data = $r->input('inventario_consumo', []);
+            if (!is_array($data) || empty($data['inventario_id'])) throw new \RuntimeException('Seleccione inventario y producto.');
+            $data['referencia_tipo'] = 'HOSPITALIZACION_INSUMO';
+            $data['referencia_id'] = (int)$id;
+            $data['cantidad'] = $data['cantidad_consumida'] ?? null;
+            $service->consumeClinical($data, active_environment_id(), auth_id());
+        }, '/hospitalizaciones/' . (int)$id . '#insumos', 'Inventario actualizado.');
+    }
+
     public function index(Request $r): void
     {
         $q = trim((string)$r->input('q', ''));
@@ -75,11 +92,38 @@ class HospitalizacionController extends Controller
                         $r->input('unidad_id'),
                         $r->input('observaciones'),
                         active_environment_id(),
-                        auth_id()
+                        auth_id(),
+                        $r->input('inventario_consumo')
                     );
             },
             '/hospitalizaciones/' . $id,
             'Aplicación registrada correctamente.'
+        );
+    }
+
+    public function cancelTreatment(
+        Request $r,
+        string $id,
+        string $treatmentId
+    ): void {
+        $this->go(
+            $r,
+            function () use (
+                $r,
+                $id,
+                $treatmentId
+            ): void {
+                (new TreatmentService())
+                    ->cancelTreatment(
+                        (int)$treatmentId,
+                        (int)$id,
+                        trim((string)$r->input('motivo')),
+                        active_environment_id(),
+                        auth_id()
+                    );
+            },
+            '/hospitalizaciones/' . $id . '#tratamientos',
+            'Tratamiento anulado correctamente.'
         );
     }
 

@@ -51,61 +51,117 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const movementLotHelp = document.getElementById("movement-lot-help");
 
-  function updateMovementLots() {
-    if (!movementProduct || !movementLot) {
+  const origin = document.getElementById("movement-origin");
+  const destination = document.getElementById("movement-destination");
+  const movementType = document.getElementById("movement-type");
+  const movementQuantity = document.getElementById("movement-quantity");
+  const balance = document.getElementById("movement-balance");
+  const balances = JSON.parse(
+    document.getElementById("movement-balances")?.textContent || "[]",
+  );
+  const fmt = (n) =>
+    Number(n.toFixed(4)).toLocaleString("es-EC", { maximumFractionDigits: 4 });
+  function available(inventory, product, lot = null) {
+    return balances.reduce(
+      (sum, row) =>
+        sum +
+        (String(row.inventario_id) === inventory &&
+        String(row.producto_id) === product &&
+        (lot === null || String(row.lote_id) === lot)
+          ? Number(row.stock)
+          : 0),
+      0,
+    );
+  }
+  function updateMovement(resetLot = false) {
+    if (
+      !origin ||
+      !destination ||
+      !movementType ||
+      !movementProduct ||
+      !movementLot
+    )
+      return;
+    const transfer = movementType.value === "transfer";
+    const outgoing =
+      transfer || movementType.selectedOptions[0]?.dataset.factor === "-1";
+    const product = movementProduct.value;
+    const selected = movementProduct.selectedOptions[0];
+    const controls =
+      selected?.dataset.controlsLot === "1" ||
+      selected?.dataset.controlsExpiration === "1";
+    document.getElementById("movement-origin-label").textContent = transfer
+      ? "Inventario de origen *"
+      : "Inventario *";
+    document.getElementById("movement-destination-field").hidden = !transfer;
+    destination.disabled = !transfer;
+    destination.required = transfer;
+    for (const option of destination.options) {
+      option.disabled = !!option.value && option.value === origin.value;
+      option.hidden = option.disabled;
+    }
+    if (destination.value === origin.value) destination.value = "";
+    if (resetLot) movementLot.value = "";
+    for (const option of movementLot.options) {
+      if (!option.value) continue;
+      const valid =
+        option.dataset.productId === product &&
+        (!outgoing || available(origin.value, product, option.value) > 0);
+      option.hidden = !valid;
+      option.disabled = !valid;
+    }
+    if (movementLot.selectedOptions[0]?.disabled) movementLot.value = "";
+    movementLotField.hidden = !controls;
+    movementLot.disabled = !controls;
+    movementLot.required = controls;
+    if (movementLotHelp)
+      movementLotHelp.textContent = controls
+        ? "Seleccione un lote del producto. Las salidas muestran lotes con saldo en origen."
+        : "";
+    const lot = controls && movementLot.value ? movementLot.value : null;
+    const source = available(origin.value, product, lot);
+    const qty = Number(movementQuantity.value);
+    const ready = !!product && (!controls || !!lot);
+    movementQuantity.setCustomValidity(
+      outgoing && ready && qty > source + 0.0000001
+        ? "Stock insuficiente en origen."
+        : "",
+    );
+    if (!product) {
+      balance.textContent =
+        "Seleccione un producto para consultar existencias.";
       return;
     }
-
-    const productId = movementProduct.value;
-
-    const selectedProduct =
-      movementProduct.options[movementProduct.selectedIndex];
-
-    const controlsLot = selectedProduct?.dataset.controlsLot === "1";
-
-    let visibleOptions = 0;
-
-    Array.from(movementLot.options).forEach(function (option) {
-      if (!option.value) {
-        option.hidden = false;
-        return;
-      }
-
-      const belongsToProduct = option.dataset.productId === productId;
-
-      option.hidden = !belongsToProduct;
-
-      if (belongsToProduct) {
-        visibleOptions++;
-      }
-    });
-
-    movementLot.value = "";
-
-    if (movementLotField) {
-      movementLotField.hidden = !controlsLot;
+    let text = "Stock en origen: " + fmt(source);
+    if (transfer && destination.value) {
+      const target = available(destination.value, product, lot);
+      text += " · Stock en destino: " + fmt(target);
+      if (ready && qty > 0 && qty <= source + 0.0000001)
+        text +=
+          " · Después: origen " +
+          fmt(source - qty) +
+          ", destino " +
+          fmt(target + qty);
     }
-
-    movementLot.disabled = !controlsLot;
-    movementLot.required = controlsLot;
-
-    if (movementLotHelp) {
-      if (!controlsLot) {
-        movementLotHelp.textContent = "Este producto no controla lotes.";
-      } else if (visibleOptions === 0) {
-        movementLotHelp.textContent =
-          "El producto controla lotes, pero no tiene lotes disponibles.";
-      } else {
-        movementLotHelp.textContent =
-          "Seleccione el lote correspondiente al movimiento.";
-      }
-    }
+    balance.textContent =
+      text + " (saldo al cargar la página; se valida al guardar).";
   }
-
-  if (movementProduct && movementLot) {
-    movementProduct.addEventListener("change", updateMovementLots);
-
-    updateMovementLots();
+  if (
+    origin &&
+    movementType &&
+    movementProduct &&
+    movementLot &&
+    movementQuantity &&
+    destination
+  ) {
+    [origin, movementType, movementProduct].forEach((el) =>
+      el.addEventListener("change", () => updateMovement(true)),
+    );
+    [destination, movementLot].forEach((el) =>
+      el.addEventListener("change", () => updateMovement()),
+    );
+    movementQuantity.addEventListener("input", () => updateMovement());
+    updateMovement(true);
   }
 
   /*
@@ -544,6 +600,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
   document.querySelectorAll("[data-product-edit]").forEach(function (button) {
     button.addEventListener("click", function () {
+      const vaccineSelect = document.getElementById("edit-product-vaccine");
+
+      const drugSelect = document.getElementById("edit-product-drug");
+
+      if (vaccineSelect) {
+        vaccineSelect.value =
+          button.dataset.vaccineId === "0"
+            ? ""
+            : button.dataset.vaccineId || "";
+      }
+
+      if (drugSelect) {
+        drugSelect.value =
+          button.dataset.drugPresentationId === "0"
+            ? ""
+            : button.dataset.drugPresentationId || "";
+      }
+
       if (!editModal || !editForm) {
         return;
       }

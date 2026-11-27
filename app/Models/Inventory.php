@@ -128,6 +128,28 @@ class Inventory extends Model
 
         return $s->fetchAll();
     }
+    public function movementBalances(int $e): array
+    {
+        $stmt = $this->db->prepare('SELECT mi.inventario_id, mi.producto_id, mi.lote_id,
+            SUM(tm.factor * mi.cantidad) AS stock
+            FROM movimientos_inventario mi
+            JOIN inventarios i ON i.id = mi.inventario_id
+            JOIN productos p ON p.id = mi.producto_id
+            JOIN tipos_movimiento_inventario tm ON tm.id = mi.tipo_movimiento_id
+            WHERE i.entorno_id = :e AND i.activo = 1
+              AND p.entorno_id IS NULL AND p.activo = 1 AND p.deleted_at IS NULL
+            GROUP BY mi.inventario_id, mi.producto_id, mi.lote_id');
+        $stmt->execute(['e' => $e]);
+        return $stmt->fetchAll();
+    }
+
+    public function clinicalSupplies(int $environmentId, string $type, int $eventId): array
+    {
+        $stmt = $this->db->prepare("SELECT mi.id, mi.cantidad, p.nombre AS producto, i.nombre AS inventario, lp.numero_lote, EXISTS(SELECT 1 FROM movimientos_inventario r WHERE r.referencia_tipo='REVERSO_INVENTARIO' AND r.referencia_id=mi.id) AS revertido FROM movimientos_inventario mi JOIN inventarios i ON i.id=mi.inventario_id JOIN productos p ON p.id=mi.producto_id JOIN tipos_movimiento_inventario tm ON tm.id=mi.tipo_movimiento_id LEFT JOIN lotes_producto lp ON lp.id=mi.lote_id WHERE i.entorno_id=? AND mi.referencia_tipo=? AND mi.referencia_id=? AND tm.codigo='CONSUMO_CLINICO' ORDER BY mi.id DESC");
+        $stmt->execute([$environmentId, $type, $eventId]);
+        return $stmt->fetchAll();
+    }
+
     public function movements(int $e): array
     {
         $s = $this->db->prepare('SELECT mi.*,i.nombre AS inventario,p.nombre AS producto,tm.nombre AS tipo,tm.factor,lp.numero_lote,CONCAT(u.nombres," ",u.apellidos) AS usuario FROM movimientos_inventario mi JOIN inventarios i ON i.id=mi.inventario_id JOIN productos p ON p.id=mi.producto_id JOIN tipos_movimiento_inventario tm ON tm.id=mi.tipo_movimiento_id LEFT JOIN lotes_producto lp ON lp.id=mi.lote_id JOIN usuarios u ON u.id=mi.realizado_por WHERE i.entorno_id=:e ORDER BY mi.fecha_movimiento DESC LIMIT 250');

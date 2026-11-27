@@ -321,6 +321,37 @@ class IContaService
         return null;
     }
 
+    /** Read-only preflight; does not enable invoice generation. */
+    public function consultConsumerFinal(): array
+    {
+        $record = $this->findPersonByIdentification('9999999999999');
+        return self::validateConsumerFinalRecord($record);
+    }
+
+    public static function validateConsumerFinalRecord(?array $record): array
+    {
+        $person = $record['persona'] ?? [];
+        $type = $record['tipoIdentificacion'] ?? [];
+        $client = $record['cliente'] ?? [];
+        if (($record['sF_ExisteError'] ?? null) !== false
+            || ($person['identificacion'] ?? '') !== '9999999999999'
+            || ($person['codigoTipoIdentificacion'] ?? '') !== 'X'
+            || ($person['activo'] ?? null) !== true
+            || ($person['esNatural'] ?? null) !== false
+            || ($record['esCliente'] ?? null) !== true
+            || ($client['codigoEstado'] ?? '') !== 'A'
+            || ($type['codigo'] ?? '') !== 'X'
+            || ($type['codigoSRI'] ?? '') !== '07'
+            || ($type['activo'] ?? null) !== true
+            || ($type['esConsumidorFinal'] ?? null) !== true
+            || ($type['idConsumidorFinal'] ?? '') !== '9999999999999'
+            || (int)($person['idPersona'] ?? 0) <= 0
+            || (int)($client['id'] ?? 0) <= 0) {
+            throw new RuntimeException('Consumidor final no confirmado como cliente activo en iConta.');
+        }
+        return ['idPersona' => (int)$person['idPersona'], 'idCliente' => (int)$client['id'], 'identificacion' => '9999999999999', 'codigo' => 'X'];
+    }
+
     public function ensurePerson(
         int $fiscalDataId
     ): array {

@@ -355,4 +355,97 @@ document.addEventListener("DOMContentLoaded", () => {
 
     reindexMedications();
   }
+
+  (function () {
+    const container = document.getElementById("hospital-medications-container");
+
+    if (!container) return;
+
+    function filterPresentations(row) {
+      const drug = row.querySelector('[data-medication-field="farmaco_id"]');
+
+      const presentation = row.querySelector(
+        '[data-medication-field="presentacion_id"]',
+      );
+
+      if (!drug || !presentation) return;
+
+      const selected = presentation.value;
+
+      Array.from(presentation.options).forEach((option) => {
+        if (!option.value) {
+          option.hidden = false;
+          option.disabled = false;
+          return;
+        }
+
+        const matches =
+          drug.value !== "" && option.dataset.farmacoId === drug.value;
+
+        option.hidden = !matches;
+        option.disabled = !matches;
+      });
+
+      const valid = Array.from(presentation.options).some(
+        (option) => option.value === selected && !option.disabled,
+      );
+
+      presentation.value = valid ? selected : "";
+
+      presentation.disabled = !drug.value;
+    }
+
+    function refreshRows() {
+      container
+        .querySelectorAll("[data-medication-row]")
+        .forEach(filterPresentations);
+    }
+
+    container.addEventListener("change", function (event) {
+      if (!event.target.matches('[data-medication-field="farmaco_id"]')) {
+        return;
+      }
+
+      const row = event.target.closest("[data-medication-row]");
+
+      if (row) {
+        filterPresentations(row);
+      }
+    });
+
+    const observer = new MutationObserver(refreshRows);
+
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+    });
+
+    refreshRows();
+  })();
+
+  (function () {
+    const form = document.getElementById("cancel-treatment-form");
+
+    if (!form) return;
+
+    const reason = document.getElementById("cancel-treatment-reason");
+
+    document.querySelectorAll("[data-cancel-treatment]").forEach((button) => {
+      button.addEventListener("click", function () {
+        const treatmentId = button.dataset.cancelTreatment;
+
+        if (!/^[1-9]\d*$/.test(treatmentId)) {
+          return;
+        }
+
+        form.action =
+          form.dataset.actionBase.replace(/\/$/, "") +
+          "/" +
+          treatmentId +
+          "/anular";
+
+        reason.value = "";
+      });
+    });
+  })();
 });

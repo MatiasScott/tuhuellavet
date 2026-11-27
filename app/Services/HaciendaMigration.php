@@ -17,26 +17,30 @@ class HaciendaMigration
         foreach (['metodo_identificacion' => 'VARCHAR(150) NULL', 'origen' => 'VARCHAR(150) NULL'] as $name => $definition) {
             $this->column($db, 'animales', $name, $definition);
         }
-        foreach ([
-            'sonido' => 'VARCHAR(100) NULL',
-            'ritmo_cardiaco' => 'VARCHAR(100) NULL',
-            'mucosas' => 'VARCHAR(100) NULL',
-            'llenado_capilar' => 'TEXT NULL',
-            'retorno_pliegue_cutaneo' => 'TEXT NULL',
-            'deshidratacion' => 'TEXT NULL',
-            'presion_arterial' => 'TEXT NULL',
-            'saturacion_oxigeno' => 'TEXT NULL',
-        ] as $name => $definition) {
+        foreach (
+            [
+                'sonido' => 'VARCHAR(100) NULL',
+                'ritmo_cardiaco' => 'VARCHAR(100) NULL',
+                'mucosas' => 'VARCHAR(100) NULL',
+                'llenado_capilar' => 'TEXT NULL',
+                'retorno_pliegue_cutaneo' => 'TEXT NULL',
+                'deshidratacion' => 'TEXT NULL',
+                'presion_arterial' => 'TEXT NULL',
+                'saturacion_oxigeno' => 'TEXT NULL',
+            ] as $name => $definition
+        ) {
             $this->column($db, 'examenes_clinicos_generales', $name, $definition);
             $this->column($db, 'hospitalizacion_signos', $name, $definition);
         }
         $this->column($db, 'productos', 'entorno_id', 'BIGINT UNSIGNED NULL');
-        foreach ([
-            'precio_venta' => 'DECIMAL(14,4) NULL',
-            'costo_compra' => 'DECIMAL(14,4) NULL',
-            'precio_incluye_impuesto' => 'BOOLEAN NOT NULL DEFAULT FALSE',
-            'impuesto_tarifa_id' => 'BIGINT UNSIGNED NULL',
-        ] as $name => $definition) {
+        foreach (
+            [
+                'precio_venta' => 'DECIMAL(14,4) NULL',
+                'costo_compra' => 'DECIMAL(14,4) NULL',
+                'precio_incluye_impuesto' => 'BOOLEAN NOT NULL DEFAULT FALSE',
+                'impuesto_tarifa_id' => 'BIGINT UNSIGNED NULL',
+            ] as $name => $definition
+        ) {
             $this->column($db, 'productos', $name, $definition);
         }
         $this->constraint($db, 'productos', 'fk_producto_entorno', 'FOREIGN KEY (entorno_id) REFERENCES entornos(id)');
@@ -64,14 +68,21 @@ class HaciendaMigration
         }
 
         $permissions = new PermissionService();
-        foreach (['LOTES_ANIMALES' => 'Lotes animales', 'PRODUCCION' => 'Produccion', 'GENEALOGIA' => 'Genealogia', 'ALIMENTACION' => 'Alimentacion'] as $code => $name) {
-            $permissions->registerModule($code, $name, ['VER', 'CREAR', 'EDITAR']);
+
+        foreach (
+            [
+                'LOTES_ANIMALES' => 'Lotes animales',
+                'PRODUCCION' => 'Produccion',
+                'GENEALOGIA' => 'Genealogia',
+                'ALIMENTACION' => 'Alimentacion',
+            ] as $code => $name
+        ) {
+            $permissions->registerModule(
+                $code,
+                $name,
+                ['VER', 'CREAR', 'EDITAR']
+            );
         }
-        $db->exec("INSERT IGNORE INTO rol_permisos (rol_id, permiso_id)
-            SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
-            JOIN modulos m ON m.id=p.modulo_id
-            WHERE r.codigo IN ('ADMINISTRADOR','SUPER_ADMINISTRADOR')
-              AND m.codigo IN ('LOTES_ANIMALES','PRODUCCION','GENEALOGIA','ALIMENTACION')");
     }
 
     private function column(PDO $db, string $table, string $name, string $definition): void

@@ -1,4 +1,8 @@
 <?php
+$quantity = static function ($value): string {
+    $value = (string) $value;
+    return str_contains($value, '.') ? rtrim(rtrim($value, '0'), '.') : $value;
+};
 $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
     ? 'movimientos'
     : 'productos';
@@ -414,12 +418,12 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
         </div>
         <form
             method="POST"
-            action="<?= url('/inventario/movimientos') ?>">
+            id="movement-form" action="<?= url('/inventario/movimientos') ?>">
             <?= csrf_field() ?>
             <div class="form-grid">
                 <label>
-                    <span>Inventario *</span>
-                    <select name="inventario_id" required>
+                    <span id="movement-origin-label">Inventario *</span>
+                    <select name="inventario_id" id="movement-origin" required>
                         <?php foreach ($inventories as $inventory): ?>
                             <option value="<?= (int) $inventory['id'] ?>">
                                 <?= e($inventory['nombre']) ?>
@@ -449,24 +453,39 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                 <label>
                     <span>Tipo de movimiento *</span>
                     <select
-                        name="tipo_movimiento_id"
+                        name="tipo_movimiento_id" id="movement-type"
                         required>
                         <?php foreach ($movementTypes as $type): ?>
-                            <option value="<?= (int) $type['id'] ?>">
+                            <?php if (!in_array($type['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_POSITIVO', 'AJUSTE_NEGATIVO', 'CONSUMO_CLINICO'], true)) continue; ?>
+                            <option data-factor="<?= in_array($type['codigo'], ['SALIDA', 'AJUSTE_NEGATIVO', 'CONSUMO_CLINICO'], true) ? -1 : 1 ?>" value="<?= (int) $type['id'] ?>">
                                 <?= e($type['nombre']) ?>
                             </option>
                         <?php endforeach; ?>
+                        <option value="transfer">Transferencia entre inventarios</option>
                     </select>
                 </label>
                 <label>
                     <span>Cantidad *</span>
                     <input
                         type="number"
-                        name="cantidad"
+                        name="cantidad" id="movement-quantity"
                         min="0.0001"
                         step="0.0001"
                         required>
                 </label>
+                <label id="movement-destination-field" hidden>
+                    <span>Inventario de destino *</span>
+                    <select name="inventario_destino_id" id="movement-destination" disabled>
+                        <option value="">Seleccione destino</option>
+                        <?php foreach ($inventories as $inventory): ?>
+                            <option value="<?= (int) $inventory['id'] ?>"><?= e($inventory['nombre']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <div class="field-full movement-balance" id="movement-balance" aria-live="polite"></div>
+                <script type="application/json" id="movement-balances">
+                    <?= json_encode($movementBalances ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) ?>
+                </script>
                 <!-- Selector de lote -->
                 <label
                     class="field-full"
@@ -549,7 +568,7 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                                     <?= e($movement['tipo']) ?>
                                 </td>
                                 <td>
-                                    <?= e($movement['cantidad']) ?>
+                                    <?= e($quantity($movement['cantidad'])) ?>
                                 </td>
                                 <td>
                                     <?= e($movement['usuario']) ?>
@@ -607,6 +626,10 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                                 <?php endforeach; ?>
                             </select>
                         </label>
+                        <?php
+                        $clinicalPrefix = 'create';
+                        require APP_PATH . '/Views/inventario/clinical_product_fields.php';
+                        ?>
                         <label class="field-full">
                             <span>Descripción</span>
                             <textarea name="descripcion" rows="3" placeholder="Descripción opcional del producto"></textarea>
@@ -755,9 +778,9 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                                     <td><?= e($item['codigo'] ?? '') ?></td>
                                     <td><strong><?= e($item['producto'] ?? '') ?></strong></td>
                                     <td><?= e($item['inventario'] ?? '') ?></td>
-                                    <td><strong><?= e((string)($item['stock'] ?? '0')) ?> <?= e($item['simbolo'] ?? '') ?></strong></td>
-                                    <td><?= $item['stock_minimo'] !== null ? e((string)$item['stock_minimo']) : '—' ?></td>
-                                    <td><?= $item['stock_maximo'] !== null ? e((string)$item['stock_maximo']) : 'Sin límite' ?></td>
+                                    <td><strong><?= e($quantity($item['stock'] ?? '0')) ?> <?= e($item['simbolo'] ?? '') ?></strong></td>
+                                    <td><?= $item['stock_minimo'] !== null ? e($quantity($item['stock_minimo'])) : '—' ?></td>
+                                    <td><?= $item['stock_maximo'] !== null ? e($quantity($item['stock_maximo'])) : 'Sin límite' ?></td>
                                     <td>
                                         <?php if ($isLowStock): ?>
                                             <span class="inventory-status inventory-status--warning">Stock bajo</span>
@@ -898,6 +921,12 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
 
                         </select>
                     </label>
+
+
+                    <?php
+                    $clinicalPrefix = 'edit';
+                    require APP_PATH . '/Views/inventario/clinical_product_fields.php';
+                    ?>
 
 
                     <label>
@@ -1064,7 +1093,9 @@ $activeTab = ($_GET['tab'] ?? 'productos') === 'movimientos'
                     <button
                         type="button"
                         class="btn btn-secondary"
-                        data-product-edit-close>
+                        data-product-edit-close
+                        data-vaccine-id="<?= (int)($product['vacuna_id'] ?? 0) ?>"
+                        data-drug-presentation-id="<?= (int)($product['farmaco_presentacion_id'] ?? 0) ?>">
 
                         Cancelar
 

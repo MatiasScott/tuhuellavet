@@ -330,6 +330,16 @@ $router->post(
     [HospitalizacionController::class, 'cancelApplication'],
     ['auth', 'environment', 'permission:tratamientos.editar']
 );
+$router->post(
+    '/hospitalizaciones/{id}/tratamientos/{treatmentId}/anular',
+    [HospitalizacionController::class, 'cancelTreatment'],
+    ['auth', 'environment', 'permission:tratamientos.editar']
+);
+
+$router->post(
+    '/hospitalizaciones/{id}/insumos',
+    [HospitalizacionController::class, 'supplies'],
+    ['auth', 'environment', 'permission:hospitalizacion.editar']);
 
 // Cirugía
 $router->get(
@@ -530,6 +540,11 @@ $router->post(
     ['auth', 'environment', 'permission:ventas.crear']
 );
 $router->post(
+    '/facturacion/{id}/datos-fiscales',
+    [FacturacionController::class, 'assignFiscal'],
+    ['auth', 'environment', 'permission:facturacion.facturar']
+);
+$router->post(
     '/facturacion/{id}/emitir',
     [FacturacionController::class, 'invoice'],
     ['auth', 'environment', 'permission:facturacion.facturar']
@@ -599,3 +614,6 @@ $router->post(
     [NotificacionController::class, 'process'],
     ['auth', 'environment', 'permission:notificaciones.editar']
 );
+
+$router->post('/consultas/{id}/insumos', [ConsultaController::class, 'supplies'], ['auth', 'environment', 'permission:consultas.editar']);
+$router->post('/cirugias/{id}/insumos', [CirugiaController::class, 'supplies'], ['auth', 'environment', 'permission:cirugias.editar']);

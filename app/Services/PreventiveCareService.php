@@ -553,6 +553,46 @@ class PreventiveCareService
                         ->lastInsertId();
 
                 /*
+ * Consumo físico de inventario por desparasitación.
+ */
+                if (array_key_exists('inventario_consumo', $data)) {
+                    $consumption = $data['inventario_consumo'];
+
+                    if (!is_array($consumption)) {
+                        throw new RuntimeException(
+                            'Los datos del consumo de inventario no son válidos.'
+                        );
+                    }
+
+                    (new InventoryService())->consumeClinical(
+                        [
+                            'inventario_id' =>
+                            $consumption['inventario_id'] ?? null,
+
+                            'producto_id' =>
+                            $consumption['producto_id'] ?? null,
+
+                            'lote_id' =>
+                            $consumption['lote_id'] ?? null,
+
+                            'cantidad' =>
+                            $consumption['cantidad_consumida'] ?? null,
+
+                            'referencia_tipo' =>
+                            'DESPARASITACION',
+
+                            'referencia_id' =>
+                            $dewormingId,
+
+                            'observaciones' =>
+                            'Consumo automático por desparasitación',
+                        ],
+                        $environmentId,
+                        $createdBy
+                    );
+                }
+
+                /*
                  * Según requisito original,
                  * en Desparasitación se puede
                  * actualizar el peso.
@@ -1513,6 +1553,50 @@ class PreventiveCareService
                     );
                 }
 
+                /*
+                * No cambiar el fármaco de un consumo físico vigente.
+                */
+                if ($drugId !== (int)$current['farmaco_id']) {
+                    $stockStmt = $db->prepare("
+                        SELECT mi.id
+                        FROM movimientos_inventario mi
+
+                        INNER JOIN tipos_movimiento_inventario tm
+                            ON tm.id = mi.tipo_movimiento_id
+
+                        INNER JOIN inventarios i
+                            ON i.id = mi.inventario_id
+
+                        WHERE mi.referencia_tipo = 'DESPARASITACION'
+                        AND mi.referencia_id = ?
+                        AND tm.codigo = 'CONSUMO_CLINICO'
+                        AND i.entorno_id = ?
+
+                        AND NOT EXISTS (
+                            SELECT 1
+                            FROM movimientos_inventario rev
+                            WHERE rev.referencia_tipo = 'REVERSO_INVENTARIO'
+                                AND rev.referencia_id = mi.id
+                        )
+
+                        LIMIT 1
+                        FOR UPDATE
+                    ");
+
+                    $stockStmt->execute([
+                        $dewormingId,
+                        $environmentId,
+                    ]);
+
+                    if ($stockStmt->fetchColumn()) {
+                        throw new RuntimeException(
+                            'No puedes cambiar el fármaco de una '
+                                . 'desparasitación con consumo de inventario vigente. '
+                                . 'Debes anular el registro y crearlo nuevamente.'
+                        );
+                    }
+                }
+
                 $unitId = !empty($data['unidad_dosis_id'])
                     ? (int)$data['unidad_dosis_id']
                     : null;
@@ -1800,6 +1884,17 @@ class PreventiveCareService
                         'La desparasitación ya fue anulada.'
                     );
                 }
+
+                /*
+                * Revertir el consumo físico de inventario.
+                */
+                (new InventoryService())->reverseClinicalConsumption(
+                    'DESPARASITACION',
+                    $dewormingId,
+                    $environmentId,
+                    $cancelledBy,
+                    'Anulación de desparasitación: ' . $reason
+                );
 
                 /*
                 * Cancelamos exclusivamente

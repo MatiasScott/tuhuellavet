@@ -27,13 +27,16 @@ class InventarioController extends Controller
 
             'inventories' => $inventory->inventories($environmentId),
             'stock' => $inventory->stock($environmentId),
+            'movementBalances' => $farm ? [] : $inventory->movementBalances($environmentId),
             'movements' => $inventory->movements($environmentId),
             'products' => $inventory->products(),
             'lots' => $inventory->lots($environmentId),
 
-            'movementTypes' => $farm ? array_values(array_filter($catalog->inventoryMovementTypes(), static fn (array $type): bool => in_array($type['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_ENTRADA', 'AJUSTE_SALIDA'], true))) : $catalog->inventoryMovementTypes(),
+            'movementTypes' => $farm ? array_values(array_filter($catalog->inventoryMovementTypes(), static fn(array $type): bool => in_array($type['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_POSITIVO', 'AJUSTE_NEGATIVO'], true))) : $catalog->inventoryMovementTypes(),
             'productCategories' => $catalog->productCategories(),
             'units' => $catalog->measurementUnits(),
+            'vaccines' => $farm ? [] : $catalog->vaccines(),
+            'drugPresentations' => $farm ? [] : $catalog->drugPresentations(),
             'taxRates' => $farm ? [] : $catalog->taxRates(),
 
             'success' => Session::pullFlash('success'),
@@ -138,18 +141,40 @@ class InventarioController extends Controller
         try {
             if (\App\Services\EnvironmentModules::isFarm(active_environment())) {
                 $types = (new Catalog())->inventoryMovementTypes();
-                $type = array_values(array_filter($types, static fn (array $row): bool => (int) $row['id'] === (int) $r->input('tipo_movimiento_id')));
-                if (!$type || !in_array($type[0]['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_ENTRADA', 'AJUSTE_SALIDA'], true) || $r->input('referencia_tipo') || $r->input('referencia_id')) {
+                $type = array_values(array_filter($types, static fn(array $row): bool => (int) $row['id'] === (int) $r->input('tipo_movimiento_id')));
+                if (!$type || !in_array($type[0]['codigo'], ['ENTRADA', 'SALIDA', 'AJUSTE_POSITIVO', 'AJUSTE_NEGATIVO'], true) || $r->input('referencia_tipo') || $r->input('referencia_id')) {
                     throw new \RuntimeException('Utilice movimientos operativos; los consumos se confirman desde Alimentacion.');
                 }
             }
-            (new InventoryService())->movement(
-                $r->all(),
-                active_environment_id(),
-                auth_id()
-            );
-
-            Session::flash('success', 'Movimiento registrado.');
+            $data = $r->all();
+            $service = new InventoryService();
+            if ($r->input('tipo_movimiento_id') === 'transfer') {
+                if (\App\Services\EnvironmentModules::isFarm(active_environment())) {
+                    throw new \RuntimeException('Transferencia no habilitada en este entorno.');
+                }
+                $service->transfer([
+                    'inventario_origen_id' => $data['inventario_id'] ?? null,
+                    'inventario_destino_id' => $data['inventario_destino_id'] ?? null,
+                    'producto_id' => $data['producto_id'] ?? null,
+                    'lote_id' => $data['lote_id'] ?? null,
+                    'cantidad' => $data['cantidad'] ?? null,
+                    'observaciones' => $data['observaciones'] ?? '',
+                ], active_environment_id(), auth_id());
+                Session::flash('success', 'Transferencia registrada correctamente.');
+            } else {
+                $types = (new Catalog())->inventoryMovementTypes();
+                $allowed = array_filter($types, static fn(array $type): bool =>
+                (int) $type['id'] === (int) ($data['tipo_movimiento_id'] ?? 0)
+                    && in_array($type['codigo'], \App\Services\EnvironmentModules::isFarm(active_environment())
+                        ? ['ENTRADA', 'SALIDA', 'AJUSTE_POSITIVO', 'AJUSTE_NEGATIVO']
+                        : ['ENTRADA', 'SALIDA', 'AJUSTE_POSITIVO', 'AJUSTE_NEGATIVO', 'CONSUMO_CLINICO'], true));
+                if (!$allowed) {
+                    throw new \RuntimeException('Tipo de movimiento manual no permitido.');
+                }
+                unset($data['referencia_tipo'], $data['referencia_id']);
+                $service->movement($data, active_environment_id(), auth_id());
+                Session::flash('success', 'Movimiento registrado.');
+            }
         } catch (Throwable $e) {
             Session::flash('error', $e->getMessage());
         }

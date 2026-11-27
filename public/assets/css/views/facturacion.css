@@ -395,3 +395,33 @@
 .sale-link-button:hover {
   opacity: 0.8;
 }
+
+.sale-customer { min-width: 155px; }
+.sale-customer small { display: block; color: #64748b; font-size: 12px; margin-top: 3px; }
+.sale-customer .sale-link-button { display: block; margin-top: 5px; text-align: left; }
+.sales-table td.sale-actions { display: table-cell; vertical-align: middle; white-space: nowrap; }
+.sale-more { display: inline-block; vertical-align: middle; }
+.sale-more summary { cursor: pointer; list-style: none; border: 1px solid #dce3eb; border-radius: 8px; padding: 4px 12px; font-weight: bold; }
+.sale-more summary::-webkit-details-marker { display: none; }
+.sale-more-items { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
+#sale-fiscal-assign .modal-body label { display: grid; gap: 6px; margin-bottom: 14px; }
+
+#assign-owner-search { width:100%; min-height:46px; border:1px solid #dbe3ed; border-radius:12px; padding:10px 14px; background:var(--surface, #fff); font:inherit; }
+#assign-fiscal-preview { background:#f5f7fa; border-radius:12px; padding:14px; line-height:1.6; }
+
+/* Fiscal mode and line controls */
+.sale-client-grid { align-items: start; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.sale-client-grid > label { align-self: start; align-content: start; }
+.sale-fiscal-mode { grid-column: 1/-1; display: grid; gap: 8px; border-top: 1px solid var(--border,#e2e8f0); padding-top: 12px; }
+#sale-registered-fields { display: grid; gap: 6px; }
+#sale-consumer-preview { display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--surface-soft,#f5f7fa); }
+#sale-consumer-preview small { color: var(--text-muted,#64748b); }
+#sale-registered-fields[hidden], #sale-consumer-preview[hidden], #assign-registered[hidden] { display: none !important; }
+.sale-line-top { grid-template-columns: minmax(100px,150px) minmax(0,1fr) minmax(80px,120px) minmax(80px,130px) 42px; }
+.sale-line-top input[type=number] { box-sizing: border-box; width: 100%; min-width: 0; height: 46px; border: 1px solid var(--border,#dbe3ed); border-radius: 12px; padding: 8px 10px; background: var(--surface,#fff); color: inherit; font: inherit; }
+.sale-line-remove { width: 42px; height: 46px; justify-self: end; }
+@media(max-width:900px) { .sale-line-top { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:560px) { .sale-client-grid,.sale-line-top { grid-template-columns: minmax(0,1fr); } }
+
+.sale-inventory-field:not([hidden]) { display: grid; gap: 6px; margin-top: 12px; }
+.sale-inventory-field[hidden] { display: none !important; }

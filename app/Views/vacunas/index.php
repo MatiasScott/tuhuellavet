@@ -162,6 +162,7 @@
                     <span>Peso kg</span>
                     <input type="number" step=".001" name="peso_kg">
                 </label>
+                <?php $clinicalKind = 'vaccine'; $clinicalPreferred = 'Veterinaria'; require APP_PATH . '/Views/inventario/clinical_consumption.php'; ?>
                 <label class="field-full">
                     <span>Observaciones</span>
                     <textarea name="observaciones"></textarea>

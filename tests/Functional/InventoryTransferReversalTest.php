@@ -78,12 +78,14 @@ class InventoryTransferReversalTest extends ClinicalTestCase
 
 
     private function createProduct(
-        bool $controlsLot = false
+        bool $controlsLot = false,
+        ?int $environmentId = null
     ): int {
         $stmt = $this->db()->prepare(
             '
             INSERT INTO productos
             (
+                entorno_id,
                 codigo,
                 nombre,
                 unidad_base_id,
@@ -93,6 +95,7 @@ class InventoryTransferReversalTest extends ClinicalTestCase
             )
             VALUES
             (
+                :entorno,
                 :codigo,
                 :nombre,
                 :unidad,
@@ -113,6 +116,7 @@ class InventoryTransferReversalTest extends ClinicalTestCase
             );
 
         $stmt->execute([
+            'entorno' => $environmentId,
             'codigo' =>
                 'QA_REV_TRANSFER_'
                 . $token,
@@ -747,7 +751,7 @@ class InventoryTransferReversalTest extends ClinicalTestCase
             $this->createInventory($other);
 
         $product =
-            $this->createProduct();
+            $this->createProduct(false, $other);
 
         $this->addStock(
             $source,

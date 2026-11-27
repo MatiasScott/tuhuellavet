@@ -15,6 +15,26 @@ use Throwable;
 
 class CirugiaController extends Controller
 {
+    public function supplies(Request $request, string $id): void
+    {
+        if (!Session::validateCsrf($request->input('_token'))) { http_response_code(419); return; }
+        try {
+            $service = new \App\Services\InventoryService();
+            $data = $request->input('inventario_consumo', []);
+            if ($request->input('revertir_id')) {
+                $service->reverseClinicalSupply('CIRUGIA_INSUMO', (int)$id, (int)$request->input('revertir_id'), active_environment_id(), auth_id(), (string)$request->input('motivo'));
+            } else {
+                if (!is_array($data)) throw new \RuntimeException('Consumo inválido.');
+                $data['referencia_tipo'] = 'CIRUGIA_INSUMO';
+                $data['referencia_id'] = (int)$id;
+                $data['cantidad'] = $data['cantidad_consumida'] ?? null;
+                $service->consumeClinical($data, active_environment_id(), auth_id());
+            }
+            Session::flash('success', 'Inventario actualizado.');
+        } catch (\Throwable $e) { Session::flash('error', $e->getMessage()); }
+        $this->redirect('/cirugias/' . (int)$id . '#insumos');
+    }
+
     public function index(
         Request $request
     ): void {

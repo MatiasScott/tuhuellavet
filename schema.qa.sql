@@ -1657,6 +1657,7 @@ CREATE TABLE ventas (
     propietario_entorno_id BIGINT UNSIGNED NULL,
     animal_id BIGINT UNSIGNED NULL,
     datos_fiscales_id BIGINT UNSIGNED NULL,
+    consumidor_final BOOLEAN NOT NULL DEFAULT FALSE,
     fecha DATETIME NOT NULL,
     subtotal DECIMAL(14,2) NOT NULL DEFAULT 0,
     descuento DECIMAL(14,2) NOT NULL DEFAULT 0,
@@ -2542,3 +2543,59 @@ WHERE r.codigo='DOCENTE' AND (p.codigo LIKE 'academico.%' OR p.codigo IN ('dashb
 INSERT IGNORE INTO rol_permisos (rol_id,permiso_id)
 SELECT r.id,p.id FROM roles r CROSS JOIN permisos p
 WHERE r.codigo='ESTUDIANTE' AND p.codigo IN ('academico.ver','dashboard.ver','pacientes.ver','pacientes.crear','consultas.ver','consultas.crear','hospitalizacion.ver','hospitalizacion.crear','hospitalizacion.editar','laboratorio.ver','laboratorio.crear','formulas.ver','formulas.calcular','tratamientos.ver','tratamientos.crear');
+
+CREATE TABLE IF NOT EXISTS venta_detalle_consumos_clinicos (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    venta_detalle_id BIGINT UNSIGNED NOT NULL,
+    movimiento_id BIGINT UNSIGNED NOT NULL,
+    cantidad DECIMAL(14,4) NOT NULL,
+    vinculado_por BIGINT UNSIGNED NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    liberado_at DATETIME DEFAULT NULL,
+    liberado_por BIGINT UNSIGNED DEFAULT NULL,
+    motivo_liberacion VARCHAR(500) DEFAULT NULL,
+
+    movimiento_activo_id BIGINT UNSIGNED
+        GENERATED ALWAYS AS (
+            CASE
+                WHEN liberado_at IS NULL
+                THEN movimiento_id
+                ELSE NULL
+            END
+        ) STORED,
+
+    PRIMARY KEY (id),
+
+    UNIQUE KEY uq_vdcc_movimiento_activo (
+        movimiento_activo_id
+    ),
+
+    UNIQUE KEY uq_vdcc_detalle_movimiento (
+        venta_detalle_id,
+        movimiento_id
+    ),
+
+    KEY idx_vdcc_movimiento (movimiento_id),
+
+    CONSTRAINT fk_vdcc_detalle
+        FOREIGN KEY (venta_detalle_id)
+        REFERENCES venta_detalles(id),
+
+    CONSTRAINT fk_vdcc_movimiento
+        FOREIGN KEY (movimiento_id)
+        REFERENCES movimientos_inventario(id),
+
+    CONSTRAINT fk_vdcc_vinculado_por
+        FOREIGN KEY (vinculado_por)
+        REFERENCES usuarios(id),
+
+    CONSTRAINT fk_vdcc_liberado_por
+        FOREIGN KEY (liberado_por)
+        REFERENCES usuarios(id),
+
+    CONSTRAINT chk_vdcc_cantidad
+        CHECK (cantidad > 0)
+
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci;

@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const products = readJson("sale-products-data");
   const services = readJson("sale-services-data");
+  const clinicalConsumptions = readJson("sale-clinical-consumptions-data");
 
   const owner = document.getElementById("sale-owner");
   const patient = document.getElementById("sale-patient");
@@ -117,6 +118,40 @@ document.addEventListener("DOMContentLoaded", function () {
   */
 
   function optionsFor(type) {
+    if (type === "CONSUMO_CLINICO") {
+      return clinicalConsumptions
+        .filter(
+          (consumption) =>
+            String(consumption.animal_id) === patient.value &&
+            String(consumption.propietario_entorno_id) === owner.value,
+        )
+        .map((consumption) => {
+          const product = products.find(
+            (p) => String(p.id) === String(consumption.producto_id),
+          );
+
+          const configured =
+            product &&
+            product.precio != null &&
+            product.impuesto_tarifa_id != null &&
+            product.impuesto_porcentaje != null;
+
+          return `
+          <option
+            value="${Number(consumption.id)}"
+            ${configured ? "" : "disabled"}
+          >
+            ${escapeHtml(consumption.nombre)}
+            · ${Number(consumption.cantidad)} unidades
+            · ${escapeHtml(consumption.inventario)}
+            · ${escapeHtml(consumption.fecha_movimiento)}
+            · #${Number(consumption.id)}
+          </option>
+        `;
+        })
+        .join("");
+    }
+
     const source = type === "PRODUCTO" ? products : services;
 
     return source
@@ -135,7 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!configured) {
           suffix = " · configuración pendiente";
         } else if (type === "PRODUCTO") {
-          suffix = ` · stock ${stock.toFixed(4)} ${item.unidad || ""}`;
+          suffix = ` · stock ${stock} ${item.unidad || ""}`;
         } else {
           suffix = ` · ${money(item.precio)}`;
         }
@@ -187,6 +222,12 @@ document.addEventListener("DOMContentLoaded", function () {
               ${type === "PRODUCTO" ? "selected" : ""}
             >
               Producto
+            </option>
+            <option
+              value="CONSUMO_CLINICO"
+              ${type === "CONSUMO_CLINICO" ? "selected" : ""}
+            >
+              Consumo clínico
             </option>
           </select>
         </label>
@@ -246,6 +287,10 @@ document.addEventListener("DOMContentLoaded", function () {
       </div>
 
 
+      <label class="sale-inventory-field" hidden>
+        <span>Inventario de salida *</span>
+        <select class="sale-line-inventory" name="items[${index}][inventario_id]" disabled></select>
+      </label>
       <div class="sale-line-meta">
 
         <span class="sale-line-price">
@@ -287,29 +332,76 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const remove = row.querySelector(".sale-line-remove");
 
-    function rebuildItems() {
-      item.innerHTML =
-        `
-          <option value="">
-            Seleccionar…
-          </option>
-        ` + optionsFor(type.value);
+    const inventory = row.querySelector(".sale-line-inventory");
+    function rebuildInventory() {
+      const product = type.value === "PRODUCTO";
+      const clinical = type.value === "CONSUMO_CLINICO";
 
-      /*
-       * El backend recibe exactamente uno:
-       * producto_id o servicio_id.
-       */
-      item.name =
-        type.value === "PRODUCTO"
-          ? `items[${row.dataset.index}][producto_id]`
-          : `items[${row.dataset.index}][servicio_id]`;
+      inventory.closest("label").hidden = !product;
+      inventory.disabled = !product;
+      inventory.required = product;
+
+      qty.readOnly = clinical;
+
+      if (clinical) {
+        qty.value = selectedData(row)?.cantidad_consumida || 0;
+      }
+
+      const options = product ? selectedData(row)?.inventarios || [] : [];
+
+      inventory.innerHTML =
+        '<option value="">Seleccionar inventario…</option>' +
+        options
+          .map(
+            (i) => `
+      <option
+        value="${Number(i.id)}"
+        ${Number(i.stock) <= 0 ? "disabled" : ""}
+      >
+        ${escapeHtml(i.nombre)}
+        · ${Number(i.stock)} disponibles
+      </option>
+    `,
+          )
+          .join("");
+
+      const available = options.filter((i) => Number(i.stock) > 0);
+
+      if (available.length === 1) {
+        inventory.value = String(available[0].id);
+      }
 
       updateLine(row);
     }
 
+    function rebuildItems() {
+      item.innerHTML =
+        '<option value="">Seleccionar…</option>' + optionsFor(type.value);
+
+      const field = {
+        PRODUCTO: "producto_id",
+        SERVICIO: "servicio_id",
+        CONSUMO_CLINICO: "consumo_clinico_id",
+      }[type.value];
+
+      item.name = `items[${row.dataset.index}][${field}]`;
+
+      if (type.value !== "CONSUMO_CLINICO") {
+        qty.value = "1";
+      }
+
+      rebuildInventory();
+    }
+
+    row.refreshClinicalItems = () => {
+      if (type.value === "CONSUMO_CLINICO") {
+        rebuildItems();
+      }
+    };
+
     type.addEventListener("change", rebuildItems);
 
-    item.addEventListener("change", () => updateLine(row));
+    item.addEventListener("change", rebuildInventory);
 
     qty.addEventListener("input", () => updateLine(row));
 
@@ -329,6 +421,19 @@ document.addEventListener("DOMContentLoaded", function () {
       updateSummary();
     });
 
+    function refreshClinicalLines() {
+      lines.querySelectorAll(".sale-line").forEach((row) => {
+        row.refreshClinicalItems?.();
+      });
+    }
+
+    owner?.addEventListener("change", () => {
+      filterCustomerFields();
+      refreshClinicalLines();
+    });
+
+    patient?.addEventListener("change", refreshClinicalLines);
+
     rebuildItems();
   }
 
@@ -342,6 +447,30 @@ document.addEventListener("DOMContentLoaded", function () {
     const type = row.querySelector(".sale-line-type").value;
 
     const id = Number(row.querySelector(".sale-line-item").value || 0);
+
+    if (type === "CONSUMO_CLINICO") {
+      const consumption = clinicalConsumptions.find(
+        (c) =>
+          Number(c.id) === id &&
+          String(c.animal_id) === patient.value &&
+          String(c.propietario_entorno_id) === owner.value,
+      );
+
+      if (!consumption) return null;
+
+      const product = products.find(
+        (p) => Number(p.id) === Number(consumption.producto_id),
+      );
+
+      if (!product) return null;
+
+      return {
+        ...product,
+        consumo_clinico_id: consumption.id,
+        cantidad_consumida: Number(consumption.cantidad),
+        inventario_consumo: consumption.inventario,
+      };
+    }
 
     const source = type === "PRODUCTO" ? products : services;
 
@@ -395,10 +524,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       tax = Math.round((taxable - base) * 100) / 100;
     } else {
-
-    /*
-     * Precio sin impuesto incluido
-     */
+      /*
+       * Precio sin impuesto incluido
+       */
       tax = Math.round(((base * rate) / 100) * 100) / 100;
 
       total = Math.round((base + tax) * 100) / 100;
@@ -449,12 +577,16 @@ document.addEventListener("DOMContentLoaded", function () {
     /*
      * Validación visual de stock
      */
-    const stock = number(item?.stock, 0);
+    const inventoryId = row.querySelector(".sale-line-inventory").value;
+    const stock = number(
+      item?.inventarios?.find((i) => String(i.id) === inventoryId)?.stock,
+      0,
+    );
 
     const qtyInput = row.querySelector(".sale-line-qty");
 
-    if (type === "PRODUCTO" && item && qty > stock) {
-      qtyInput.setCustomValidity(`Stock disponible: ${stock.toFixed(4)}.`);
+    if (type === "PRODUCTO" && item && inventoryId && qty > stock) {
+      qtyInput.setCustomValidity(`Stock disponible: ${String(stock)}.`);
     } else {
       qtyInput.setCustomValidity("");
     }
@@ -483,9 +615,11 @@ document.addEventListener("DOMContentLoaded", function () {
      * Stock
      */
     row.querySelector(".sale-line-stock").textContent =
-      type === "PRODUCTO" && item
-        ? `Stock: ${stock.toFixed(4)} ${item.unidad || ""}`
-        : "";
+      type === "CONSUMO_CLINICO" && item
+        ? `Consumo registrado · ${item.inventario_consumo} · Sin nueva salida`
+        : type === "PRODUCTO" && item
+          ? `Stock: ${String(stock)} ${item.unidad || ""}`
+          : "";
 
     /*
      * Total línea
@@ -587,6 +721,24 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    const selectedConsumptions = Array.from(
+      lines.querySelectorAll(".sale-line"),
+    )
+      .filter(
+        (row) =>
+          row.querySelector(".sale-line-type").value === "CONSUMO_CLINICO",
+      )
+      .map((row) => row.querySelector(".sale-line-item").value)
+      .filter(Boolean);
+
+    if (new Set(selectedConsumptions).size !== selectedConsumptions.length) {
+      event.preventDefault();
+
+      alert("No puedes facturar dos veces el mismo consumo clínico.");
+
+      return;
+    }
+
     /*
      * Validaciones HTML5:
      * cantidad, descuento, stock, etc.
@@ -618,4 +770,125 @@ document.addEventListener("DOMContentLoaded", function () {
   filterCustomerFields();
 
   addLine("SERVICIO");
+});
+
+// Asignación fiscal: un único modal reutilizable.
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("sale-fiscal-assign-form");
+  if (!form) return;
+  const owner = document.getElementById("assign-owner");
+  const fiscal = document.getElementById("assign-fiscal");
+  const search = document.getElementById("assign-owner-search");
+  const preview = document.getElementById("assign-fiscal-preview");
+  const submit = document.getElementById("assign-fiscal-submit");
+  const consumer = document.getElementById("assign-consumer");
+  const registered = document.getElementById("assign-registered");
+  const owners = Array.from(owner.options)
+    .slice(1)
+    .map((o) => o.cloneNode(true));
+  const records = Array.from(fiscal.options)
+    .slice(1)
+    .map((o) => o.cloneNode(true));
+  let lockedOwner = "";
+  const normalize = (v) =>
+    String(v || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  function showPreview() {
+    const o = fiscal.selectedOptions[0];
+    const final = consumer.value === "1";
+    registered.hidden = final;
+    fiscal.disabled = final;
+    fiscal.required = !final;
+    owner.required = !final;
+    owner.disabled = final || !!lockedOwner;
+    search.disabled = final || !!lockedOwner;
+    submit.disabled = !final && (!owner.value || !fiscal.value);
+    if (final) {
+      preview.textContent =
+        "Razón social: CONSUMIDOR FINAL\nIdentificación: 9999999999999\nEmisión pendiente de habilitación";
+      return;
+    }
+    preview.textContent = fiscal.value
+      ? [
+          "Razón social: " + o.dataset.name,
+          "Identificación: " + o.dataset.identification,
+          "Correo: " + (o.dataset.email || "—"),
+          "Dirección: " + (o.dataset.address || "—"),
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "Selecciona los datos fiscales del cliente.";
+  }
+  function filterFiscal(selected = "") {
+    fiscal.length = 1;
+    records
+      .filter((o) => o.dataset.owner === owner.value)
+      .forEach((o) => fiscal.append(o.cloneNode(true)));
+    fiscal.value = selected;
+    if (!fiscal.value)
+      fiscal.selectedIndex = fiscal.options.length === 2 ? 1 : 0;
+    showPreview();
+  }
+  function filterOwners(selected = "") {
+    owner.length = 1;
+    const q = normalize(search.value);
+    owners
+      .filter(
+        (o) =>
+          (!lockedOwner || o.value === lockedOwner) &&
+          normalize(o.textContent + " " + o.dataset.search).includes(q),
+      )
+      .forEach((o) => owner.append(o.cloneNode(true)));
+    owner.value = selected;
+    if (!owner.value) owner.selectedIndex = 0;
+  }
+  document.querySelectorAll("[data-fiscal-sale]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const d = button.dataset;
+      form.action = d.fiscalAction;
+      consumer.value = d.fiscalConsumer === "1" ? "1" : "0";
+      document.getElementById("assign-sale-number").textContent =
+        d.fiscalNumber;
+      document.getElementById("assign-sale-total").textContent = d.fiscalTotal;
+      lockedOwner = Number(d.fiscalPatient) ? d.fiscalOwner : "";
+      search.value = "";
+      search.disabled = !!lockedOwner;
+      filterOwners(d.fiscalOwner);
+      owner.disabled = !!lockedOwner;
+      filterFiscal(d.fiscalCurrent);
+    }),
+  );
+  search.addEventListener("input", () => {
+    filterOwners(owner.value);
+    filterFiscal();
+  });
+  owner.addEventListener("change", () => filterFiscal());
+  fiscal.addEventListener("change", showPreview);
+  consumer.addEventListener("change", showPreview);
+  form.addEventListener("submit", (e) => {
+    if (submit.disabled || (consumer.value !== "1" && !fiscal.value))
+      e.preventDefault();
+  });
+  document.addEventListener("click", (e) => {
+    document.querySelectorAll(".sale-more[open]").forEach((d) => {
+      if (!d.contains(e.target) || e.target.closest("[data-modal-open]"))
+        d.open = false;
+    });
+  });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const mode = document.getElementById("sale-consumer");
+  const fiscal = document.getElementById("sale-fiscal-data");
+  if (!mode || !fiscal) return;
+  const update = () => {
+    const final = mode.value === "1";
+    fiscal.disabled = final;
+    document.getElementById("sale-registered-fields").hidden = final;
+    document.getElementById("sale-consumer-preview").hidden = !final;
+  };
+  mode.addEventListener("change", update);
+  update();
 });

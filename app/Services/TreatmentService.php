@@ -223,12 +223,15 @@ class TreatmentService
                        ec.animal_id
 
                 WHERE tm.id =
-                      :medicamento
+                    :medicamento
 
-                  AND a.entorno_id =
-                      :entorno
+                AND a.entorno_id =
+                    :entorno
+
+                AND t.anulado_at IS NULL
 
                 LIMIT 1
+                FOR UPDATE
                 '
                 );
 
@@ -949,6 +952,122 @@ class TreatmentService
                             $reversalIds,
                         ]
                     );
+            }
+        );
+    }
+
+    public function cancelTreatment(
+        int $treatmentId,
+        int $eventId,
+        string $reason,
+        int $environmentId,
+        int $cancelledBy
+    ): void {
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            throw new RuntimeException(
+                'El motivo de anulación es obligatorio.'
+            );
+        }
+
+        Database::transaction(
+            function (PDO $db) use (
+                $treatmentId,
+                $eventId,
+                $reason,
+                $environmentId,
+                $cancelledBy
+            ): void {
+
+                $stmt = $db->prepare("
+                SELECT t.*
+                FROM tratamientos t
+                INNER JOIN eventos_clinicos ec
+                    ON ec.id = t.evento_clinico_id
+                INNER JOIN animales a
+                    ON a.id = ec.animal_id
+                WHERE t.id = ?
+                  AND t.evento_clinico_id = ?
+                  AND a.entorno_id = ?
+                LIMIT 1
+                FOR UPDATE
+            ");
+
+                $stmt->execute([
+                    $treatmentId,
+                    $eventId,
+                    $environmentId,
+                ]);
+
+                $before = $stmt->fetch();
+
+                if (!$before) {
+                    throw new RuntimeException(
+                        'Tratamiento no encontrado.'
+                    );
+                }
+
+                if (!empty($before['anulado_at'])) {
+                    throw new RuntimeException(
+                        'El tratamiento ya fue anulado.'
+                    );
+                }
+
+                $stmt = $db->prepare("
+                SELECT ma.id
+                FROM medicamento_aplicaciones ma
+                INNER JOIN tratamiento_medicamentos tm
+                    ON tm.id = ma.tratamiento_medicamento_id
+                WHERE tm.tratamiento_id = ?
+                  AND ma.anulado_at IS NULL
+                LIMIT 1
+                FOR UPDATE
+            ");
+
+                $stmt->execute([$treatmentId]);
+
+                if ($stmt->fetchColumn()) {
+                    throw new RuntimeException(
+                        'El tratamiento tiene aplicaciones vigentes. '
+                            . 'Debes anularlas antes de anular el tratamiento.'
+                    );
+                }
+
+                $stmt = $db->prepare("
+                UPDATE tratamientos
+                SET anulado_at = NOW(),
+                    anulado_por = ?,
+                    motivo_anulacion = ?
+                WHERE id = ?
+                  AND anulado_at IS NULL
+            ");
+
+                $stmt->execute([
+                    $cancelledBy,
+                    $reason,
+                    $treatmentId,
+                ]);
+
+                if ($stmt->rowCount() !== 1) {
+                    throw new RuntimeException(
+                        'No fue posible anular el tratamiento.'
+                    );
+                }
+
+                (new AuditService())->log(
+                    $cancelledBy,
+                    $environmentId,
+                    'TRATAMIENTOS',
+                    'ANULAR_TRATAMIENTO',
+                    'tratamientos',
+                    $treatmentId,
+                    $before,
+                    [
+                        'anulado_por' => $cancelledBy,
+                        'motivo_anulacion' => $reason,
+                    ]
+                );
             }
         );
     }

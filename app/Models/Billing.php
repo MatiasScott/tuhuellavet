@@ -16,6 +16,10 @@ class Billing extends Model
                 a.nombre AS paciente,
                 p.nombres AS propietario_nombres,
                 p.apellidos AS propietario_apellidos,
+                pdf.razon_social AS fiscal_razon_social,
+                pdf.identificacion AS fiscal_identificacion,
+                ti.nombre AS fiscal_tipo,
+                EXISTS (SELECT 1 FROM documentos_fiscales dx WHERE dx.venta_id = v.id) AS tiene_documento_fiscal,
                 COALESCE(pg.pagado, 0) AS pagado,
                 GREATEST(v.total - COALESCE(pg.pagado, 0), 0) AS saldo,
                 CASE
@@ -34,6 +38,8 @@ class Billing extends Model
                 ON pe.id = v.propietario_entorno_id
             LEFT JOIN propietarios p
                 ON p.id = pe.propietario_id
+            LEFT JOIN propietarios_datos_fiscales pdf ON pdf.id = v.datos_fiscales_id AND pdf.propietario_id = pe.propietario_id
+            LEFT JOIN tipos_identificacion ti ON ti.id = pdf.tipo_identificacion_id
             LEFT JOIN (
                 SELECT
                     venta_id,
@@ -246,7 +252,23 @@ class Billing extends Model
             'e_enabled' => $e,
             'e_stock' => $e,
         ]);
-        return $s->fetchAll();
+        $products = $s->fetchAll();
+        $stock = $this->db->prepare('SELECT ip.producto_id, i.id, i.nombre, ROUND(COALESCE(SUM(CASE WHEN p.controla_lote=1 AND (lp.id IS NULL OR (lp.fecha_vencimiento IS NOT NULL AND lp.fecha_vencimiento<CURDATE())) THEN 0 ELSE tm.factor*mi.cantidad END),0),4) AS stock
+            FROM inventario_productos ip JOIN inventarios i ON i.id=ip.inventario_id JOIN productos p ON p.id=ip.producto_id
+            LEFT JOIN movimientos_inventario mi ON mi.inventario_id=i.id AND mi.producto_id=ip.producto_id
+            LEFT JOIN tipos_movimiento_inventario tm ON tm.id=mi.tipo_movimiento_id
+            LEFT JOIN lotes_producto lp ON lp.id=mi.lote_id AND lp.producto_id=ip.producto_id
+            WHERE i.entorno_id=? AND i.activo=1 AND ip.activo=1 GROUP BY ip.producto_id,i.id,i.nombre ORDER BY i.nombre,i.id');
+        $stock->execute([$e]);
+        $byProduct = [];
+        foreach ($stock->fetchAll() as $row) {
+            $byProduct[$row['producto_id']][] = $row;
+        }
+        foreach ($products as &$product) {
+            $product['inventarios'] = $byProduct[$product['id']] ?? [];
+        }
+        unset($product);
+        return $products;
     }
 
     public function paymentMethods(): array

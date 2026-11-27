@@ -329,10 +329,26 @@ class SurgeryAdvancedFlowTest extends ClinicalTestCase
             $this->superAdminId
         );
 
+        $teamMemberId = (int) $this->scalar(
+            '
+    SELECT id
+    FROM cirugia_equipo
+    WHERE cirugia_evento_id = :cirugia
+      AND usuario_id = :usuario
+      AND funcion_id = :funcion
+    ',
+            [
+                'cirugia' => $eventId,
+                'usuario' => $this->superAdminId,
+                'funcion' => $functionId,
+            ]
+        );
+
+        $this->assertGreaterThan(0, $teamMemberId);
+
         $service->removeTeamMember(
             $eventId,
-            $this->superAdminId,
-            $functionId,
+            $teamMemberId,
             $this->vetEnvironment,
             $this->superAdminId
         );

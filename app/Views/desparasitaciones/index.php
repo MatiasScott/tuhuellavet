@@ -451,6 +451,14 @@
 
                 </label>
 
+                <?php
+                $clinicalKind = 'deworming';
+                $clinicalPreferred = 'Veterinaria';
+
+                require APP_PATH
+                    . '/Views/inventario/clinical_consumption.php';
+                ?>
+
             </div>
 
 

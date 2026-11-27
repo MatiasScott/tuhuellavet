@@ -720,3 +720,4 @@ $eventId = (int) $surgery['evento_clinico_id'];
     </div>
 </div>
 <script src="<?= url('assets/js/views/cirugias.js') ?>" defer></script>
+<?php $supplyEventId = $eventId; $supplyRoute = 'cirugias'; $supplyType = 'CIRUGIA_INSUMO'; require APP_PATH . '/Views/inventario/clinical_supplies.php'; ?>

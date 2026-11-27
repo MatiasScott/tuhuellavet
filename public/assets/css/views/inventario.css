@@ -711,3 +711,6 @@ body.modal-open {
     text-align: right;
   }
 }
+
+#movement-form [hidden] { display: none !important; }
+.movement-balance { padding: 12px 16px; border-radius: 12px; background: #f4f7fa; color: #334155; font-size: .875rem; }

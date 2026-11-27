@@ -10,6 +10,7 @@ use App\Models\Catalog;
 use App\Models\Owner;
 use App\Models\Patient;
 use App\Services\BillingService;
+use App\Services\ClinicalBillingService;
 use Throwable;
 
 class FacturacionController extends Controller
@@ -34,6 +35,7 @@ class FacturacionController extends Controller
             ),
             'patients' => (new Patient())->allByEnvironment($env),
             'products' => $billing->saleProducts($env),
+            'clinicalConsumptions' => (new ClinicalBillingService())->pending($env),
             'services' => $billing->saleServices(),
             'paymentMethods' => $billing->paymentMethods(),
             'payments' => $billing->paymentsByEnvironment($env),
@@ -106,6 +108,18 @@ class FacturacionController extends Controller
         );
     }
 
+    public function assignFiscal(Request $r, string $id): void
+    {
+        $this->go($r, function () use ($r, $id): void {
+            $consumerFinal = BillingService::parseConsumerFinal($r->input('consumidor_final', '0'));
+            $fiscal = $r->input('datos_fiscales_id', '0');
+            if (!can('ventas.ver') || !can('facturacion.facturar') || !ctype_digit($id) || !is_scalar($fiscal) || !ctype_digit((string)$fiscal)) {
+                throw new \RuntimeException('Asignación fiscal no permitida.');
+            }
+            (new BillingService())->assignFiscalData((int)$id, (int)$fiscal, active_environment_id(), auth_id(), $consumerFinal);
+        }, 'Datos fiscales asignados correctamente.');
+    }
+
     public function invoice(Request $r, string $id): void
     {
         $this->go(
@@ -151,11 +165,15 @@ class FacturacionController extends Controller
     public function downloadFiscal(Request $r, string $id, string $kind): void
     {
         if (!can('ventas.ver') || !can('facturacion.facturar') || !ctype_digit($id)) {
-            http_response_code(403); return;
+            http_response_code(403);
+            return;
         }
         $d = \App\Services\FiscalDocumentAccess::document((int)$id, (int)active_environment_id());
         $file = $d ? \App\Services\FiscalDocumentAccess::file($d, $kind) : null;
-        if (!$file) { http_response_code(404); return; }
+        if (!$file) {
+            http_response_code(404);
+            return;
+        }
         header('Content-Type: ' . $file['mime']);
         header('Content-Disposition: attachment; filename="' . $file['name'] . '"');
         header('X-Content-Type-Options: nosniff');

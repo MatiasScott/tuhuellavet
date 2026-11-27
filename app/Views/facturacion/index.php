@@ -1,4 +1,5 @@
 <?php
+$canAssignFiscal = static fn(array $s): bool => can('ventas.ver') && can('facturacion.facturar') && empty($s['es_simulada']) && $s['estado'] === 'FINALIZADA' && empty($s['tiene_documento_fiscal']);
 $money = static fn($value): string => '$' . number_format((float) $value, 2, '.', ',');
 ?>
 <link rel="stylesheet" href="<?= url('assets/css/views/facturacion.css') ?>">
@@ -57,7 +58,16 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                         <tr>
                             <td><strong><?= e($s['numero'] ?? ('#' . $s['id'])) ?></strong><?= !empty($s['es_simulada']) ? '<span class="sale-mini-tag">SIMULADA</span>' : '' ?></td>
                             <td><?= e($s['fecha']) ?></td>
-                            <td><?= e($ownerName !== '' ? $ownerName : '—') ?></td>
+                            <td class="sale-customer">
+                                <strong><?= e($ownerName !== '' ? $ownerName : (!empty($s['consumidor_final']) ? 'CONSUMIDOR FINAL' : '—')) ?></strong>
+                                <?php if (!empty($s['consumidor_final'])): ?><small><?= $ownerName !== '' ? 'Consumidor final · ' : '' ?>9999999999999</small><small>Emisión pendiente de habilitación</small><?php elseif (!empty($s['fiscal_identificacion'])): ?>
+                                    <small><?= e(($s['fiscal_tipo'] ?? '') . ' · ' . $s['fiscal_identificacion']) ?></small>
+                                    <?php if (strcasecmp(trim($s['fiscal_razon_social'] ?? ''), trim($ownerName)) !== 0): ?><small><?= e($s['fiscal_razon_social'] ?? '') ?></small><?php endif; ?>
+                                <?php else: ?><small>Sin datos fiscales</small><?php endif; ?>
+                                <?php if ($canAssignFiscal($s)): ?>
+                                    <button type="button" class="sale-link-button" data-modal-open="sale-fiscal-assign" data-fiscal-sale="<?= (int)$s['id'] ?>" data-fiscal-number="<?= e($s['numero']) ?>" data-fiscal-total="<?= e($money($s['total'])) ?>" data-fiscal-owner="<?= (int)$s['propietario_entorno_id'] ?>" data-fiscal-consumer="<?= (int)($s['consumidor_final'] ?? 0) ?>" data-fiscal-current="<?= (int)$s['datos_fiscales_id'] ?>" data-fiscal-patient="<?= (int)$s['animal_id'] ?>" data-fiscal-action="<?= e(url('/facturacion/' . (int)$s['id'] . '/datos-fiscales')) ?>"><?= empty($s['datos_fiscales_id']) && empty($s['consumidor_final']) ? 'Asignar datos fiscales' : 'Editar datos fiscales' ?></button>
+                                <?php endif; ?>
+                            </td>
                             <td><?= e($s['paciente'] ?? '—') ?></td>
                             <td><?= $money($s['subtotal']) ?></td>
                             <td><?= $money($s['descuento']) ?></td>
@@ -84,34 +94,40 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                 <?php endif; ?>
 
 
-                                <button
-                                    type="button"
-                                    class="btn btn-secondary btn-sm"
-                                    data-modal-open="payment-history-<?= (int) $s['id'] ?>">
-                                    Pagos
-                                </button>
+                                <details class="sale-more">
+                                    <summary aria-label="Más acciones">⋯</summary>
+                                    <div class="sale-more-items">
+                                        <button
+                                            type="button"
+                                            class="btn btn-secondary btn-sm"
+                                            data-modal-open="payment-history-<?= (int) $s['id'] ?>">
+                                            Pagos
+                                        </button>
 
-                                <?php if (
-                                    can('ventas.eliminar')
-                                    && $s['estado'] === 'FINALIZADA'
-                                ): ?>
+                                        <?php if (
+                                            can('ventas.eliminar')
+                                            && $s['estado'] === 'FINALIZADA'
+                                        ): ?>
 
-                                    <button
-                                        type="button"
-                                        class="btn btn-danger btn-sm"
-                                        data-modal-open="sale-cancel-<?= (int) $s['id'] ?>">
-                                        Anular
-                                    </button>
+                                            <button
+                                                type="button"
+                                                class="btn btn-danger btn-sm"
+                                                data-modal-open="sale-cancel-<?= (int) $s['id'] ?>">
+                                                Anular
+                                            </button>
 
-                                <?php endif; ?>
+                                        <?php endif; ?>
 
+                                    </div>
+                                </details>
                                 <?php if (
                                     can('facturacion.facturar')
                                     && empty($s['es_simulada'])
                                     && $s['estado'] === 'FINALIZADA'
+                                    && empty($s['consumidor_final'])
                                     && !empty($s['datos_fiscales_id'])
                                     && (float) ($s['saldo'] ?? 0) <= 0.004
-                                    && empty($s['documento_fiscal_id'])
+                                    && empty($s['tiene_documento_fiscal'])
                                 ): ?>
                                     <form
                                         method="POST"
@@ -125,16 +141,6 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                             Emitir
                                         </button>
                                     </form>
-                                <?php endif; ?>
-
-                                <?php if (
-                                    can('facturacion.facturar')
-                                    && empty($s['es_simulada'])
-                                    && $s['estado'] === 'FINALIZADA'
-                                    && empty($s['datos_fiscales_id'])
-                                    && empty($s['documento_fiscal_id'])
-                                ): ?>
-                                    <small class="text-muted">Sin datos fiscales seleccionados en la venta; no se puede emitir la factura.</small>
                                 <?php endif; ?>
 
                             </td>
@@ -228,7 +234,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                             </td>
                             <td>
                                 <?php if (can('ventas.ver') && can('facturacion.facturar')): ?>
-                                    <?php foreach (['ride'=>'archivo_pdf_id','xml'=>'archivo_xml_id'] as $kind=>$field): ?>
+                                    <?php foreach (['ride' => 'archivo_pdf_id', 'xml' => 'archivo_xml_id'] as $kind => $field): ?>
                                         <?php if (!empty($d[$field]) && $d['tipo_documento'] === 'FACTURA'): ?>
                                             <a class="btn btn-sm" href="<?= e(url('/facturacion/documentos/' . (int)$d['id'] . '/descargar/' . $kind)) ?>">Descargar <?= strtoupper($kind) ?></a>
                                         <?php endif; ?>
@@ -273,6 +279,38 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
     </section>
 </div>
 
+<div class="modal" id="sale-fiscal-assign">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-dialog payment-dialog">
+        <div class="modal-header">
+            <div><span class="eyebrow">Facturación</span>
+                <h2>Asignar datos fiscales</h2>
+                <p>Selecciona el cliente y sus datos fiscales.</p>
+            </div><button class="modal-close" type="button" data-modal-close>×</button>
+        </div>
+        <form method="POST" id="sale-fiscal-assign-form">
+            <?= csrf_field() ?>
+            <div class="modal-body">
+                <p><strong id="assign-sale-number"></strong> · <strong id="assign-sale-total"></strong></p>
+                <label><span>Modalidad fiscal</span><select name="consumidor_final" id="assign-consumer">
+                        <option value="0">Cliente registrado</option>
+                        <option value="1">Consumidor final</option>
+                    </select></label>
+                <div id="assign-registered"><label><span>Buscar cliente</span><input type="search" id="assign-owner-search" placeholder="Nombre o identificación" autocomplete="off"></label>
+                    <label><span>Cliente *</span><select id="assign-owner" required>
+                            <option value="">Seleccionar cliente</option><?php foreach ($owners as $o): ?><option value="<?= (int)$o['id'] ?>" data-search="<?= e($o['identificacion'] ?? '') ?>"><?= e(trim(($o['nombres'] ?? '') . ' ' . ($o['apellidos'] ?? ''))) ?></option><?php endforeach; ?>
+                        </select></label>
+                    <label><span>Datos fiscales *</span><select id="assign-fiscal" name="datos_fiscales_id" required>
+                            <option value="">Seleccionar datos fiscales</option><?php foreach ($fiscalData as $f): ?><option value="<?= (int)$f['id'] ?>" data-owner="<?= (int)$f['propietario_entorno_id'] ?>" data-name="<?= e($f['razon_social']) ?>" data-identification="<?= e($f['identificacion']) ?>" data-email="<?= e($f['email'] ?? '') ?>" data-address="<?= e($f['direccion'] ?? '') ?>"><?= e($f['identificacion'] . ' · ' . $f['razon_social']) ?></option><?php endforeach; ?>
+                        </select></label>
+                </div>
+                <p id="assign-fiscal-preview" class="muted" style="white-space:pre-line" aria-live="polite"></p>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-modal-close>Cancelar</button><button class="btn btn-primary" id="assign-fiscal-submit" type="submit" disabled>Guardar asignación</button></div>
+        </form>
+    </div>
+</div>
+
 <div class="modal" id="sale-create">
     <div class="modal-backdrop" data-modal-close></div>
     <div class="modal-dialog modal-xl sale-dialog">
@@ -295,7 +333,7 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                     <div class="form-grid sale-client-grid">
                         <label><span>Propietario</span>
                             <select name="propietario_entorno_id" id="sale-owner">
-                                <option value="">Consumidor / sin propietario</option>
+                                <option value="">Sin propietario asociado</option>
                                 <?php foreach ($owners as $o): ?>
                                     <option value="<?= (int)$o['id'] ?>" data-search="<?= e($o['identificacion'] ?? '') ?>"><?= e(trim(($o['nombres'] ?? '') . ' ' . ($o['apellidos'] ?? ''))) ?></option>
                                 <?php endforeach; ?>
@@ -315,41 +353,45 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
                                 <?php endforeach; ?>
                             </select>
                         </label>
-                        <label class="sale-field">
-                            <span>Datos fiscales</span>
-
-                            <select
-                                id="sale-fiscal-data"
-                                name="datos_fiscales_id">
-                                <option value="">
-                                    Sin datos fiscales seleccionados
-                                </option>
-
-                                <?php foreach (($fiscalData ?? []) as $fiscal): ?>
-
-                                    <option
-                                        value="<?= (int) $fiscal['id'] ?>"
-                                        data-owner-environment-id="<?= (int) $fiscal['propietario_entorno_id'] ?>"
-                                        data-owner-id="<?= (int) $fiscal['propietario_id'] ?>"
-                                        data-principal="<?= (int) $fiscal['es_principal'] ?>">
-                                        <?= htmlspecialchars(
-                                            (
-                                                (int) $fiscal['es_principal'] === 1
-                                                ? 'Principal · '
-                                                : ''
-                                            )
-                                                . $fiscal['identificacion']
-                                                . ' · '
-                                                . $fiscal['razon_social'],
-                                            ENT_QUOTES,
-                                            'UTF-8'
-                                        ) ?>
+                        <div class="sale-field sale-fiscal-mode">
+                            <label for="sale-consumer">Modalidad fiscal</label>
+                            <select name="consumidor_final" id="sale-consumer">
+                                <option value="0">Cliente registrado / sin datos fiscales</option>
+                                <option value="1">Consumidor final</option>
+                            </select>
+                            <div id="sale-registered-fields"><label for="sale-fiscal-data">Datos fiscales</label><select
+                                    id="sale-fiscal-data"
+                                    name="datos_fiscales_id">
+                                    <option value="">
+                                        Sin datos fiscales seleccionados
                                     </option>
 
-                                <?php endforeach; ?>
-                            </select>
-                            <small class="text-muted">Para facturar, selecciona los datos fiscales antes de guardar la venta. Consumidor final aún no está habilitado para iConta.</small>
-                        </label>
+                                    <?php foreach (($fiscalData ?? []) as $fiscal): ?>
+
+                                        <option
+                                            value="<?= (int) $fiscal['id'] ?>"
+                                            data-owner-environment-id="<?= (int) $fiscal['propietario_entorno_id'] ?>"
+                                            data-owner-id="<?= (int) $fiscal['propietario_id'] ?>"
+                                            data-principal="<?= (int) $fiscal['es_principal'] ?>">
+                                            <?= htmlspecialchars(
+                                                (
+                                                    (int) $fiscal['es_principal'] === 1
+                                                    ? 'Principal · '
+                                                    : ''
+                                                )
+                                                    . $fiscal['identificacion']
+                                                    . ' · '
+                                                    . $fiscal['razon_social'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ) ?>
+                                        </option>
+
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div id="sale-consumer-preview" hidden><strong>CONSUMIDOR FINAL</strong><small>9999999999999</small><small>Emisión pendiente de habilitación.</small></div>
+                        </div>
                     </div>
                 </section>
 
@@ -1713,3 +1755,13 @@ $money = static fn($value): string => '$' . number_format((float) $value, 2, '.'
     <script src="<?= url('/assets/js/views/propietarios-formulario.js') ?>" defer></script>
     <script src="<?= url('/assets/js/views/propietarios-ubicacion.js') ?>" defer></script>
 <?php endif; ?>
+
+<script type="application/json" id="sale-clinical-consumptions-data">
+    <?= json_encode(
+        array_values($clinicalConsumptions ?? []),
+        JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+            | JSON_HEX_TAG
+            | JSON_HEX_AMP
+    ) ?>
+</script>

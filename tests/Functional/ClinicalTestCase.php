@@ -192,6 +192,12 @@ abstract class ClinicalTestCase extends TestCase
                 => 'Paciente QA ' . uniqid(),
         ];
 
+        // Hacienda requires identification method and origin for its patients.
+        if ($environmentId !== $this->vetEnvironment) {
+            $data['metodo_identificacion'] = 'Identificacion QA';
+            $data['origen'] = 'Origen QA';
+        }
+
         if ($weight !== null) {
             $data['peso_kg'] = $weight;
         }

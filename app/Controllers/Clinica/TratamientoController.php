@@ -96,7 +96,8 @@ class TratamientoController extends Controller
 
                     active_environment_id(),
 
-                    auth_id()
+                    auth_id(),
+                    $request->input('inventario_consumo')
                 );
 
             Session::flash(

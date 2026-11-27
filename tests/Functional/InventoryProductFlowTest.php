@@ -111,23 +111,42 @@ class InventoryProductFlowTest extends ClinicalTestCase
 
     private function basicData(): array
     {
+        $stmt = $this->db()->prepare(
+            '
+        INSERT INTO inventarios
+        (
+            entorno_id,
+            nombre,
+            descripcion,
+            activo
+        )
+        VALUES
+        (
+            :entorno,
+            :nombre,
+            :descripcion,
+            1
+        )
+        '
+        );
+
+        $stmt->execute([
+            'entorno' => $this->vetEnvironment,
+            'nombre' => 'Inventario QA ' . uniqid(),
+            'descripcion' => 'Inventario temporal de pruebas',
+        ]);
+
+        $inventoryId = (int) $this->db()->lastInsertId();
+
         return [
-            'codigo' =>
-            $this->uniqueCode(),
-
-            'nombre' =>
-            'Producto QA '
-                . uniqid(),
-
-            'descripcion' =>
-            'Producto temporal de pruebas',
-
-            'unidad_base_id' =>
-            $this->activeUnitId(),
-
+            'codigo' => $this->uniqueCode(),
+            'nombre' => 'Producto QA ' . uniqid(),
+            'descripcion' => 'Producto temporal de pruebas',
+            'unidad_base_id' => $this->activeUnitId(),
+            'inventario_id' => $inventoryId,
             'controla_lote' => 0,
-
             'controla_vencimiento' => 0,
+            'stock_maximo_sin_limite' => 1,
         ];
     }
 
@@ -552,6 +571,17 @@ class InventoryProductFlowTest extends ClinicalTestCase
         $data['controla_lote'] = 1;
 
         $data['controla_vencimiento'] = 1;
+
+        $data['numero_lote'] = $this->uniqueCode('QA_LOTE');
+
+        $data['fecha_fabricacion'] = date('Y-m-d');
+
+        $data['fecha_vencimiento'] = date(
+            'Y-m-d',
+            strtotime('+1 year')
+        );
+
+        $data['cantidad_inicial'] = '0';
 
         $productId = (
             new InventoryService()

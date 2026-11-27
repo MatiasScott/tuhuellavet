@@ -76,57 +76,51 @@ class InventoryReversalFlowTest extends ClinicalTestCase
 
     private function createProduct(
         bool $controlsLot = false,
-        bool $controlsExpiration = false
+        bool $controlsExpiration = false,
+        ?int $environmentId = null
     ): int {
         $stmt = $this->db()->prepare(
             '
-            INSERT INTO productos
-            (
-                codigo,
-                nombre,
-                unidad_base_id,
-                controla_lote,
-                controla_vencimiento,
-                activo
-            )
-            VALUES
-            (
-                :codigo,
-                :nombre,
-                :unidad,
-                :lote,
-                :vencimiento,
-                1
-            )
-            '
+        INSERT INTO productos
+        (
+            entorno_id,
+            codigo,
+            nombre,
+            unidad_base_id,
+            controla_lote,
+            controla_vencimiento,
+            activo
+        )
+        VALUES
+        (
+            :entorno,
+            :codigo,
+            :nombre,
+            :unidad,
+            :lote,
+            :vencimiento,
+            1
+        )
+        '
         );
 
         $stmt->execute([
-            'codigo' =>
-            'QA_REV_'
-                . strtoupper(
-                    str_replace(
-                        '.',
-                        '',
-                        uniqid('', true)
-                    )
-                ),
+            'entorno' => $environmentId,
 
-            'nombre' =>
-            'Producto reverso QA '
-                . uniqid(),
+            'codigo' => 'QA_REV_' . strtoupper(
+                str_replace('.', '', uniqid('', true))
+            ),
 
-            'unidad' =>
-            $this->unitId(),
+            'nombre' => 'Producto reverso QA ' . uniqid(),
 
-            'lote' =>
-            $controlsLot ? 1 : 0,
-            'vencimiento' =>
-            $controlsExpiration ? 1 : 0,
+            'unidad' => $this->unitId(),
+
+            'lote' => $controlsLot ? 1 : 0,
+
+            'vencimiento' => $controlsExpiration ? 1 : 0,
         ]);
 
-        return (int)
-        $this->db()->lastInsertId();
+        return (int) $this->db()->lastInsertId();
     }
 
     private function createLot(
@@ -727,8 +721,11 @@ class InventoryReversalFlowTest extends ClinicalTestCase
             $this->db()
                 ->lastInsertId();
 
-        $product =
-            $this->createProduct();
+        $product = $this->createProduct(
+            false,
+            false,
+            $otherEnvironment
+        );
 
         $movementId =
             (new InventoryService())

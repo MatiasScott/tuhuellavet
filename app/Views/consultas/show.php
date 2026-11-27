@@ -982,6 +982,7 @@
                             <?php endforeach; ?>
                         </select>
                     </label>
+                    <?php $clinicalKind = 'medication'; $clinicalPreferred = 'Veterinaria'; require APP_PATH . '/Views/inventario/clinical_consumption.php'; ?>
                     <label class="field-full">
                         <span>
                             Observaciones
@@ -1067,3 +1068,4 @@
                 'js/views/tratamientos.js'
             ) ?>">
 </script>
+<?php $supplyEventId = (int)$consultation['evento_id']; $supplyRoute = 'consultas'; $supplyType = 'CONSULTA_INSUMO'; require APP_PATH . '/Views/inventario/clinical_supplies.php'; ?>
