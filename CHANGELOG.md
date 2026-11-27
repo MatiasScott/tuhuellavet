@@ -1,5 +1,33 @@
 # Historial de cambios - Axxis / Tu Huella Vet
 
+## [1.57.1] - 2026-11-27
+
+### Corregido
+
+- Activación automática del consumo directo de insumos clínicos.
+- Eliminación de la casilla redundante de descuento de inventario.
+- Identificación de productos que no requieren control de lote.
+- Conservación del consumo opcional en medicamentos, vacunas y desparasitaciones.
+
+### Mejorado
+
+- Presentación de insumos clínicos registrados.
+- Visualización de cantidades sin ceros decimales innecesarios.
+- Identificación del inventario, lote y estado del consumo.
+- Presentación del formulario de reversión con motivo obligatorio.
+
+### Validaciones
+
+- Consumo y reversión de insumos con y sin lote en consultas, cirugías y hospitalizaciones.
+- Conservación del inventario y lote originales durante las reversiones.
+- Impacto neto de inventario igual a cero en las pruebas realizadas.
+- PHPUnit: 1179 pruebas, 6089 aserciones, cero errores, cero fallos y una prueba omitida por limitaciones de Windows.
+- Validación de sintaxis PHP, JavaScript y git diff --check.
+
+### Base de datos
+
+- No requiere migraciones adicionales respecto a v1.57.0.
+
 ## [1.57.0] - 2026-11-27
 
 ### Facturación

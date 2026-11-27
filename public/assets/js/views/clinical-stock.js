@@ -104,8 +104,12 @@ document.querySelectorAll("[data-clinical-stock]").forEach((root) => {
       lot.selectedIndex = 0;
     }
 
-    lot.required = controlled;
+    lot.required = enable.checked && controlled;
     lot.disabled = !enable.checked || !controlled;
+
+    if (product.value && !controlled) {
+      lot.replaceChildren(new Option("No requiere lote", ""));
+    }
 
     const stock = matching.reduce((sum, row) => sum + Number(row.stock), 0);
 

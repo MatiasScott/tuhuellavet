@@ -6,7 +6,7 @@ $clinicalProducts = array_column($clinicalInventory->products(), null, 'id');
 $clinicalLots = array_column($clinicalInventory->lots($clinicalEnv), null, 'id');
 $clinicalInventories = array_column($clinicalInventory->inventories($clinicalEnv), null, 'id');
 $clinicalPreferred = $clinicalPreferred ?? 'Veterinaria';
-
+$clinicalRequired = $clinicalKind === 'supply';
 $clinicalDrugPresentations = [];
 
 if ($clinicalKind === 'deworming') {
@@ -22,8 +22,29 @@ if ($clinicalKind === 'deworming') {
     data-clinical-stock
     data-clinical-kind="<?= e($clinicalKind) ?>">
     <legend>Consumo de inventario</legend>
-    <label><span>Descontar insumo del inventario</span><input type="checkbox" data-stock-enable></label>
-    <div class="form-grid" data-stock-fields hidden>
+    <?php if ($clinicalRequired): ?>
+
+        <input
+            type="checkbox"
+            data-stock-enable
+            checked
+            hidden
+            aria-hidden="true"
+            tabindex="-1">
+
+    <?php else: ?>
+
+        <label>
+            <span>Descontar insumo del inventario</span>
+            <input type="checkbox" data-stock-enable>
+        </label>
+
+    <?php endif; ?>
+
+    <div
+        class="form-grid"
+        data-stock-fields
+        <?= $clinicalRequired ? '' : 'hidden' ?>>
         <label class="field-full"><span>Inventario de salida *</span>
             <select name="inventario_consumo[inventario_id]" data-stock-origin disabled required>
                 <option value="">Seleccionar inventario</option>
